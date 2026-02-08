@@ -1,0 +1,20 @@
+import * as process from 'process';
+import { config } from 'dotenv';
+
+config();
+
+export const Envs = {
+  database: {
+    host: process.env.PG_HOST,
+    port: Number(process.env.PG_PORT),
+    database: process.env.PG_DATABASE,
+    username: process.env.PG_USERNAME,
+    password: process.env.PG_PASSWORD,
+  },
+  tBank: {},
+  ton: {
+    walletAddress: String(process.env.TON_WALLET_ADDRESS),
+    endpointUrl: String(process.env.TON_ENDPOINT_URL),
+    endpointApiKey: String(process.env.TON_ENDPOINT_TON_APIKEY),
+  },
+};

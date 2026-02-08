@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: passimx-vpn-postgres
+    restart: always
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${PG_DATABASE}
+      POSTGRES_USER: ${PG_USERNAME}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    command: -p ${PG_PORT}
+    expose:
+      - ${PG_PORT}
+    ports:
+      - ${PG_PORT}:${PG_PORT}
