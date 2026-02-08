@@ -53,6 +53,7 @@ export class TonService {
               createdAt: transaction.now * 1000,
             } as unknown as TransactionEntity;
           } catch (error) {
+            console.log(error);
             return undefined as unknown as TransactionEntity;
           }
         }),
