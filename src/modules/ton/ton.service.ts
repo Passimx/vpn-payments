@@ -31,9 +31,9 @@ export class TonService {
           try {
             let userId: string | undefined = undefined;
             const message = extractComment(transaction);
-            const payload =
-              parseJetton(transaction, address) ??
-              parsePureTon(transaction, address);
+            const payload = parsePureTon(transaction, address);
+
+            if (!payload) return undefined;
 
             if (message?.length) {
               const userEntity = await this.em.findOne(UserEntity, {
@@ -44,7 +44,7 @@ export class TonService {
 
             return {
               id: transaction.lt,
-              amount: payload!.amount,
+              amount: payload.amount,
               currency: payload?.currency,
               message,
               type: payload?.type,
@@ -63,54 +63,10 @@ export class TonService {
         transaction &&
         (!transactionEntity ||
           transaction.createdAt > transactionEntity?.createdAt),
-    );
+    ) as unknown as TransactionEntity;
 
     await this.em.insert(TransactionEntity, transactionEntities);
   }
-}
-
-const JETTON_TRANSFER = 0xf8a7ea5;
-
-function findJettonTransfer(tx: Transaction) {
-  const messages = [
-    tx.inMessage,
-    ...Array.from(tx.outMessages.values()),
-  ].filter(Boolean);
-
-  for (const msg of messages) {
-    if (msg?.info.type !== 'internal' || !msg.body) continue;
-
-    const slice = msg.body.beginParse();
-    if (slice.remainingBits < 32) continue;
-
-    const opcode = slice.loadUint(32);
-    if (opcode === JETTON_TRANSFER) {
-      return { msg, slice };
-    }
-  }
-
-  return null;
-}
-
-function parseJetton(tx: Transaction, myAddress: Address) {
-  const found = findJettonTransfer(tx);
-  if (!found) return null;
-
-  const { slice } = found;
-
-  slice.loadUintBig(64); // query_id
-
-  const amount = slice.loadCoins(); // bigint
-  slice.loadAddress();
-  const to = slice.loadAddress();
-
-  const type = to.equals(myAddress) ? 'Credit' : 'Debit';
-
-  return {
-    currency: 'USDT',
-    type,
-    amount: Number(amount) / 1e6, // USDT decimals
-  };
 }
 
 function parsePureTon(tx: Transaction, myAddress: Address) {
@@ -170,56 +126,14 @@ function readTonComment(msg?: Message | null): string | null {
 
 function extractComment(tx: Transaction): string | null {
   // 1️⃣ входящее сообщение
-  let comment = readJettonComment(tx.inMessage);
-  if (comment) return comment;
-
-  comment = readTonComment(tx.inMessage);
+  let comment = readTonComment(tx.inMessage);
   if (comment) return comment;
 
   // 2️⃣ исходящие сообщения
   for (const [, msg] of tx.outMessages) {
-    comment = readJettonComment(msg);
-    if (comment) return comment;
-
     comment = readTonComment(msg);
     if (comment) return comment;
   }
 
   return null;
-}
-
-function readJettonComment(msg?: Message | null): string | null {
-  if (!msg?.body || msg.info.type !== 'internal') return null;
-
-  const slice = msg.body.beginParse();
-  if (slice.remainingBits < 32) return null;
-
-  if (slice.loadUint(32) !== JETTON_TRANSFER) return null;
-
-  slice.loadUintBig(64); // query_id
-  slice.loadCoins(); // jetton amount
-  slice.loadAddress(); // destination
-  slice.loadAddress(); // response_destination
-
-  // custom_payload
-  if (slice.loadBit()) {
-    slice.loadRef(); // обычно пусто
-  }
-
-  slice.loadCoins(); // forward_ton_amount
-
-  // forward_payload
-  const isRef = slice.loadBit();
-  const payload = isRef ? slice.loadRef().beginParse() : slice;
-
-  if (payload.remainingBits < 32) return null;
-
-  const op = payload.loadUint(32);
-  if (op !== 0) return null;
-
-  return payload
-    .loadBuffer(payload.remainingBits / 8)
-    .toString('utf8')
-    .replace(/^\n+|\n+$/g, '')
-    .trim();
 }
