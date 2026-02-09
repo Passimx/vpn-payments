@@ -99,7 +99,8 @@ export class TransactionsService {
     try {
       const response = await fetch(
         `https://api.coingecko.com/api/v3/coins/the-open-network/history?date=${date}&localization=false`,
-      );
+      ).catch(() => {});
+      if (!response) return;
 
       const payload = (await response.json()) as TonPriceType;
       return payload.market_data?.current_price;
@@ -112,7 +113,8 @@ export class TransactionsService {
     try {
       const response = await fetch(
         `https://api.coingecko.com/api/v3/coins/tether/history?date=${date}&localization=false`,
-      );
+      ).catch(() => {});
+      if (!response) return;
 
       const payload = (await response.json()) as TonPriceType;
       return payload?.market_data?.current_price;

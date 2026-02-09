@@ -27,7 +27,7 @@ export class ScheduleService {
     await this.transactionsService.scanExchange();
   }
 
-  @Cron('*/3 * * * * *')
+  @Cron('*/10 * * * * *')
   async scanUserTransactions() {
     await this.transactionsService.scanUserTransactions();
   }

@@ -21,9 +21,15 @@ export class TonService {
     });
 
     const address = Address.parse(Envs.ton.walletAddress);
-    const transactions = await client.getTransactions(address, {
-      limit: 500,
-    });
+    const transactions = await client
+      .getTransactions(address, {
+        limit: 500,
+      })
+      .catch(() => {
+        console.log('Error while getting transactions.');
+      });
+
+    if (!transactions || !transactions.length) return;
 
     const transactionEntities = (
       await Promise.all(

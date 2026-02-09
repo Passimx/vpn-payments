@@ -3,7 +3,7 @@ import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { TransactionResponseType } from './types/transaction-response.type';
 import { TBankEntity } from '../database/entities/t-bank.entity';
-import { HeadersInit } from 'undici-types/fetch';
+import { SessionInfoType } from './types/session-info.type';
 
 const appName = 'supreme';
 const appVersion = 'release-2.47.185-repeat-10e75457';
@@ -55,7 +55,7 @@ export class TBankService {
     const response = await fetch(
       `https://www.tbank.ru/api/common/v1/operations?appName=${appName}&appVersion=${appVersion}&sessionid=${this.tBankEntity?.sessionId}&start=${start}`,
       {
-        headers: this.getHeaders() as unknown as { accept: string },
+        headers: this.getHeaders(),
         method: 'GET',
       },
     );
@@ -67,6 +67,18 @@ export class TBankService {
     console.log('403');
   }
 
+  private async getSessionInfo() {
+    const response = await fetch(
+      `https://www.tbank.ru/api/common/v1/session_status?appName=${appName}&appVersion=${appVersion}&origin=web%2Cib5%2Cplatform&sessionid=${this.tBankEntity?.sessionId}&wuid=${this.tBankEntity?.wuid}`,
+      {
+        headers: this.getHeaders(),
+        method: 'GET',
+      },
+    );
+    if (response.status !== 200) return;
+    const result = response.json() as unknown as SessionInfoType;
+    if (result.resultCode === 'OK') return result;
+  }
   private getHeaders() {
     return {
       accept: '*/*',
@@ -85,6 +97,6 @@ export class TBankService {
       'sec-fetch-site': 'same-origin',
       cookie: this.tBankEntity?.cookie,
       Referer: 'https://www.tbank.ru/mybank/operations/',
-    } as HeadersInit;
+    } as unknown as { accept: string };
   }
 }

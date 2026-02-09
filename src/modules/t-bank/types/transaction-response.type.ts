@@ -1,14 +1,13 @@
 import { TransactionFromServerType } from './transaction-from-server.type';
+import { GlobalResponseType } from './global-response.type';
 
 export type TransactionResponseType =
   | TransactionSuccessResponseType
   | TransactionUnSuccessResponseType;
 
-export type TransactionSuccessResponseType = {
-  resultCode: 'OK';
-  trackingId: string;
-  payload: TransactionFromServerType[];
-};
+export type TransactionSuccessResponseType = GlobalResponseType<
+  TransactionFromServerType[]
+>;
 
 export type TransactionUnSuccessResponseType = {
   resultCode: 'AUTHENTICATION_FAILED';
