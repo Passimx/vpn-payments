@@ -19,7 +19,7 @@ services:
       - vpn-network
 
   app:
-    image: ${DOCKER_IMAGE:-passimx/vpn-payments:latest}
+    image: ${DOCKER_IMAGE:-ghcr.io/passimx/vpn-payments:latest}
     container_name: passimx-vpn-app
     restart: always
     env_file: .env
