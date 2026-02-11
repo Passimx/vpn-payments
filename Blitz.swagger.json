@@ -1,0 +1,3998 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Blitz API",
+        "description": "Webpanel for Hysteria2",
+        "contact": {
+            "github": "https://github.com/ReturnFI/Blitz"
+        },
+        "version": "0.2.0"
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "tags": [
+                    "Web - Basic"
+                ],
+                "summary": "Index",
+                "operationId": "index__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/robots.txt": {
+            "get": {
+                "tags": [
+                    "Web - Basic"
+                ],
+                "summary": "Robots Txt",
+                "operationId": "robots_txt_robots_txt_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "get": {
+                "tags": [
+                    "Web - Authentication"
+                ],
+                "summary": "Login",
+                "operationId": "login_login_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Web - Authentication"
+                ],
+                "summary": "Login Post",
+                "description": "Handles login form submission.",
+                "operationId": "login_post_login_post",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_login_post_login_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "get": {
+                "tags": [
+                    "Web - Authentication"
+                ],
+                "summary": "Logout",
+                "operationId": "logout_logout_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/": {
+            "get": {
+                "tags": [
+                    "Web - Settings"
+                ],
+                "summary": "Settings",
+                "operationId": "settings_settings__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/config": {
+            "get": {
+                "tags": [
+                    "Web - Settings"
+                ],
+                "summary": "Config",
+                "operationId": "config_settings_config_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/hysteria": {
+            "get": {
+                "tags": [
+                    "Web - Settings"
+                ],
+                "summary": "Hysteria Settings",
+                "operationId": "hysteria_settings_settings_hysteria_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{page}": {
+            "get": {
+                "tags": [
+                    "Web - User Management"
+                ],
+                "summary": "Users Paginated",
+                "operationId": "users_paginated_users__page__get",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "title": "Page"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "cookie",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 50,
+                            "title": "Limit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/": {
+            "get": {
+                "tags": [
+                    "Web - User Management"
+                ],
+                "summary": "Users",
+                "operationId": "users_users__get",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "cookie",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 50,
+                            "title": "Limit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/search/": {
+            "get": {
+                "tags": [
+                    "Web - User Management"
+                ],
+                "summary": "Search Users",
+                "operationId": "search_users_users_search__get",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "",
+                            "title": "Q"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/": {
+            "get": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "List Users Api",
+                "description": "Get a list of all users.\n\nReturns:\n    List of user dictionaries.\nRaises:\n    HTTPException: if no users are found, or if an error occurs.",
+                "operationId": "list_users_api_api_v1_users__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserListResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Add User Api",
+                "operationId": "add_user_api_api_v1_users__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddUserInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/users/bulk/": {
+            "post": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Add Bulk Users Api",
+                "description": "Add multiple users in bulk.",
+                "operationId": "add_bulk_users_api_api_v1_users_bulk__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddBulkUsersInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/users/uri/bulk": {
+            "post": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Show Multiple User Uris Api",
+                "description": "Get URI information for multiple users in a single request for efficiency.",
+                "operationId": "show_multiple_user_uris_api_api_v1_users_uri_bulk_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UsernamesRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserUriResponse"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Show Multiple User Uris Api Api V1 Users Uri Bulk Post"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/users/bulk-delete": {
+            "post": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Bulk Remove Users Api",
+                "operationId": "bulk_remove_users_api_api_v1_users_bulk_delete_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UsernamesRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/users/{username}": {
+            "get": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Get User Api",
+                "description": "Get the details of a user.\n\nArgs:\n    username: The username of the user to get.\n\nReturns:\n    A user dictionary.\n\nRaises:\n    HTTPException: if the user is not found, or if an error occurs.",
+                "operationId": "get_user_api_api_v1_users__username__get",
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Username"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserInfoResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Edit User Api",
+                "description": "Edit a user's details.\n\nArgs:\n    username: The username of the user to edit.\n    body: An instance of EditUserInputBody containing the new user details.\n\nReturns:\n    A DetailResponse with a message indicating the user has been edited.\n\nRaises:\n    HTTPException: if an error occurs while editing the user.",
+                "operationId": "edit_user_api_api_v1_users__username__patch",
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Username"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditUserInputBody"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Remove User Api",
+                "description": "Remove a user.\n\nArgs:\n    username: The username of the user to remove.\n\nReturns:\n    A DetailResponse with a message indicating the user has been removed.\n\nRaises:\n    HTTPException: 404 if the user is not found, 400 if another error occurs.",
+                "operationId": "remove_user_api_api_v1_users__username__delete",
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Username"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/users/{username}/reset": {
+            "get": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Reset User Api",
+                "description": "Resets a user.\n\nArgs:\n    username: The username of the user to reset.\n\nReturns:\n    A DetailResponse with a message indicating the user has been reset.\n\nRaises:\n    HTTPException: if an error occurs while resetting the user.",
+                "operationId": "reset_user_api_api_v1_users__username__reset_get",
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Username"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/users/{username}/uri": {
+            "get": {
+                "tags": [
+                    "API - Users"
+                ],
+                "summary": "Show User Uri Api",
+                "description": "Get the URI information for a user in JSON format.\n\nArgs:\n    username: The username of the user.\n\nReturns:\n    UserUriResponse: An object containing URI information for the user.\n\nRaises:\n    HTTPException: 404 if the user is not found, 400 if another error occurs.",
+                "operationId": "show_user_uri_api_api_v1_users__username__uri_get",
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Username"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserUriResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/server/status": {
+            "get": {
+                "tags": [
+                    "API - Server"
+                ],
+                "summary": "Server Status Api",
+                "description": "Retrieve the server status.\n\nThis endpoint provides information about the current server status,\nincluding uptime, CPU usage, RAM usage, online users, and traffic statistics.\n\nReturns:\n    ServerStatusResponse: A response model containing server status details.\n\nRaises:\n    HTTPException: If the server information is not available (404) or\n                   if there is an error processing the request (400).",
+                "operationId": "server_status_api_api_v1_server_status_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServerStatusResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/server/services/status": {
+            "get": {
+                "tags": [
+                    "API - Server"
+                ],
+                "summary": "Server Services Status Api",
+                "description": "Retrieve the status of various services.\n\nThis endpoint provides information about the status of different services,\nincluding Hysteria2, TelegramBot, Singbox, and Normal-SUB.\n\nReturns:\n    ServerServicesStatusResponse: A response model containing service status details.\n\nRaises:\n    HTTPException: If the services status is not available (404) or\n                   if there is an error processing the request (400).",
+                "operationId": "server_services_status_api_api_v1_server_services_status_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServerServicesStatusResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/server/version": {
+            "get": {
+                "tags": [
+                    "API - Server"
+                ],
+                "summary": "Get Version Info",
+                "description": "Retrieves the current version of the panel and Hysteria core.",
+                "operationId": "get_version_info_api_v1_server_version_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionInfoResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/server/version/check": {
+            "get": {
+                "tags": [
+                    "API - Server"
+                ],
+                "summary": "Check Version Info",
+                "description": "Checks for updates and retrieves version information.",
+                "operationId": "check_version_info_api_v1_server_version_check_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VersionCheckResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/update": {
+            "patch": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Update Hysteria2",
+                "description": "Updates Hysteria2.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 update was successful.\n\nRaises:\n    HTTPException: if an error occurs while updating Hysteria2.",
+                "operationId": "update_api_v1_config_hysteria_update_patch",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/restart": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Restart Hysteria2 Service",
+                "description": "Restarts the Hysteria2 service.\n\nReturns:\n    A DetailResponse with a message indicating the service was restarted successfully.\n\nRaises:\n    HTTPException: if an error occurs while restarting the service.",
+                "operationId": "restart_service_api_v1_config_hysteria_restart_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/get-port": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Get Hysteria2 port",
+                "description": "Retrieves the port for Hysteria2.\n\nReturns:\n    A GetPortResponse containing the Hysteria2 port.\n\nRaises:\n    HTTPException: if an error occurs while getting the Hysteria2 port.",
+                "operationId": "get_port_api_api_v1_config_hysteria_get_port_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetPortResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/set-port/{port}": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Set Hysteria2 port",
+                "description": "Sets the port for Hysteria2.\n\nArgs:\n    port: The new port value.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 port change was successful.\n\nRaises:\n    HTTPException: if an error occurs while changing the Hysteria2 port.",
+                "operationId": "set_port_api_api_v1_config_hysteria_set_port__port__get",
+                "parameters": [
+                    {
+                        "name": "port",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Port"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/get-sni": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Get Hysteria2 SNI",
+                "description": "Retrieves the SNI for Hysteria2.\n\nReturns:\n    A GetSniResponse containing the Hysteria2 SNI.\n\nRaises:\n    HTTPException: if an error occurs while getting the Hysteria2 SNI.",
+                "operationId": "get_sni_api_api_v1_config_hysteria_get_sni_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetSniResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/set-sni/{sni}": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Set Hysteria2 SNI",
+                "description": "Sets the SNI for Hysteria2.\n\nArgs:\n    sni: The new SNI value.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 SNI change was successful.\n\nRaises:\n    HTTPException: if an error occurs while changing the Hysteria2 SNI.",
+                "operationId": "set_sni_api_api_v1_config_hysteria_set_sni__sni__get",
+                "parameters": [
+                    {
+                        "name": "sni",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Sni"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/backup": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Backup Hysteria2 configuration",
+                "operationId": "backup_api_api_v1_config_hysteria_backup_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/restore": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Restore Hysteria2 Configuration",
+                "operationId": "restore_api_api_v1_config_hysteria_restore_post",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_restore_api_api_v1_config_hysteria_restore_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/enable-obfs": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Enable Hysteria2 obfs",
+                "description": "Enables Hysteria2 obfs.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 obfs was enabled successfully.\n\nRaises:\n    HTTPException: if an error occurs while enabling Hysteria2 obfs.",
+                "operationId": "enable_obfs_api_v1_config_hysteria_enable_obfs_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/disable-obfs": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Disable Hysteria2 obfs",
+                "description": "Disables Hysteria2 obfs.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 obfs was disabled successfully.\n\nRaises:\n    HTTPException: if an error occurs while disabling Hysteria2 obfs.",
+                "operationId": "disable_obfs_api_v1_config_hysteria_disable_obfs_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/check-obfs": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Check Hysteria2 OBFS Status",
+                "description": "Checks the current status of Hysteria2 OBFS.\n\nReturns:\n    A GetObfsResponse containing the Hysteria2 OBFS status message (e.g., 'OBFS is active.').\n\nRaises:\n    HTTPException: if an error occurs while checking the Hysteria2 OBFS status.",
+                "operationId": "check_obfs_api_v1_config_hysteria_check_obfs_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetObfsResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/enable-masquerade": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Enable Hysteria2 masquerade",
+                "description": "Enables Hysteria2 masquerade for the given domain.\n\nArgs:\n    domain: The domain to enable Hysteria2 masquerade for.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 masquerade was enabled successfully.\n\nRaises:\n    HTTPException: if an error occurs while enabling Hysteria2 masquerade.",
+                "operationId": "enable_masquerade_api_v1_config_hysteria_enable_masquerade_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/disable-masquerade": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Disable Hysteria2 masquerade",
+                "description": "Disables Hysteria2 masquerade.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 masquerade was disabled successfully.\n\nRaises:\n    HTTPException: if an error occurs while disabling Hysteria2 masquerade.",
+                "operationId": "disable_masquerade_api_v1_config_hysteria_disable_masquerade_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/check-masquerade": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Check Hysteria2 Masquerade Status",
+                "operationId": "check_masquerade_api_v1_config_hysteria_check_masquerade_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetMasqueradeStatusResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/file": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Get Hysteria2 configuration file",
+                "description": "Gets the Hysteria2 configuration file.\n\nReturns:\n    A JSONResponse containing the Hysteria2 configuration file.\n\nRaises:\n    HTTPException: if an error occurs while getting the Hysteria2 configuration file.",
+                "operationId": "get_file_api_v1_config_hysteria_file_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConfigFile"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Update Hysteria2 configuration file",
+                "description": "Updates the Hysteria2 configuration file.\n\nArgs:\n    file: The Hysteria2 configuration file to update.\n\nReturns:\n    A DetailResponse with a message indicating the Hysteria2 configuration file was updated successfully.\n\nRaises:\n    HTTPException: if an error occurs while updating the Hysteria2 configuration file.",
+                "operationId": "set_file_api_v1_config_hysteria_file_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfigFile"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/ip-limit/start": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Start IP Limiter Service",
+                "description": "Starts the IP Limiter service.",
+                "operationId": "start_ip_limit_api_api_v1_config_hysteria_ip_limit_start_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/ip-limit/stop": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Stop IP Limiter Service",
+                "description": "Stops the IP Limiter service.",
+                "operationId": "stop_ip_limit_api_api_v1_config_hysteria_ip_limit_stop_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/ip-limit/clean": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Clean IP Limiter Database",
+                "description": "Cleans the IP Limiter database and unblocks all IPs.",
+                "operationId": "clean_ip_limit_api_api_v1_config_hysteria_ip_limit_clean_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/ip-limit/config": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Get IP Limiter Configuration",
+                "description": "Retrieves the current IP Limiter configuration.",
+                "operationId": "get_ip_limit_config_api_api_v1_config_hysteria_ip_limit_config_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IPLimitConfigResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Configure IP Limiter",
+                "description": "Configures the IP Limiter service parameters.",
+                "operationId": "config_ip_limit_api_api_v1_config_hysteria_ip_limit_config_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IPLimitConfig"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/webpanel/decoy/setup": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Setup/Update WebPanel Decoy Site (Background Task)",
+                "description": "Initiates the setup or update of the decoy site configuration for the web panel.\nRequires the web panel service to be running.\nThe actual operation (including Caddy restart) runs in the background.",
+                "operationId": "setup_decoy_api_api_v1_config_hysteria_webpanel_decoy_setup_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetupDecoyRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/webpanel/decoy/stop": {
+            "post": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Stop WebPanel Decoy Site (Background Task)",
+                "description": "Initiates the removal of the decoy site configuration for the web panel.\nThe actual operation (including Caddy restart) runs in the background.",
+                "operationId": "stop_decoy_api_api_v1_config_hysteria_webpanel_decoy_stop_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/hysteria/webpanel/decoy/status": {
+            "get": {
+                "tags": [
+                    "API - Config - Hysteria"
+                ],
+                "summary": "Get WebPanel Decoy Site Status",
+                "description": "Checks if the decoy site is currently configured and active.",
+                "operationId": "get_decoy_status_api_api_v1_config_hysteria_webpanel_decoy_status_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DecoyStatusResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/warp/install": {
+            "post": {
+                "tags": [
+                    "API - Config - Warp"
+                ],
+                "summary": "Install WARP",
+                "description": "Installs WARP.\nIt's post method because keeping backward compatibility if we need to add parameters in the future.\n\nReturns:\n    DetailResponse: A response indicating the success of the installation.\n\nRaises:\n    HTTPException: If an error occurs during installation, an HTTP 400 error is raised with the error details.",
+                "operationId": "install_warp_api_v1_config_warp_install_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/warp/uninstall": {
+            "delete": {
+                "tags": [
+                    "API - Config - Warp"
+                ],
+                "summary": "Uninstall WARP",
+                "description": "Uninstalls WARP.\n\nReturns:\n    DetailResponse: A response indicating the success of the uninstallation.\n\nRaises:\n    HTTPException: If an error occurs during uninstallation, an HTTP 400 error is raised with the error details.",
+                "operationId": "uninstall_warp_api_v1_config_warp_uninstall_delete",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/warp/configure": {
+            "post": {
+                "tags": [
+                    "API - Config - Warp"
+                ],
+                "summary": "Configure WARP",
+                "description": "Configures WARP with the given options.\n\nArgs:\n    body: An instance of ConfigureInputBody containing configuration options.\n\nReturns:\n    DetailResponse: A response indicating the success of the configuration.\n\nRaises:\n    HTTPException: If an error occurs during configuration, an HTTP 400 error is raised with the error details.",
+                "operationId": "configure_warp_api_v1_config_warp_configure_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfigureInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/warp/status": {
+            "get": {
+                "tags": [
+                    "API - Config - Warp"
+                ],
+                "summary": "Get WARP Status",
+                "operationId": "status_warp_api_v1_config_warp_status_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StatusResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/telegram/start": {
+            "post": {
+                "tags": [
+                    "API - Config - Telegram"
+                ],
+                "summary": "Start Telegram Bot",
+                "description": "Starts the Telegram bot.\n\nArgs:\n    body (StartInputBody): The data containing the Telegram bot token, admin ID, and optional backup interval in hours.\n\nReturns:\n    DetailResponse: The response containing the result of the action.",
+                "operationId": "telegram_start_api_api_v1_config_telegram_start_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/routers__api__v1__schema__config__telegram__StartInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/telegram/stop": {
+            "delete": {
+                "tags": [
+                    "API - Config - Telegram"
+                ],
+                "summary": "Stop Telegram Bot",
+                "description": "Stops the Telegram bot.\n\nReturns:\n    DetailResponse: The response containing the result of the action.",
+                "operationId": "telegram_stop_api_api_v1_config_telegram_stop_delete",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/telegram/backup-interval": {
+            "get": {
+                "tags": [
+                    "API - Config - Telegram"
+                ],
+                "summary": "Get Telegram Bot Backup Interval",
+                "description": "Gets the current automatic backup interval for the Telegram bot.\n\nReturns:\n    BackupIntervalResponse: The response containing the current interval in hours.",
+                "operationId": "telegram_get_interval_api_api_v1_config_telegram_backup_interval_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BackupIntervalResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "API - Config - Telegram"
+                ],
+                "summary": "Set Telegram Bot Backup Interval",
+                "description": "Sets the automatic backup interval for the Telegram bot.\n\nArgs:\n    body (SetIntervalInputBody): The data containing the backup interval in hours.\n\nReturns:\n    DetailResponse: The response containing the result of the action.",
+                "operationId": "telegram_set_interval_api_api_v1_config_telegram_backup_interval_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetIntervalInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/normalsub/start": {
+            "post": {
+                "tags": [
+                    "API - Config - Normalsub"
+                ],
+                "summary": "Start NormalSub",
+                "description": "Starts the NormalSub service using the provided domain and port.\n\nArgs:\n    body (StartInputBody): The request body containing the domain and port\n    information for starting the NormalSub service.\n\nReturns:\n    DetailResponse: A response object containing a success message indicating\n    that the NormalSub service has been started successfully.\n\nRaises:\n    HTTPException: If there is an error starting the NormalSub service, an\n    HTTPException with status code 400 and error details will be raised.",
+                "operationId": "normal_sub_start_api_api_v1_config_normalsub_start_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/routers__api__v1__schema__config__normalsub__StartInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/normalsub/stop": {
+            "delete": {
+                "tags": [
+                    "API - Config - Normalsub"
+                ],
+                "summary": "Stop NormalSub",
+                "description": "Stops the NormalSub service.\n\nReturns:\n    DetailResponse: A response object containing a success message indicating\n    that the NormalSub service has been stopped successfully.\n\nRaises:\n    HTTPException: If there is an error stopping the NormalSub service, an\n    HTTPException with status code 400 and error details will be raised.",
+                "operationId": "normal_sub_stop_api_api_v1_config_normalsub_stop_delete",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/normalsub/edit_subpath": {
+            "put": {
+                "tags": [
+                    "API - Config - Normalsub"
+                ],
+                "summary": "Edit NormalSub Subpath",
+                "description": "Edits the subpath for the NormalSub service.\n\nArgs:\n    body (EditSubPathInputBody): The request body containing the new subpath.\n\nReturns:\n    DetailResponse: A response object containing a success message indicating\n    that the NormalSub subpath has been updated successfully.\n\nRaises:\n    HTTPException: If there is an error editing the NormalSub subpath, an\n    HTTPException with status code 400 and error details will be raised.",
+                "operationId": "normal_sub_edit_subpath_api_api_v1_config_normalsub_edit_subpath_put",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditSubPathInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/normalsub/subpath": {
+            "get": {
+                "tags": [
+                    "API - Config - Normalsub"
+                ],
+                "summary": "Get Current NormalSub Subpath",
+                "description": "Retrieves the current subpath for the NormalSub service.",
+                "operationId": "normal_sub_get_subpath_api_api_v1_config_normalsub_subpath_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetSubPathResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/singbox/start": {
+            "post": {
+                "tags": [
+                    "API - Config - Singbox"
+                ],
+                "summary": "Start Singbox",
+                "description": "Start the Singbox service.\n\nThis endpoint starts the Singbox service if it is currently not running.\n\nArgs:\n    body (StartInputBody): The domain name and port number for the service.\n\nReturns:\n    DetailResponse: The response with the result of the command.",
+                "operationId": "singbox_start_api_api_v1_config_singbox_start_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StartInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/singbox/stop": {
+            "delete": {
+                "tags": [
+                    "API - Config - Singbox"
+                ],
+                "summary": "Stop Singbox",
+                "description": "Stop the Singbox service.\n\nThis endpoint stops the Singbox service if it is currently running.\n\nReturns:\n    DetailResponse: A response model indicating the stop status of the Singbox service.\n\nRaises:\n    HTTPException: If there is an error stopping the Singbox service (400).",
+                "operationId": "singbox_stop_api_api_v1_config_singbox_stop_delete",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/get": {
+            "get": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Get Local Server IP Status",
+                "description": "Retrieves the current status of the main server's IP addresses.\n\nReturns:\n    StatusResponse: A response model containing the current IP address details.",
+                "operationId": "get_ip_api_api_v1_config_ip_get_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/routers__api__v1__schema__config__ip__StatusResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/add": {
+            "get": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Detect and Add Local Server IP",
+                "description": "Adds the auto-detected IP addresses to the .configs.env file.\n\nReturns:\n    A DetailResponse with a message indicating the IP addresses were added successfully.",
+                "operationId": "add_ip_api_api_v1_config_ip_add_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/edit": {
+            "post": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Edit Local Server IP",
+                "description": "Edits the main server's IP addresses in the .configs.env file.\n\nArgs:\n    body: An instance of EditInputBody containing the new IPv4 and/or IPv6 addresses.",
+                "operationId": "edit_ip_api_api_v1_config_ip_edit_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditInputBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/nodes": {
+            "get": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Get All External Nodes",
+                "description": "Retrieves the list of all configured external nodes.\n\nReturns:\n    A list of node objects, each containing a name and an IP.",
+                "operationId": "get_all_nodes_api_v1_config_ip_nodes_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Node"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Get All Nodes Api V1 Config Ip Nodes Get"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/nodes/add": {
+            "post": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Add External Node",
+                "description": "Adds a new external node to the configuration.\n\nArgs:\n    body: Request body containing the full details of the node.",
+                "operationId": "add_node_api_v1_config_ip_nodes_add_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddNodeBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/nodes/delete": {
+            "post": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Delete External Node",
+                "description": "Deletes an external node from the configuration by its name.\n\nArgs:\n    body: Request body containing the name of the node to delete.",
+                "operationId": "delete_node_api_v1_config_ip_nodes_delete_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeleteNodeBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/ip/nodestraffic": {
+            "post": {
+                "tags": [
+                    "API - Config - IP"
+                ],
+                "summary": "Receive and Aggregate Traffic from Node",
+                "description": "Receives traffic delta from a node and adds it to the user's total in the database.\nAuthentication is handled by the AuthMiddleware.",
+                "operationId": "receive_node_traffic_api_v1_config_ip_nodestraffic_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NodesTrafficPayload"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/extra-config/list": {
+            "get": {
+                "tags": [
+                    "API - Config - Extra Config"
+                ],
+                "summary": "Get All Extra Configs",
+                "description": "Retrieves the list of all configured extra proxy configurations.\n\nReturns:\n    A list of extra config objects, each containing a name and a URI.",
+                "operationId": "get_all_extra_configs_api_v1_config_extra_config_list_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/ExtraConfigResponse"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Get All Extra Configs Api V1 Config Extra Config List Get"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/extra-config/add": {
+            "post": {
+                "tags": [
+                    "API - Config - Extra Config"
+                ],
+                "summary": "Add Extra Config",
+                "description": "Adds a new extra proxy configuration.\n\nArgs:\n    body: Request body containing the name and URI of the config.",
+                "operationId": "add_extra_config_api_v1_config_extra_config_add_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddExtraConfigBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/extra-config/delete": {
+            "post": {
+                "tags": [
+                    "API - Config - Extra Config"
+                ],
+                "summary": "Delete Extra Config",
+                "description": "Deletes an extra proxy configuration by its name.\n\nArgs:\n    body: Request body containing the name of the config to delete.",
+                "operationId": "delete_extra_config_api_v1_config_extra_config_delete_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeleteExtraConfigBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/install-tcp-brutal": {
+            "post": {
+                "tags": [
+                    "API - Config - Misc"
+                ],
+                "summary": "Install TCP Brutal",
+                "description": "Endpoint to install TCP Brutal service.\nIt's post method because keeping backward compatibility if we need to add parameters in the future.\n\nReturns:\n    DetailResponse: A response object indicating the success of the installation.\n\nRaises:\n    HTTPException: If an error occurs during the installation, an HTTP 400 error is raised with the error details.",
+                "operationId": "install_tcp_brutal_api_v1_config_install_tcp_brutal_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/config/update-geo/{country}": {
+            "get": {
+                "tags": [
+                    "API - Config - Misc"
+                ],
+                "summary": "Update Geo files",
+                "description": "Endpoint to update geographic data files based on the specified country.\n\nArgs:\n    country (str): The country for which to update the geo files. \n                   Accepts 'iran', 'china', or 'russia'.\n\nReturns:\n    DetailResponse: A response object indicating the success of the update operation.\n\nRaises:\n    HTTPException: If an error occurs during the update process, an HTTP 400 error is raised with the error details.",
+                "operationId": "update_geo_api_v1_config_update_geo__country__get",
+                "parameters": [
+                    {
+                        "name": "country",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Country"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AddBulkUsersInputBody": {
+                "properties": {
+                    "traffic_gb": {
+                        "type": "number",
+                        "title": "Traffic Gb"
+                    },
+                    "expiration_days": {
+                        "type": "integer",
+                        "title": "Expiration Days"
+                    },
+                    "count": {
+                        "type": "integer",
+                        "title": "Count"
+                    },
+                    "prefix": {
+                        "type": "string",
+                        "title": "Prefix"
+                    },
+                    "start_number": {
+                        "type": "integer",
+                        "title": "Start Number",
+                        "default": 1
+                    },
+                    "unlimited": {
+                        "type": "boolean",
+                        "title": "Unlimited",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "traffic_gb",
+                    "expiration_days",
+                    "count",
+                    "prefix"
+                ],
+                "title": "AddBulkUsersInputBody"
+            },
+            "AddExtraConfigBody": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Name",
+                        "description": "A unique name for the configuration."
+                    },
+                    "uri": {
+                        "type": "string",
+                        "title": "Uri",
+                        "description": "The proxy URI."
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "uri"
+                ],
+                "title": "AddExtraConfigBody"
+            },
+            "AddNodeBody": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "ip": {
+                        "type": "string",
+                        "title": "Ip"
+                    },
+                    "port": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Port"
+                    },
+                    "sni": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Sni"
+                    },
+                    "pinSHA256": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Pinsha256"
+                    },
+                    "obfs": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Obfs"
+                    },
+                    "insecure": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Insecure",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "ip"
+                ],
+                "title": "AddNodeBody"
+            },
+            "AddUserInputBody": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "traffic_limit": {
+                        "type": "integer",
+                        "title": "Traffic Limit"
+                    },
+                    "expiration_days": {
+                        "type": "integer",
+                        "title": "Expiration Days"
+                    },
+                    "password": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Password"
+                    },
+                    "creation_date": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Creation Date"
+                    },
+                    "unlimited": {
+                        "type": "boolean",
+                        "title": "Unlimited",
+                        "default": false
+                    },
+                    "note": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Note"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "traffic_limit",
+                    "expiration_days"
+                ],
+                "title": "AddUserInputBody"
+            },
+            "BackupIntervalResponse": {
+                "properties": {
+                    "backup_interval": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Backup Interval"
+                    }
+                },
+                "type": "object",
+                "title": "BackupIntervalResponse"
+            },
+            "Body_login_post_login_post": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "password"
+                ],
+                "title": "Body_login_post_login_post"
+            },
+            "Body_restore_api_api_v1_config_hysteria_restore_post": {
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "File"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "file"
+                ],
+                "title": "Body_restore_api_api_v1_config_hysteria_restore_post"
+            },
+            "ConfigFile": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "ConfigFile"
+            },
+            "ConfigureInputBody": {
+                "properties": {
+                    "all": {
+                        "type": "boolean",
+                        "title": "All",
+                        "default": false
+                    },
+                    "popular_sites": {
+                        "type": "boolean",
+                        "title": "Popular Sites",
+                        "default": false
+                    },
+                    "domestic_sites": {
+                        "type": "boolean",
+                        "title": "Domestic Sites",
+                        "default": false
+                    },
+                    "block_adult_sites": {
+                        "type": "boolean",
+                        "title": "Block Adult Sites",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "title": "ConfigureInputBody"
+            },
+            "DecoyStatusResponse": {
+                "properties": {
+                    "active": {
+                        "type": "boolean",
+                        "title": "Active",
+                        "description": "Whether the decoy site is currently configured and active"
+                    },
+                    "path": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Path",
+                        "description": "The configured path for the decoy site, if active"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "active"
+                ],
+                "title": "DecoyStatusResponse"
+            },
+            "DeleteExtraConfigBody": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "DeleteExtraConfigBody"
+            },
+            "DeleteNodeBody": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "DeleteNodeBody"
+            },
+            "DetailResponse": {
+                "properties": {
+                    "detail": {
+                        "type": "string",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "detail"
+                ],
+                "title": "DetailResponse"
+            },
+            "EditInputBody": {
+                "properties": {
+                    "ipv4": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Ipv4"
+                    },
+                    "ipv6": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Ipv6"
+                    }
+                },
+                "type": "object",
+                "title": "EditInputBody"
+            },
+            "EditSubPathInputBody": {
+                "properties": {
+                    "subpath": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9]+(?:/[a-zA-Z0-9]+)*$",
+                        "title": "Subpath",
+                        "description": "The new subpath, must be alphanumeric."
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "subpath"
+                ],
+                "title": "EditSubPathInputBody"
+            },
+            "EditUserInputBody": {
+                "properties": {
+                    "new_username": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "New Username",
+                        "description": "The new username for the user."
+                    },
+                    "new_password": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "New Password",
+                        "description": "The new password for the user. Leave empty to keep the current one."
+                    },
+                    "new_traffic_limit": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "New Traffic Limit",
+                        "description": "The new traffic limit in GB."
+                    },
+                    "new_expiration_days": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "New Expiration Days",
+                        "description": "The new expiration in days."
+                    },
+                    "renew_password": {
+                        "type": "boolean",
+                        "title": "Renew Password",
+                        "description": "Whether to renew the user's password. Used by legacy clients like the bot.",
+                        "default": false
+                    },
+                    "renew_creation_date": {
+                        "type": "boolean",
+                        "title": "Renew Creation Date",
+                        "description": "Whether to renew the user's account creation date.",
+                        "default": false
+                    },
+                    "blocked": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Blocked",
+                        "description": "Whether the user is blocked."
+                    },
+                    "unlimited_ip": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Unlimited Ip",
+                        "description": "Whether the user has unlimited IP access."
+                    },
+                    "note": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Note",
+                        "description": "A note for the user."
+                    }
+                },
+                "type": "object",
+                "title": "EditUserInputBody"
+            },
+            "ExtraConfigResponse": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Name",
+                        "description": "A unique name for the configuration."
+                    },
+                    "uri": {
+                        "type": "string",
+                        "title": "Uri",
+                        "description": "The proxy URI."
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "uri"
+                ],
+                "title": "ExtraConfigResponse"
+            },
+            "GetMasqueradeStatusResponse": {
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "status"
+                ],
+                "title": "GetMasqueradeStatusResponse"
+            },
+            "GetObfsResponse": {
+                "properties": {
+                    "obfs": {
+                        "type": "string",
+                        "title": "Obfs"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "obfs"
+                ],
+                "title": "GetObfsResponse"
+            },
+            "GetPortResponse": {
+                "properties": {
+                    "port": {
+                        "type": "integer",
+                        "title": "Port"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "port"
+                ],
+                "title": "GetPortResponse"
+            },
+            "GetSniResponse": {
+                "properties": {
+                    "sni": {
+                        "type": "string",
+                        "title": "Sni"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "sni"
+                ],
+                "title": "GetSniResponse"
+            },
+            "GetSubPathResponse": {
+                "properties": {
+                    "subpath": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Subpath",
+                        "description": "The current NormalSub subpath, or null if not set/found."
+                    }
+                },
+                "type": "object",
+                "title": "GetSubPathResponse"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "IPLimitConfig": {
+                "properties": {
+                    "block_duration": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Block Duration",
+                        "example": 60
+                    },
+                    "max_ips": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Max Ips",
+                        "example": 1
+                    }
+                },
+                "type": "object",
+                "title": "IPLimitConfig"
+            },
+            "IPLimitConfigResponse": {
+                "properties": {
+                    "block_duration": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Block Duration",
+                        "description": "Current block duration in seconds for IP Limiter"
+                    },
+                    "max_ips": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Max Ips",
+                        "description": "Current maximum IPs per user for IP Limiter"
+                    }
+                },
+                "type": "object",
+                "title": "IPLimitConfigResponse"
+            },
+            "Node": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "ip": {
+                        "type": "string",
+                        "title": "Ip"
+                    },
+                    "port": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Port"
+                    },
+                    "sni": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Sni"
+                    },
+                    "pinSHA256": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Pinsha256"
+                    },
+                    "obfs": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Obfs"
+                    },
+                    "insecure": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Insecure",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "ip"
+                ],
+                "title": "Node"
+            },
+            "NodeUri": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "uri": {
+                        "type": "string",
+                        "title": "Uri"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "uri"
+                ],
+                "title": "NodeUri"
+            },
+            "NodeUserTraffic": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "upload_bytes": {
+                        "type": "integer",
+                        "title": "Upload Bytes"
+                    },
+                    "download_bytes": {
+                        "type": "integer",
+                        "title": "Download Bytes"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    },
+                    "online_count": {
+                        "type": "integer",
+                        "title": "Online Count"
+                    },
+                    "account_creation_date": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Account Creation Date"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "upload_bytes",
+                    "download_bytes",
+                    "status",
+                    "online_count"
+                ],
+                "title": "NodeUserTraffic"
+            },
+            "NodesTrafficPayload": {
+                "properties": {
+                    "users": {
+                        "items": {
+                            "$ref": "#/components/schemas/NodeUserTraffic"
+                        },
+                        "type": "array",
+                        "title": "Users"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "users"
+                ],
+                "title": "NodesTrafficPayload"
+            },
+            "ServerServicesStatusResponse": {
+                "properties": {
+                    "hysteria_server": {
+                        "type": "boolean",
+                        "title": "Hysteria Server"
+                    },
+                    "hysteria_webpanel": {
+                        "type": "boolean",
+                        "title": "Hysteria Webpanel"
+                    },
+                    "hysteria_iplimit": {
+                        "type": "boolean",
+                        "title": "Hysteria Iplimit"
+                    },
+                    "hysteria_normal_sub": {
+                        "type": "boolean",
+                        "title": "Hysteria Normal Sub"
+                    },
+                    "hysteria_telegram_bot": {
+                        "type": "boolean",
+                        "title": "Hysteria Telegram Bot"
+                    },
+                    "hysteria_warp": {
+                        "type": "boolean",
+                        "title": "Hysteria Warp"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "hysteria_server",
+                    "hysteria_webpanel",
+                    "hysteria_iplimit",
+                    "hysteria_normal_sub",
+                    "hysteria_telegram_bot",
+                    "hysteria_warp"
+                ],
+                "title": "ServerServicesStatusResponse"
+            },
+            "ServerStatusResponse": {
+                "properties": {
+                    "uptime": {
+                        "type": "string",
+                        "title": "Uptime"
+                    },
+                    "boot_time": {
+                        "type": "string",
+                        "title": "Boot Time"
+                    },
+                    "server_ipv4": {
+                        "type": "string",
+                        "title": "Server Ipv4"
+                    },
+                    "server_ipv6": {
+                        "type": "string",
+                        "title": "Server Ipv6"
+                    },
+                    "cpu_usage": {
+                        "type": "string",
+                        "title": "Cpu Usage"
+                    },
+                    "ram_usage": {
+                        "type": "string",
+                        "title": "Ram Usage"
+                    },
+                    "total_ram": {
+                        "type": "string",
+                        "title": "Total Ram"
+                    },
+                    "online_users": {
+                        "type": "integer",
+                        "title": "Online Users"
+                    },
+                    "upload_speed": {
+                        "type": "string",
+                        "title": "Upload Speed"
+                    },
+                    "download_speed": {
+                        "type": "string",
+                        "title": "Download Speed"
+                    },
+                    "tcp_connections": {
+                        "type": "integer",
+                        "title": "Tcp Connections"
+                    },
+                    "udp_connections": {
+                        "type": "integer",
+                        "title": "Udp Connections"
+                    },
+                    "reboot_uploaded_traffic": {
+                        "type": "string",
+                        "title": "Reboot Uploaded Traffic"
+                    },
+                    "reboot_downloaded_traffic": {
+                        "type": "string",
+                        "title": "Reboot Downloaded Traffic"
+                    },
+                    "reboot_total_traffic": {
+                        "type": "string",
+                        "title": "Reboot Total Traffic"
+                    },
+                    "user_uploaded_traffic": {
+                        "type": "string",
+                        "title": "User Uploaded Traffic"
+                    },
+                    "user_downloaded_traffic": {
+                        "type": "string",
+                        "title": "User Downloaded Traffic"
+                    },
+                    "user_total_traffic": {
+                        "type": "string",
+                        "title": "User Total Traffic"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "uptime",
+                    "boot_time",
+                    "server_ipv4",
+                    "server_ipv6",
+                    "cpu_usage",
+                    "ram_usage",
+                    "total_ram",
+                    "online_users",
+                    "upload_speed",
+                    "download_speed",
+                    "tcp_connections",
+                    "udp_connections",
+                    "reboot_uploaded_traffic",
+                    "reboot_downloaded_traffic",
+                    "reboot_total_traffic",
+                    "user_uploaded_traffic",
+                    "user_downloaded_traffic",
+                    "user_total_traffic"
+                ],
+                "title": "ServerStatusResponse"
+            },
+            "SetIntervalInputBody": {
+                "properties": {
+                    "backup_interval": {
+                        "type": "integer",
+                        "title": "Backup Interval"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "backup_interval"
+                ],
+                "title": "SetIntervalInputBody"
+            },
+            "SetupDecoyRequest": {
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "title": "Domain",
+                        "description": "Domain name associated with the web panel"
+                    },
+                    "decoy_path": {
+                        "type": "string",
+                        "title": "Decoy Path",
+                        "description": "Absolute path to the directory containing the decoy website files"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "domain",
+                    "decoy_path"
+                ],
+                "title": "SetupDecoyRequest"
+            },
+            "StartInputBody": {
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "title": "Domain"
+                    },
+                    "port": {
+                        "type": "integer",
+                        "title": "Port"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "domain",
+                    "port"
+                ],
+                "title": "StartInputBody"
+            },
+            "StatusResponse": {
+                "properties": {
+                    "all_traffic_via_warp": {
+                        "type": "boolean",
+                        "title": "All Traffic Via Warp"
+                    },
+                    "popular_sites_via_warp": {
+                        "type": "boolean",
+                        "title": "Popular Sites Via Warp"
+                    },
+                    "domestic_sites_via_warp": {
+                        "type": "boolean",
+                        "title": "Domestic Sites Via Warp"
+                    },
+                    "block_adult_content": {
+                        "type": "boolean",
+                        "title": "Block Adult Content"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "all_traffic_via_warp",
+                    "popular_sites_via_warp",
+                    "domestic_sites_via_warp",
+                    "block_adult_content"
+                ],
+                "title": "StatusResponse"
+            },
+            "UserInfoResponse": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    },
+                    "max_download_bytes": {
+                        "type": "integer",
+                        "title": "Max Download Bytes"
+                    },
+                    "expiration_days": {
+                        "type": "integer",
+                        "title": "Expiration Days"
+                    },
+                    "account_creation_date": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Account Creation Date"
+                    },
+                    "blocked": {
+                        "type": "boolean",
+                        "title": "Blocked"
+                    },
+                    "unlimited_user": {
+                        "type": "boolean",
+                        "title": "Unlimited User",
+                        "default": false
+                    },
+                    "note": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Note"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "upload_bytes": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Upload Bytes"
+                    },
+                    "download_bytes": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Download Bytes"
+                    },
+                    "online_count": {
+                        "type": "integer",
+                        "title": "Online Count",
+                        "default": 0
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "password",
+                    "max_download_bytes",
+                    "expiration_days",
+                    "blocked"
+                ],
+                "title": "UserInfoResponse"
+            },
+            "UserListResponse": {
+                "items": {
+                    "$ref": "#/components/schemas/UserInfoResponse"
+                },
+                "type": "array",
+                "title": "UserListResponse"
+            },
+            "UserUriResponse": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "ipv4": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Ipv4"
+                    },
+                    "ipv6": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Ipv6"
+                    },
+                    "nodes": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "$ref": "#/components/schemas/NodeUri"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Nodes",
+                        "default": []
+                    },
+                    "normal_sub": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Normal Sub"
+                    },
+                    "error": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Error"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username"
+                ],
+                "title": "UserUriResponse"
+            },
+            "UsernamesRequest": {
+                "properties": {
+                    "usernames": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Usernames"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "usernames"
+                ],
+                "title": "UsernamesRequest"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            },
+            "VersionCheckResponse": {
+                "properties": {
+                    "is_latest": {
+                        "type": "boolean",
+                        "title": "Is Latest"
+                    },
+                    "current_version": {
+                        "type": "string",
+                        "title": "Current Version"
+                    },
+                    "latest_version": {
+                        "type": "string",
+                        "title": "Latest Version"
+                    },
+                    "changelog": {
+                        "type": "string",
+                        "title": "Changelog"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "is_latest",
+                    "current_version",
+                    "latest_version",
+                    "changelog"
+                ],
+                "title": "VersionCheckResponse"
+            },
+            "VersionInfoResponse": {
+                "properties": {
+                    "current_version": {
+                        "type": "string",
+                        "title": "Current Version"
+                    },
+                    "core_version": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Core Version"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "current_version"
+                ],
+                "title": "VersionInfoResponse"
+            },
+            "routers__api__v1__schema__config__ip__StatusResponse": {
+                "properties": {
+                    "ipv4": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Ipv4"
+                    },
+                    "ipv6": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Ipv6"
+                    }
+                },
+                "type": "object",
+                "title": "StatusResponse"
+            },
+            "routers__api__v1__schema__config__normalsub__StartInputBody": {
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "title": "Domain"
+                    },
+                    "port": {
+                        "type": "integer",
+                        "title": "Port"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "domain",
+                    "port"
+                ],
+                "title": "StartInputBody"
+            },
+            "routers__api__v1__schema__config__telegram__StartInputBody": {
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "title": "Token"
+                    },
+                    "admin_id": {
+                        "type": "string",
+                        "title": "Admin Id"
+                    },
+                    "backup_interval": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Backup Interval"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "token",
+                    "admin_id"
+                ],
+                "title": "StartInputBody"
+            }
+        },
+        "securitySchemes": {
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "Authorization"
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "/ac9fb893e4c833cf57c0d600d97cca0b",
+            "description": "Root path of the API"
+        }
+    ]
+}

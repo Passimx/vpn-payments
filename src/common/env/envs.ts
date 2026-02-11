@@ -20,4 +20,8 @@ export const Envs = {
     endpointUrl: String(process.env.TON_ENDPOINT_URL),
     endpointApiKey: String(process.env.TON_ENDPOINT_TON_APIKEY),
   },
+  blitz: {
+    apiUrl: String(process.env.BLITZ_API_URL),
+    apiKey: String(process.env.BLITZ_API_KEY),
+  },
 };
