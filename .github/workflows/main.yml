@@ -30,9 +30,20 @@ jobs:
 
   deploy:
     needs: build
-    uses: Passimx/ci-cd-workflows/.github/workflows/deploy.yml@main
-    secrets:
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      SSH_USER: ${{ vars.SSH_USER }}
-      SSH_HOST: ${{ vars.SSH_HOST }}
-      DEPLOY_SCRIPT: ${{ vars.DEPLOY_SCRIPT }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH Client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
+
+      - name: Set up SSH Key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "${{ vars.DEPLOY_SCRIPT }}"
