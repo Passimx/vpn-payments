@@ -27,3 +27,12 @@ jobs:
     permissions:
       contents: write
       packages: write
+
+  deploy:
+    needs: build
+    uses: Passimx/ci-cd-workflows/.github/workflows/deploy.yml@main
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_USER: ${{ vars.SSH_USER }}
+      SSH_HOST: ${{ vars.SSH_HOST }}
+      DEPLOY_SCRIPT: ${{ vars.DEPLOY_SCRIPT }}

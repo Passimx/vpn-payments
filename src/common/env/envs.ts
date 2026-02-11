@@ -11,6 +11,9 @@ export const Envs = {
     username: process.env.PG_USERNAME,
     password: process.env.PG_PASSWORD,
   },
+  telegram: {
+    botToken: String(process.env.TELEGRAM_BOT_TOKEN),
+  },
   tBank: {},
   ton: {
     walletAddress: String(process.env.TON_WALLET_ADDRESS),

@@ -34,7 +34,7 @@ export class TelegramService {
   );
 
   onModuleInit() {
-    this.bot = new Telegraf('7682387428:AAElQC4nCRfCIVNJlP90fg2zX_RazguEycA');
+    this.bot = new Telegraf(Envs.telegram.botToken);
     this.bot.catch((err) => {
       console.error('Telegraf error:', err);
     });
