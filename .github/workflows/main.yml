@@ -32,18 +32,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Install SSH Client
-        run: sudo apt-get update && sudo apt-get install -y openssh-client
-
-      - name: Set up SSH Key
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Install SSH Client and sshpass
         run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass
 
-      - name: Deploy via SSH
+      - name: Deploy via SSH with password
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "${{ vars.DEPLOY_SCRIPT }}"
+          sshpass -p '${{ secrets.SSH_PASSWORD }}' \
+            ssh -o StrictHostKeyChecking=no \
+            ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
+            "${{ vars.DEPLOY_SCRIPT }}"
