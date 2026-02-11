@@ -9,7 +9,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true, // удаляет поля из запроса, если их нет в дто
       forbidNonWhitelisted: true, // если поля не коректные то возвращает 400
-      transform: true, // жесткая типизация 
+      transform: true, // жесткая типизация
     }),
   );
   await app.listen(process.env.PORT ?? 2000);

@@ -243,7 +243,7 @@ export class TelegramService {
   onBtn9 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
     const tariffs = await this.em.find(TariffEntity, {
-      where: { active: true }
+      where: { active: true },
     });
 
     if (!tariffs.length) {
@@ -257,23 +257,17 @@ export class TelegramService {
     }
 
     const tariffButtons = tariffs.map((t) => [
-      Markup.button.callback(
-        `${t.name} — ${t.price} руб.`,
-        `T:${t.id}`,
-      ),
+      Markup.button.callback(`${t.name} — ${t.price} руб.`, `T:${t.id}`),
     ]);
 
     await ctx
-      .editMessageText(
-        '📋 <b>Выбери тариф:</b>',
-        {
-          parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([
-            ...tariffButtons,
-            [this.backToProfileButton],
-          ]),
-        },
-      )
+      .editMessageText('📋 <b>Выбери тариф:</b>', {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          ...tariffButtons,
+          [this.backToProfileButton],
+        ]),
+      })
       .catch(() => {});
   };
 

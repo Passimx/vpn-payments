@@ -17,10 +17,7 @@ export class KeyPurchaseService {
     private readonly blitzService: BlitzService,
   ) {}
 
-  async purchase(
-    userId: string,
-    tariffId: string,
-  ): Promise<PurchaseResult> {
+  async purchase(userId: string, tariffId: string): Promise<PurchaseResult> {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
@@ -52,7 +49,10 @@ export class KeyPurchaseService {
 
       const isConnected = await this.blitzService.checkConnection();
       if (!isConnected) {
-        return { ok: false, error: 'Сервис временно недоступен. Попробуйте позже.' };
+        return {
+          ok: false,
+          error: 'Сервис временно недоступен. Попробуйте позже.',
+        };
       }
 
       const vpnUsername = `u_${userId.slice(0, 8)}_${Date.now().toString(36)}`;
@@ -65,12 +65,18 @@ export class KeyPurchaseService {
       });
 
       if (!createResult.success) {
-        return { ok: false, error: `Ошибка создания ключа: ${createResult.error}` };
+        return {
+          ok: false,
+          error: `Ошибка создания ключа: ${createResult.error}`,
+        };
       }
 
       const uriResult = await this.blitzService.getUserKeyUri(vpnUsername);
       if (!uriResult.success || !uriResult.uri) {
-        return { ok: false, error: `Не удалось получить ключ: ${uriResult.error ?? 'нет URI'}` };
+        return {
+          ok: false,
+          error: `Не удалось получить ключ: ${uriResult.error ?? 'нет URI'}`,
+        };
       }
 
       const expiresAt = new Date();

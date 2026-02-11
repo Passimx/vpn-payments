@@ -19,7 +19,7 @@ export class TariffEntity {
   @Column({ name: 'expiration_days', type: 'int' })
   readonly expirationDays: number;
 
-  @Column({name: 'price', type: 'numeric'})
+  @Column({ name: 'price', type: 'numeric' })
   readonly price: number;
 
   @Column({ name: 'is_unlimited', type: 'boolean', default: false })

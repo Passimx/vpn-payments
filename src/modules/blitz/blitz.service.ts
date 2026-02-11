@@ -101,7 +101,8 @@ export class BlitzService {
         return { success: false, error: data.error };
       }
 
-      const uri = data.normal_sub ?? data.ipv4 ?? data.ipv6 ?? data.nodes?.[0]?.uri;
+      const uri =
+        data.normal_sub ?? data.ipv4 ?? data.ipv6 ?? data.nodes?.[0]?.uri;
       return {
         success: true,
         uri: uri ?? undefined,

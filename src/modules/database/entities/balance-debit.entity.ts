@@ -18,7 +18,7 @@ export class PaymentsEntity {
   @Column({ name: 'user_id', type: 'varchar' })
   readonly userId: string;
 
-  @Column({name: 'amount', type: 'numeric', precision: 12})
+  @Column({ name: 'amount', type: 'numeric', precision: 12 })
   readonly amount: number;
 
   @Column({ name: 'tariff_id', type: 'varchar' })
