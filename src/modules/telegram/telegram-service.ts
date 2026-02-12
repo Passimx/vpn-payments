@@ -5,8 +5,10 @@ import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
+import { VpnKeyEntity } from '../database/entities/vpn-key.entity';
 import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
+import { PaymentsEntity } from '../database/entities/balance-debit.entity';
 
 @Injectable()
 export class TelegramService {
@@ -59,6 +61,7 @@ export class TelegramService {
     this.bot.action('BTN_7', this.onBtn7);
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
+    this.bot.action('BTN_10', this.onBtn10);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
     this.bot.launch();
@@ -97,6 +100,7 @@ export class TelegramService {
           [Markup.button.callback('🛒 Приобрести ключ', 'BTN_9')],
           [Markup.button.callback('💸 Пополнить баланс', 'BTN_7')],
           [Markup.button.callback('📋 История пополнений', 'BTN_6')],
+          [Markup.button.callback('📉 История списаний', 'BTN_10')],
           [this.backToMenuButton],
         ]),
       )
@@ -156,48 +160,141 @@ export class TelegramService {
 
   onBtn5 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
+    const telegramId = ctx?.from?.id;
+    const user = await this.em.findOne(UserEntity, {
+      where: { telegramId },
+    });
+    if (!user) return;
+
+    const keys = await this.em.find(VpnKeyEntity, {
+      where: { userId: user.id },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    let text = '<b>🔑 Мои ключи</b>\n\n';
+
+    if (!keys.length) {
+      text += 'У тебя пока нет активных ключей.';
+    } else {
+      text += keys
+        .map((k, index) => {
+          const statusMap: Record<string, string> = {
+            active: 'Активен',
+            expired: 'Истёк',
+            revoked: 'Отозван',
+          };
+          const statusText = statusMap[k.status] ?? k.status;
+          const expires =
+            k.expiresAt &&
+            new Date(k.expiresAt).toLocaleDateString('ru-RU', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            });
+          const trafficText =
+            k.trafficLimitGb === 0 ? 'Безлимит' : `${k.trafficLimitGb} ГБ`;
+
+          return (
+            `${index + 1}) <code>${k.vpnUsername}</code>\n` +
+            `Статус: ${statusText}\n` +
+            (expires ? `Действует до: ${expires}\n` : '') +
+            `Трафик: ${trafficText}\n`
+          );
+        })
+        .join('\n');
+    }
+
     await ctx
-      .editMessageText(
-        'Выбери действие:',
-        Markup.inlineKeyboard([[this.backToProfileButton]]),
-      )
+      .editMessageText(text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([[this.backToProfileButton]]),
+      })
       .catch(() => {});
   };
 
   onBtn6 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
     const telegramId = ctx?.from?.id;
+    const user = await this.em.findOne(UserEntity, {
+      where: { telegramId },
+    });
+    if (!user) return;
 
-    const transactionArrays: any[][] = [];
     const transactions = await this.em.find(TransactionEntity, {
-      where: { user: { telegramId } },
+      where: {
+        userId: user.id,
+        completed: true,
+        type: 'Credit',
+      },
       order: { createdAt: 'DESC' },
       take: 10,
     });
 
-    const step = 2;
-    for (let i = 0; i < transactions.length; i += step) {
-      const array: any[] = [];
-      for (let j = i; j < i + step; j++) {
-        if (transactions[j])
-          array.push(
-            Markup.button.callback(
-              `${transactions[j].amount} ${transactions[j].currency} (${new Date(transactions[j].createdAt).toLocaleDateString('ru-RU')})`,
-              transactions[j].message,
-            ),
-          );
-      }
-      transactionArrays.push(array);
+    let text = '<b>📋 История пополнений</b>\n\n';
+
+    if (!transactions.length) {
+      text += 'Пока нет ни одного пополнения.';
+    } else {
+      text += transactions
+        .map((t, index) => {
+          const date = new Date(t.createdAt).toLocaleDateString('ru-RU', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          });
+          const source = t.place === 'ton' ? 'TON' : 'СБП';
+          return `${index + 1}) ${t.amount} ${t.currency} — ${source} (${date})`;
+        })
+        .join('\n');
     }
 
     await ctx
-      .editMessageText(
-        '10 последних пополнений',
-        Markup.inlineKeyboard([
-          ...transactionArrays,
-          [this.backToProfileButton],
-        ]),
-      )
+      .editMessageText(text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([[this.backToProfileButton]]),
+      })
+      .catch(() => {});
+  };
+
+  onBtn10 = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+    const telegramId = ctx?.from?.id;
+    const user = await this.em.findOne(UserEntity, {
+      where: { telegramId },
+    });
+    if (!user) return;
+
+    const payments = await this.em.find(PaymentsEntity, {
+      where: {
+        userId: user.id,
+      },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    let text = '<b>📉 История списаний</b>\n\n';
+
+    if (!payments.length) {
+      text += 'Пока не было списаний со счёта.';
+    } else {
+      text += payments
+        .map((p, index) => {
+          const date = new Date(p.createdAt).toLocaleDateString('ru-RU', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          });
+          return `${index + 1}) ${p.amount} руб. — (${date})`;
+        })
+        .join('\n');
+    }
+
+    await ctx
+      .editMessageText(text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([[this.backToProfileButton]]),
+      })
       .catch(() => {});
   };
 
