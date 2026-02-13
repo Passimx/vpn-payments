@@ -433,7 +433,7 @@ export class TelegramService {
       `✅ <b>Ключ успешно создан!</b>\n\n` +
       `Подключи подписку в приложении:\n\n` +
       `<code>${result.uri}</code>\n\n` +
-      `_Нажми на ссылку, чтобы скопировать_`;
+      `Нажми на ссылку, чтобы скопировать`;
 
     await ctx
       .editMessageText(text, {
