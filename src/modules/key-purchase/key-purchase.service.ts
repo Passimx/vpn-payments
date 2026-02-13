@@ -4,6 +4,8 @@ import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { VpnKeyEntity } from '../database/entities/vpn-key.entity';
 import { PaymentsEntity } from '../database/entities/balance-debit.entity';
+import { PromoCodeEntity } from '../database/entities/promo-code.entity';
+import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { BlitzService } from '../blitz/blitz.service';
 
 export type PurchaseResult =
@@ -17,7 +19,11 @@ export class KeyPurchaseService {
     private readonly blitzService: BlitzService,
   ) {}
 
-  async purchase(userId: string, tariffId: string): Promise<PurchaseResult> {
+  async purchase(
+    userId: string,
+    tariffId: string,
+    promoCode?: string,
+  ): Promise<PurchaseResult> {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
@@ -39,8 +45,41 @@ export class KeyPurchaseService {
       }
 
       const price = Number(tariff.price);
+      let finalPrice = price;
+      let appliedPromo: PromoCodeEntity | null = null;
+
+      if (promoCode) {
+        const promo = await qr.manager.findOne(PromoCodeEntity, {
+          where: { code: promoCode, active: true },
+        });
+
+        if (!promo) {
+          return { ok: false, error: 'Промокод не найден или не активен' };
+        }
+
+        const existingUsage = await qr.manager.findOne(PromoUsageEntity, {
+          where: {
+            userId: user.id,
+            promoCodeId: promo.id,
+          },
+        });
+
+        if (existingUsage) {
+          return { ok: false, error: 'Этот промокод уже был использован' };
+        }
+
+        if (promo.isFreeKey) {
+          finalPrice = 0;
+        } else if (promo.discountPercent > 0) {
+          const discount = (price * promo.discountPercent) / 100;
+          finalPrice = Math.max(0, Math.round(price - discount));
+        }
+
+        appliedPromo = promo;
+      }
+
       const balance = Number(user.balance);
-      if (balance < price) {
+      if (balance < finalPrice) {
         return {
           ok: false,
           error: `Недостаточно средств. Баланс: ${balance} руб.`,
@@ -85,6 +124,7 @@ export class KeyPurchaseService {
       const vpnKey = qr.manager.create(VpnKeyEntity, {
         userId: user.id,
         vpnUsername,
+        vpnUri: uriResult.normalSub ?? uriResult.uri ?? null,
         trafficLimitGb: tariff.trafficGb,
         expirationDays: tariff.expirationDays,
         expiresAt,
@@ -93,20 +133,29 @@ export class KeyPurchaseService {
       });
       const savedKey = await qr.manager.save(VpnKeyEntity, vpnKey);
 
-      await qr.manager.insert(PaymentsEntity, {
-        userId: user.id,
-        amount: price,
-        tariffId: tariff.id,
-        vpnKeyId: savedKey.id,
-      });
+      if (finalPrice > 0) {
+        await qr.manager.insert(PaymentsEntity, {
+          userId: user.id,
+          amount: finalPrice,
+          tariffId: tariff.id,
+          vpnKeyId: savedKey.id,
+        });
 
-      const priceRounded = Math.round(price);
-      await qr.manager
-        .createQueryBuilder()
-        .update(UserEntity)
-        .set({ balance: () => `balance - ${priceRounded}` })
-        .where('id = :id', { id: user.id })
-        .execute();
+        const priceRounded = Math.round(finalPrice);
+        await qr.manager
+          .createQueryBuilder()
+          .update(UserEntity)
+          .set({ balance: () => `balance - ${priceRounded}` })
+          .where('id = :id', { id: user.id })
+          .execute();
+      }
+
+      if (appliedPromo) {
+        await qr.manager.insert(PromoUsageEntity, {
+          userId: user.id,
+          promoCodeId: appliedPromo.id,
+        });
+      }
 
       await qr.commitTransaction();
       return {

@@ -196,7 +196,7 @@ export class TelegramService {
             k.trafficLimitGb === 0 ? 'Безлимит' : `${k.trafficLimitGb} ГБ`;
 
           return (
-            `${index + 1}) <code>${k.vpnUsername}</code>\n` +
+            `${index + 1}) <code>${k.vpnUri}</code>\n` +
             `Статус: ${statusText}\n` +
             (expires ? `Действует до: ${expires}\n` : '') +
             `Трафик: ${trafficText}\n`

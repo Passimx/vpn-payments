@@ -20,6 +20,9 @@ export class VpnKeyEntity {
   @Column({ name: 'vpn_username', type: 'varchar', length: 64, unique: true })
   readonly vpnUsername: string;
 
+  @Column({ name: 'vpn_uri', type: 'text', nullable: true })
+  readonly vpnUri: string | null;
+
   @Column({ name: 'traffic_limit_gb', type: 'int', default: 0 })
   readonly trafficLimitGb: number;
 
