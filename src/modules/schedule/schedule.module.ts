@@ -4,6 +4,7 @@ import { ScheduleService } from './schedule.service';
 import { TBankModule } from '../t-bank/t-bank.module';
 import { TonModule } from '../ton/ton.module';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { YooMoneyModule } from '../yoomoney/yoomoney.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
     TBankModule,
     TonModule,
     TransactionsModule,
+    YooMoneyModule,
   ],
   providers: [ScheduleService],
 })

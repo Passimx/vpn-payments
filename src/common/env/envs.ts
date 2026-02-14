@@ -24,4 +24,8 @@ export const Envs = {
     apiUrl: String(process.env.BLITZ_API_URL),
     apiKey: String(process.env.BLITZ_API_KEY),
   },
+  yoomoney: {
+    walletNumber: String(process.env.YOOMONEY_WALLET_NUMBER || '4100119473106556'),
+    accessToken: process.env.YOOMONEY_ACCESS_TOKEN || '',
+  },
 };

@@ -9,14 +9,18 @@ import { VpnKeyEntity } from '../database/entities/vpn-key.entity';
 import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
 import { PaymentsEntity } from '../database/entities/balance-debit.entity';
+import { YooMoneyBalanceService } from '../yoomoney/yoomoney-balance.service';
 
 @Injectable()
 export class TelegramService {
   private bot: Telegraf;
 
+  private waitingForYooMoneyAmount: Set<number> = new Set();
+
   constructor(
     private readonly em: EntityManager,
     private readonly keyPurchaseService: KeyPurchaseService,
+    private readonly yoomoneyBalanceService: YooMoneyBalanceService,
   ) {}
 
   private readonly initMenu = Markup.inlineKeyboard([
@@ -62,8 +66,10 @@ export class TelegramService {
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
     this.bot.action('BTN_10', this.onBtn10);
+    this.bot.action('BTN_YOOMONEY', this.onYooMoneyBalance);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
+    this.bot.on('text', this.onText);
     this.bot.launch();
   }
 
@@ -116,10 +122,7 @@ export class TelegramService {
 
   onBtn3 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
-    const telegramId = ctx?.from?.id;
-    const user = await this.em.findOne(UserEntity, {
-      where: { telegramId },
-    });
+    const user = await this.getUserByCtx(ctx);
     if (!user) return;
 
     await ctx
@@ -302,11 +305,12 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     await ctx
       .editMessageText(
-        'Выбери действие:',
+        'Выбери способ пополнения:',
         Markup.inlineKeyboard([
           [
-            Markup.button.callback('📲 СБП ', 'BTN_3'),
-            Markup.button.callback('💎 ТОН ', 'BTN_8'),
+            Markup.button.callback('📲 СБП', 'BTN_3'),
+            Markup.button.callback('💎 ТОН', 'BTN_8'),
+            Markup.button.callback('💳 YooMoney', 'BTN_YOOMONEY'),
           ],
           [this.backToProfileButton],
         ]),
@@ -314,12 +318,31 @@ export class TelegramService {
       .catch(() => {});
   };
 
+  onYooMoneyBalance = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return;
+    this.waitingForYooMoneyAmount.add(ctx.from!.id);
+    await ctx
+      .editMessageText(
+        '💳 <b>YooMoney</b>\n\nВведите сумму (руб.):',
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([[this.backToPayWaysButton]]),
+        },
+      )
+      .catch(() => {});
+  };
+
+  private async getUserByCtx(ctx: Context): Promise<UserEntity | null> {
+    const telegramId = ctx?.from?.id;
+    if (!telegramId) return null;
+    return this.em.findOne(UserEntity, { where: { telegramId } });
+  }
+
   onBtn8 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
-    const telegramId = ctx?.from?.id;
-    const user = await this.em.findOne(UserEntity, {
-      where: { telegramId },
-    });
+    const user = await this.getUserByCtx(ctx);
     if (!user) return;
 
     await ctx
@@ -443,6 +466,39 @@ export class TelegramService {
           [this.backToProfileButton],
         ]),
       })
+      .catch(() => {});
+  };
+
+  onText = async (ctx: Context) => {
+    const telegramId = ctx?.from?.id;
+    if (!telegramId || !this.waitingForYooMoneyAmount.has(telegramId)) return;
+    const user = await this.getUserByCtx(ctx);
+    if (!user) {
+      this.waitingForYooMoneyAmount.delete(telegramId);
+      return;
+    }
+    const amount = parseFloat((ctx.message as { text?: string })?.text ?? '');
+    if (isNaN(amount) || amount <= 0) {
+      await ctx.reply('❌ Введите число, например 100').catch(() => {});
+      return;
+    }
+    this.waitingForYooMoneyAmount.delete(telegramId);
+    const result = await this.yoomoneyBalanceService.createBalancePaymentLink(user.id, amount);
+    if (!result.ok) {
+      await ctx.reply(`❌ ${result.error}`).catch(() => {});
+      return;
+    }
+    await ctx
+      .reply(
+        `💳 Сумма: <b>${amount} руб.</b>\n\nНажмите кнопку для оплаты:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.url('💳 Оплатить', result.paymentUrl)],
+            [this.backToPayWaysButton],
+          ]),
+        },
+      )
       .catch(() => {});
   };
 }
