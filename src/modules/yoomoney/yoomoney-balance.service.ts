@@ -53,12 +53,15 @@ export class YooMoneyBalanceService {
     } catch {
       return {
         ok: false,
-        error: 'Серви Yoomoney покачто не работает, используйте другие сервисы для оплаты (ТОН или СПБ)',
+        error:
+          'Серви Yoomoney покачто не работает, используйте другие сервисы для оплаты (ТОН или СПБ)',
       };
     }
   }
 
-  async getPaymentByLabel(label: string): Promise<YooMoneyBalancePaymentEntity | null> {
+  async getPaymentByLabel(
+    label: string,
+  ): Promise<YooMoneyBalancePaymentEntity | null> {
     return await this.em.findOne(YooMoneyBalancePaymentEntity, {
       where: { label },
       relations: ['user'],

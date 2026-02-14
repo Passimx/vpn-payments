@@ -324,13 +324,10 @@ export class TelegramService {
     if (!user) return;
     this.waitingForYooMoneyAmount.add(ctx.from!.id);
     await ctx
-      .editMessageText(
-        '💳 <b>YooMoney</b>\n\nВведите сумму (руб.):',
-        {
-          parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([[this.backToPayWaysButton]]),
-        },
-      )
+      .editMessageText('💳 <b>YooMoney</b>\n\nВведите сумму (руб.):', {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([[this.backToPayWaysButton]]),
+      })
       .catch(() => {});
   };
 
@@ -483,22 +480,22 @@ export class TelegramService {
       return;
     }
     this.waitingForYooMoneyAmount.delete(telegramId);
-    const result = await this.yoomoneyBalanceService.createBalancePaymentLink(user.id, amount);
+    const result = await this.yoomoneyBalanceService.createBalancePaymentLink(
+      user.id,
+      amount,
+    );
     if (!result.ok) {
       await ctx.reply(`❌ ${result.error}`).catch(() => {});
       return;
     }
     await ctx
-      .reply(
-        `💳 Сумма: <b>${amount} руб.</b>\n\nНажмите кнопку для оплаты:`,
-        {
-          parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([
-            [Markup.button.url('💳 Оплатить', result.paymentUrl)],
-            [this.backToPayWaysButton],
-          ]),
-        },
-      )
+      .reply(`💳 Сумма: <b>${amount} руб.</b>\n\nНажмите кнопку для оплаты:`, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [Markup.button.url('💳 Оплатить', result.paymentUrl)],
+          [this.backToPayWaysButton],
+        ]),
+      })
       .catch(() => {});
   };
 }

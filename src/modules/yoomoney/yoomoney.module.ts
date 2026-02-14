@@ -6,7 +6,10 @@ import { YooMoneyIncomingEntity } from '../database/entities/yoomoney-incoming.e
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([YooMoneyBalancePaymentEntity, YooMoneyIncomingEntity]),
+    TypeOrmModule.forFeature([
+      YooMoneyBalancePaymentEntity,
+      YooMoneyIncomingEntity,
+    ]),
   ],
   providers: [YooMoneyBalanceService],
   exports: [YooMoneyBalanceService],
