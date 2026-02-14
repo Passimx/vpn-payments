@@ -66,6 +66,7 @@ export class TelegramService {
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
     this.bot.action('BTN_10', this.onBtn10);
+    this.bot.action('BTN_11', this.onBtn11);
     this.bot.action('BTN_YOOMONEY', this.onYooMoneyBalance);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
@@ -342,16 +343,93 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
 
+    const address = Envs.ton.walletAddress;
+    const text = user.id;
+    const amount = 1 * 1000000000;
+
     await ctx
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
           `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
           `Адрес кошелька: <code>${Envs.ton.walletAddress}</code>\n` +
-          `Принимаемые монеты: <b>TON</b>\n` +
+          `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
           `Комментарий: <code>${user.id}</code>`,
         {
           parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([[this.backToPayWaysButton]]),
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback('TON (выбрано)', `BTN_8`),
+              Markup.button.callback('USDT', `BTN_11`),
+            ],
+            [
+              Markup.button.url(
+                'MyTonWallet',
+                `https://my.tt/transfer/${address}?text=${text}&amount=${amount}`,
+              ),
+            ],
+            [
+              Markup.button.url(
+                'Tonkeeper',
+                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount}`,
+              ),
+            ],
+            [
+              Markup.button.url(
+                'Tonhub',
+                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount}`,
+              ),
+            ],
+            [this.backToPayWaysButton],
+          ]),
+        },
+      )
+      .catch(() => {});
+  };
+
+  onBtn11 = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return;
+
+    const address = Envs.ton.walletAddress;
+    const text = user.id;
+    const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+    const amount = 1 * 1000000;
+
+    await ctx
+      .editMessageText(
+        `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
+          `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
+          `Адрес кошелька: <code>${Envs.ton.walletAddress}</code>\n` +
+          `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
+          `Комментарий: <code>${user.id}</code>`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback('TON', `BTN_8`),
+              Markup.button.callback('USDT (выбрано)', `BTN_11`),
+            ],
+            [
+              Markup.button.url(
+                'MyTonWallet',
+                `https://my.tt/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
+              ),
+            ],
+            [
+              Markup.button.url(
+                'Tonkeeper',
+                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
+              ),
+            ],
+            [
+              Markup.button.url(
+                'Tonhub',
+                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
+              ),
+            ],
+            [this.backToPayWaysButton],
+          ]),
         },
       )
       .catch(() => {});

@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Address, Message, TonClient, Transaction } from '@ton/ton';
+import { Address, Slice, TonClient, Transaction } from '@ton/ton';
 import { Envs } from '../../common/env/envs';
 import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { UserEntity } from '../database/entities/user.entity';
+
+const OP_TRANSFER_NOTIFICATION = 0x7362d09c;
+const OP_SEND = 0x00000000;
 
 @Injectable()
 export class TonService {
@@ -17,7 +20,7 @@ export class TonService {
 
     const [transactionEntity] = await this.em.find(TransactionEntity, {
       where: { place: 'ton' },
-      order: { createdAt: 'DESC' },
+      order: { id: 'DESC' },
     });
 
     const address = Address.parse(Envs.ton.walletAddress);
@@ -31,115 +34,101 @@ export class TonService {
 
     if (!transactions || !transactions.length) return;
 
-    const transactionEntities = (
-      await Promise.all(
-        transactions.map(async (transaction) => {
-          try {
-            let userId: string | undefined = undefined;
-            const message = extractComment(transaction);
-            const payload = parsePureTon(transaction, address);
+    const slice = transactions[0]?.inMessage?.body.beginParse();
+    if (!slice || slice.remainingBits < 32) return;
 
-            if (!payload) return undefined;
+    const transactionEntities = await Promise.all(
+      transactions.map(async (transaction) => {
+        try {
+          let userId: string | undefined = undefined;
+          const payload = this.getTransactionInf(transaction);
+          if (!payload) return undefined;
 
-            if (message?.length) {
-              const userEntity = await this.em.findOne(UserEntity, {
-                where: { id: message },
-              });
-              if (userEntity) userId = userEntity.id;
-            }
-
-            return {
-              id: transaction.lt,
-              amount: payload.amount,
-              currency: payload?.currency,
-              message,
-              type: payload?.type,
-              place: 'ton',
-              userId,
-              createdAt: transaction.now * 1000,
-            } as unknown as TransactionEntity;
-          } catch (error) {
-            console.log(error);
-            return undefined as unknown as TransactionEntity;
+          if (payload?.message?.length) {
+            const userEntity = await this.em.findOne(UserEntity, {
+              where: { id: payload.message },
+            });
+            if (userEntity) userId = userEntity.id;
           }
-        }),
-      )
-    ).filter(
-      (transaction) =>
-        transaction &&
-        (!transactionEntity ||
-          transaction.createdAt > transactionEntity?.createdAt),
-    ) as unknown as TransactionEntity;
 
-    await this.em.insert(TransactionEntity, transactionEntities);
+          if (!userId) return undefined;
+
+          return {
+            id: transaction.lt,
+            amount: payload?.amount,
+            currency: payload?.currency,
+            message: payload?.message,
+            type: payload?.type,
+            place: 'ton',
+            userId,
+            createdAt: transaction.now * 1000,
+          } as unknown as TransactionEntity;
+        } catch (error) {
+          console.log(error);
+          return undefined as unknown as TransactionEntity;
+        }
+      }),
+    );
+
+    const transactionsNotEmpty = transactionEntities
+      .filter((transactionEntity) => !!transactionEntity)
+      .filter(
+        (transaction) =>
+          !transactionEntity ||
+          transaction.createdAt > transactionEntity?.createdAt,
+      );
+
+    await this.em.insert(TransactionEntity, transactionsNotEmpty);
   }
-}
 
-function parsePureTon(tx: Transaction, myAddress: Address) {
-  let incoming = 0n;
-  let outgoing = 0n;
+  private getTransactionInf(transaction: Transaction) {
+    const msg = transaction.inMessage;
 
-  if (
-    tx.inMessage?.info.type === 'internal' &&
-    tx.inMessage.info.dest.equals(myAddress)
-  ) {
-    incoming += tx.inMessage.info.value.coins;
-  }
+    if (!msg || msg.info.type !== 'internal') return;
 
-  for (const [, msg] of tx.outMessages) {
-    if (msg.info.type === 'internal' && msg.info.src.equals(myAddress)) {
-      outgoing += msg.info.value.coins;
+    const slice = msg.body.beginParse();
+    if (slice.remainingBits < 32) return;
+    const op = slice.loadUint(32);
+
+    if (op === OP_TRANSFER_NOTIFICATION) {
+      const jettonWalletAddress = msg?.info.src?.toString();
+      if (jettonWalletAddress != Envs.ton.jettonWalletAddress) return;
+
+      slice.loadUintBig(64);
+      const jettonAmount = slice.loadCoins();
+      slice.loadAddress(); // jetton wallet sender
+      const isRight = slice.loadBit();
+      let message: string | undefined = undefined;
+
+      const payloadSlice: Slice = isRight
+        ? slice.loadRef().beginParse()
+        : slice;
+
+      const payloadOp = payloadSlice.loadUint(32);
+
+      if (payloadOp === 0) message = payloadSlice.loadStringTail();
+
+      return {
+        currency: 'USDT',
+        type: 'Credit',
+        amount: Number(jettonAmount) / 1e9,
+        message,
+      };
+    }
+
+    if (op === OP_SEND) {
+      const message = slice
+        .loadBuffer(slice.remainingBits / 8)
+        .toString('utf8')
+        .replace(/^\n+|\n+$/g, '')
+        .trim();
+
+      return {
+        currency: 'TON',
+        type: 'Credit',
+        amount: Number(msg.info.value.coins) / 1e9,
+        message,
+      };
     }
   }
-
-  if (incoming > 0n) {
-    return {
-      currency: 'TON',
-      type: 'Credit',
-      amount: Number(incoming) / 1e9,
-    };
-  }
-
-  if (outgoing > 0n) {
-    return {
-      currency: 'TON',
-      type: 'Debit',
-      amount: Number(outgoing) / 1e9,
-    };
-  }
-
-  return null;
-}
-
-function readTonComment(msg?: Message | null): string | null {
-  if (!msg?.body || msg.info.type !== 'internal') return null;
-
-  const slice = msg.body.beginParse();
-
-  if (slice.remainingBits < 32) return null;
-
-  const op = slice.loadUint(32);
-  if (op !== 0) return null;
-
-  if (slice.remainingBits % 8 !== 0) return null;
-
-  return slice
-    .loadBuffer(slice.remainingBits / 8)
-    .toString('utf8')
-    .replace(/^\n+|\n+$/g, '')
-    .trim();
-}
-
-function extractComment(tx: Transaction): string | null {
-  // 1️⃣ входящее сообщение
-  let comment = readTonComment(tx.inMessage);
-  if (comment) return comment;
-
-  // 2️⃣ исходящие сообщения
-  for (const [, msg] of tx.outMessages) {
-    comment = readTonComment(msg);
-    if (comment) return comment;
-  }
-
-  return null;
 }

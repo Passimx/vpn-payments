@@ -17,6 +17,7 @@ export const Envs = {
   tBank: {},
   ton: {
     walletAddress: String(process.env.TON_WALLET_ADDRESS),
+    jettonWalletAddress: String(process.env.TON_JETTON_WALLET_ADDRESS),
     endpointUrl: String(process.env.TON_ENDPOINT_URL),
     endpointApiKey: String(process.env.TON_ENDPOINT_TON_APIKEY),
   },
