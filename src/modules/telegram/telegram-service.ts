@@ -15,7 +15,9 @@ import { YooMoneyBalanceService } from '../yoomoney/yoomoney-balance.service';
 export class TelegramService {
   private bot: Telegraf;
 
-  private waitingForYooMoneyAmount: Set<number> = new Set();
+  private waitingForYooMoneyAmount = new Set<number>();
+  private waitingForPromoTariff = new Map<number, string>();
+  private pendingPromo = new Map<number, { tariffId: string; promoCode: string }>();
 
   constructor(
     private readonly em: EntityManager,
@@ -49,6 +51,22 @@ export class TelegramService {
     'BTN_9',
   );
 
+  private readonly hiddifyLinks = {
+    mac: 'https://github.com/hiddify/hiddify-next/releases',
+    windows: 'https://github.com/hiddify/hiddify-next/releases',
+    android: 'https://play.google.com/store/apps/details?id=app.hiddify.com',
+    ios: 'https://apps.apple.com/app/hiddify-proxy-vpn/id6450514732',
+  };
+
+  private readonly startMessage =
+    'Преимущества бота:\n\n' +
+    '🔐 Надёжность на уровне SUNLIGHT — хрен закроют\n' +
+    '🏎️ YouTube 4K без тормозов\n' +
+    '💨 Reels — палец не успевает\n' +
+    '♾️ Один доступ — windows, ios, android...\n' +
+    '🫂 Живая поддержка — мы с людьми, боты работают на нас\n\n' +
+    '👇 Выберите действие:';
+
   onModuleInit() {
     this.bot = new Telegraf(Envs.telegram.botToken);
     this.bot.catch((err) => {
@@ -68,6 +86,7 @@ export class TelegramService {
     this.bot.action('BTN_10', this.onBtn10);
     this.bot.action('BTN_YOOMONEY', this.onYooMoneyBalance);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
+    this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
     this.bot.on('text', this.onText);
     this.bot.launch();
@@ -78,7 +97,7 @@ export class TelegramService {
   }
 
   onStart = async (ctx: Context) => {
-    await ctx.reply('Выбери действие:', this.initMenu);
+    await ctx.reply(this.startMessage, this.initMenu);
     const telegramId = ctx?.from?.id;
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId },
@@ -100,7 +119,7 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `ID: ${user.id}\nБаланс: ${user?.balance ?? 0} руб.`,
+        `Welcome to PassimX\nБаланс: ${user?.balance ?? 0} руб.`,
         Markup.inlineKeyboard([
           [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
           [Markup.button.callback('🛒 Приобрести ключ', 'BTN_9')],
@@ -143,21 +162,27 @@ export class TelegramService {
 
   onBtn4 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
+    const instructionText =
+      '📖 <b>Как подключить ключ</b>\n\n' +
+      '1. Установите приложение Hiddify для вашего устройства (кнопки ниже).\n' +
+      '2. Откройте приложение → Добавить подписку по ссылке.\n' +
+      '3. Вставьте ссылку на подписку (она появляется после покупки ключа).\n\n' +
+      'Ссылки на приложение Hiddify:';
     await ctx
-      .editMessageText(
-        'Выбери действие:',
-        Markup.inlineKeyboard([
+      .editMessageText(instructionText, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
           [
-            Markup.button.url('📱 Android', 'https://passimx.ru'),
-            Markup.button.url('📱 IOS', 'https://passimx.ru'),
+            Markup.button.url('📱 Android', this.hiddifyLinks.android),
+            Markup.button.url('🍎 iOS', this.hiddifyLinks.ios),
           ],
           [
-            Markup.button.url('💻 Windows', 'https://passimx.ru'),
-            Markup.button.url('💻 MacOS', 'https://passimx.ru'),
+            Markup.button.url('💻 Windows', this.hiddifyLinks.windows),
+            Markup.button.url('🍏 Mac', this.hiddifyLinks.mac),
           ],
           [this.backToMenuButton],
         ]),
-      )
+      })
       .catch(() => {});
   };
 
@@ -390,13 +415,17 @@ export class TelegramService {
 
   onTariffSelect = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
+    const telegramId = ctx?.from?.id;
+    if (telegramId) {
+      this.waitingForPromoTariff.delete(telegramId);
+      this.pendingPromo.delete(telegramId);
+    }
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const tariffId = callbackData.replace('T:', '');
 
     const tariff = await this.em.findOne(TariffEntity, {
       where: { id: tariffId, active: true },
     });
-
     if (!tariff) {
       await ctx.answerCbQuery('Тариф не найден.').catch(() => {});
       return;
@@ -416,8 +445,27 @@ export class TelegramService {
       .editMessageText(text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('✅ Купить', `BUY:${tariff.id}`)],
+          [
+            Markup.button.callback('✅ Купить', `BUY:${tariff.id}`),
+            Markup.button.callback('🎟 Промокод', `PROMO:${tariff.id}`),
+          ],
           [this.backToTariffsButton],
+        ]),
+      })
+      .catch(() => {});
+  };
+
+  onPromoClick = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const tariffId = data.replace('PROMO:', '');
+    const telegramId = ctx?.from?.id;
+    if (!telegramId) return;
+    this.waitingForPromoTariff.set(telegramId, tariffId);
+    await ctx
+      .editMessageText('🎟 Введите промокод:', {
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('⬅️ К тарифу', `T:${tariffId}`)],
         ]),
       })
       .catch(() => {});
@@ -427,10 +475,7 @@ export class TelegramService {
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const tariffId = callbackData.replace('BUY:', '');
     const telegramId = ctx?.from?.id;
-
-    const user = await this.em.findOne(UserEntity, {
-      where: { telegramId },
-    });
+    const user = await this.getUserByCtx(ctx);
     if (!user) {
       await ctx.answerCbQuery('Сначала нажми /start').catch(() => {});
       return;
@@ -438,7 +483,17 @@ export class TelegramService {
 
     await ctx.answerCbQuery('Обработка...').catch(() => {});
 
-    const result = await this.keyPurchaseService.purchase(user.id, tariffId);
+    const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
+    const promoCode =
+      promo?.tariffId === tariffId ? promo.promoCode : undefined;
+    if (telegramId && promo?.tariffId === tariffId)
+      this.pendingPromo.delete(telegramId);
+
+    const result = await this.keyPurchaseService.purchase(
+      user.id,
+      tariffId,
+      promoCode,
+    );
 
     if (!result.ok) {
       await ctx
@@ -450,17 +505,26 @@ export class TelegramService {
     }
 
     const text =
-      `✅ <b>Ключ успешно создан!</b>\n\n` +
-      `Подключи подписку в приложении:\n\n` +
-      `<code>${result.uri}</code>\n\n` +
-      `Нажми на ссылку, чтобы скопировать`;
+      `✅ <b>Ключ создан</b>\n\n` +
+      `Подписка (нажми, чтобы скопировать):\n<code>${result.uri}</code>\n\n` +
+      `Как применить: откройте Hiddify → Добавить по ссылке → вставьте ссылку выше. Если приложения нет — нажмите кнопку для вашей ОС ниже.`;
 
     await ctx
       .editMessageText(text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('🛒 Ещё ключ', 'BTN_9')],
-          [this.backToProfileButton],
+          [
+            Markup.button.url('📱 Android', this.hiddifyLinks.android),
+            Markup.button.url('🍎 iOS', this.hiddifyLinks.ios),
+          ],
+          [
+            Markup.button.url('💻 Windows', this.hiddifyLinks.windows),
+            Markup.button.url('🍏 Mac', this.hiddifyLinks.mac),
+          ],
+          [
+            Markup.button.callback('🛒 Ещё ключ', 'BTN_9'),
+            this.backToProfileButton,
+          ],
         ]),
       })
       .catch(() => {});
@@ -468,13 +532,46 @@ export class TelegramService {
 
   onText = async (ctx: Context) => {
     const telegramId = ctx?.from?.id;
-    if (!telegramId || !this.waitingForYooMoneyAmount.has(telegramId)) return;
+    if (!telegramId) return;
+    const text = (ctx.message as { text?: string })?.text?.trim() ?? '';
+
+    const tariffId = this.waitingForPromoTariff.get(telegramId);
+    if (tariffId) {
+      this.waitingForPromoTariff.delete(telegramId);
+      const user = await this.getUserByCtx(ctx);
+      if (!user) return;
+      const priceResult = await this.keyPurchaseService.getPriceWithPromo(
+        user.id,
+        tariffId,
+        text,
+      );
+      if (!priceResult.ok) {
+        await ctx.reply(`❌ ${priceResult.error}`).catch(() => {});
+        return;
+      }
+      this.pendingPromo.set(telegramId, { tariffId, promoCode: text });
+      await ctx
+        .reply(
+          `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
+          {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('✅ Купить', `BUY:${tariffId}`)],
+              [this.backToTariffsButton],
+            ]),
+          },
+        )
+        .catch(() => {});
+      return;
+    }
+
+    if (!this.waitingForYooMoneyAmount.has(telegramId)) return;
     const user = await this.getUserByCtx(ctx);
     if (!user) {
       this.waitingForYooMoneyAmount.delete(telegramId);
       return;
     }
-    const amount = parseFloat((ctx.message as { text?: string })?.text ?? '');
+    const amount = parseFloat(text);
     if (isNaN(amount) || amount <= 0) {
       await ctx.reply('❌ Введите число, например 100').catch(() => {});
       return;

@@ -12,6 +12,10 @@ export type PurchaseResult =
   | { ok: true; uri: string; keyId: string }
   | { ok: false; error: string };
 
+export type PriceWithPromoResult =
+  | { ok: true; originalPrice: number; finalPrice: number; appliedPromo: PromoCodeEntity }
+  | { ok: false; error: string };
+
 @Injectable()
 export class KeyPurchaseService {
   constructor(
@@ -44,38 +48,14 @@ export class KeyPurchaseService {
         return { ok: false, error: 'Тариф не найден' };
       }
 
-      const price = Number(tariff.price);
-      let finalPrice = price;
+      let finalPrice = Number(tariff.price);
       let appliedPromo: PromoCodeEntity | null = null;
 
       if (promoCode) {
-        const promo = await qr.manager.findOne(PromoCodeEntity, {
-          where: { code: promoCode, active: true },
-        });
-
-        if (!promo) {
-          return { ok: false, error: 'Промокод не найден или не активен' };
-        }
-
-        const existingUsage = await qr.manager.findOne(PromoUsageEntity, {
-          where: {
-            userId: user.id,
-            promoCodeId: promo.id,
-          },
-        });
-
-        if (existingUsage) {
-          return { ok: false, error: 'Этот промокод уже был использован' };
-        }
-
-        if (promo.isFreeKey) {
-          finalPrice = 0;
-        } else if (promo.discountPercent > 0) {
-          const discount = (price * promo.discountPercent) / 100;
-          finalPrice = Math.max(0, Math.round(price - discount));
-        }
-
-        appliedPromo = promo;
+        const priceResult = await this.getPriceWithPromo(user.id, tariff.id, promoCode);
+        if (!priceResult.ok) return priceResult;
+        finalPrice = priceResult.finalPrice;
+        appliedPromo = priceResult.appliedPromo;
       }
 
       const balance = Number(user.balance);
@@ -94,7 +74,7 @@ export class KeyPurchaseService {
         };
       }
 
-      const vpnUsername = `u_${userId.slice(0, 8)}_${Date.now().toString(36)}`;
+      const vpnUsername = `${userId}_${Date.now()}`;
       const createResult = await this.blitzService.createUserKey({
         username: vpnUsername,
         trafficLimitGb: tariff.trafficGb,
@@ -133,14 +113,14 @@ export class KeyPurchaseService {
       });
       const savedKey = await qr.manager.save(VpnKeyEntity, vpnKey);
 
-      if (finalPrice > 0) {
-        await qr.manager.insert(PaymentsEntity, {
-          userId: user.id,
-          amount: finalPrice,
-          tariffId: tariff.id,
-          vpnKeyId: savedKey.id,
-        });
+      await qr.manager.insert(PaymentsEntity, {
+        userId: user.id,
+        amount: finalPrice,
+        tariffId: tariff.id,
+        vpnKeyId: savedKey.id,
+      });
 
+      if (finalPrice > 0) {
         const priceRounded = Math.round(finalPrice);
         await qr.manager
           .createQueryBuilder()
@@ -171,4 +151,53 @@ export class KeyPurchaseService {
       await qr.release();
     }
   }
+
+  async getPriceWithPromo(
+    userId: string,
+    tariffId: string,
+    promoCode: string,
+  ): Promise<PriceWithPromoResult> {
+    const manager = this.dataSource.manager;
+
+    const tariff = await manager.findOne(TariffEntity, {
+      where: { id: tariffId, active: true },
+    });
+    if (!tariff) {
+      return { ok: false, error: 'Тариф не найден' };
+    }
+
+    const promo = await manager.findOne(PromoCodeEntity, {
+      where: { code: promoCode, active: true },
+    });
+    if (!promo) {
+      return { ok: false, error: 'Промокод не найден или не активен' };
+    }
+
+    const existingUsage = await manager.findOne(PromoUsageEntity, {
+      where: {
+        userId,
+        promoCodeId: promo.id,
+      },
+    });
+    if (existingUsage) {
+      return { ok: false, error: 'Этот промокод уже был использован' };
+    }
+
+    const originalPrice = Number(tariff.price);
+    let finalPrice = originalPrice;
+    if (promo.isFreeKey) {
+      finalPrice = 0;
+    } else if (promo.discountPercent > 0) {
+      const discount = (originalPrice * promo.discountPercent) / 100;
+      finalPrice = Math.max(0, Math.round(originalPrice - discount));
+    }
+
+    return {
+      ok: true,
+      originalPrice,
+      finalPrice,
+      appliedPromo: promo,
+    };
+  }
 }
+
