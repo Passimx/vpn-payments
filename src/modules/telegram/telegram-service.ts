@@ -17,7 +17,10 @@ export class TelegramService {
 
   private waitingForYooMoneyAmount = new Set<number>();
   private waitingForPromoTariff = new Map<number, string>();
-  private pendingPromo = new Map<number, { tariffId: string; promoCode: string }>();
+  private pendingPromo = new Map<
+    number,
+    { tariffId: string; promoCode: string }
+  >();
 
   constructor(
     private readonly em: EntityManager,

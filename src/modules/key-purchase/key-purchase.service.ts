@@ -13,7 +13,12 @@ export type PurchaseResult =
   | { ok: false; error: string };
 
 export type PriceWithPromoResult =
-  | { ok: true; originalPrice: number; finalPrice: number; appliedPromo: PromoCodeEntity }
+  | {
+      ok: true;
+      originalPrice: number;
+      finalPrice: number;
+      appliedPromo: PromoCodeEntity;
+    }
   | { ok: false; error: string };
 
 @Injectable()
@@ -52,7 +57,11 @@ export class KeyPurchaseService {
       let appliedPromo: PromoCodeEntity | null = null;
 
       if (promoCode) {
-        const priceResult = await this.getPriceWithPromo(user.id, tariff.id, promoCode);
+        const priceResult = await this.getPriceWithPromo(
+          user.id,
+          tariff.id,
+          promoCode,
+        );
         if (!priceResult.ok) return priceResult;
         finalPrice = priceResult.finalPrice;
         appliedPromo = priceResult.appliedPromo;
@@ -200,4 +209,3 @@ export class KeyPurchaseService {
     };
   }
 }
-
