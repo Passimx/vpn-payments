@@ -11,6 +11,8 @@ services:
       POSTGRES_USER: ${PG_USERNAME}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
     command: -p ${PG_PORT}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
     expose:
       - ${PG_PORT}
     ports:
@@ -31,6 +33,23 @@ services:
       - "${PORT:-2000}:${PORT:-2000}"
     depends_on:
       - postgres
+    networks:
+      - vpn-network
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=60
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_ROLLING_RESTART=true
+    command: app
+    depends_on:
+      - app
     networks:
       - vpn-network
 
