@@ -10,7 +10,7 @@ export class TransactionEntity {
   readonly amount: number;
 
   @Column({ name: 'currency', type: 'varchar', default: 2 ** 8 })
-  readonly currency: 'TON' | 'USDT' | 'РУБ';
+  readonly currency: 'TON' | 'USD' | 'РУБ';
 
   @Column({ name: 'message', type: 'text', nullable: true })
   readonly message: string;

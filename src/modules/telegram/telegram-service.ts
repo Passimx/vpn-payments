@@ -373,7 +373,7 @@ export class TelegramService {
 
     const address = Envs.ton.walletAddress;
     const text = user.id;
-    const amount = 1 * 1000000000;
+    const amount = 1 * 1e9;
 
     await ctx
       .editMessageText(
@@ -422,7 +422,7 @@ export class TelegramService {
     const address = Envs.ton.walletAddress;
     const text = user.id;
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-    const amount = 1 * 1000000;
+    const amount = 1 * 1e6;
 
     await ctx
       .editMessageText(

@@ -61,7 +61,7 @@ export class TonService {
             type: payload?.type,
             place: 'ton',
             userId,
-            createdAt: transaction.now * 1000,
+            createdAt: transaction.now * 1e3,
           } as unknown as TransactionEntity;
         } catch (error) {
           console.log(error);
@@ -109,9 +109,9 @@ export class TonService {
       if (payloadOp === 0) message = payloadSlice.loadStringTail();
 
       return {
-        currency: 'USDT',
+        currency: 'USD',
         type: 'Credit',
-        amount: Number(jettonAmount) / 1e9,
+        amount: Number(jettonAmount) / 1e6,
         message,
       };
     }

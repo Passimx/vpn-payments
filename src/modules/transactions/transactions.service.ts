@@ -44,13 +44,13 @@ export class TransactionsService {
       await this.em.insert(ExchangeEntity, [
         {
           date: date.getTime(),
-          currency: 'USDT',
+          currency: 'USD',
           priceCurrency: 'РУБ',
           price: usdPrice.rub,
         },
         {
           date: date.getTime(),
-          currency: 'USDT',
+          currency: 'USD',
           priceCurrency: 'CNY',
           price: usdPrice.cny,
         },

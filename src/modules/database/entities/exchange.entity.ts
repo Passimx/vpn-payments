@@ -13,7 +13,7 @@ export class ExchangeEntity {
   readonly date: number;
 
   @Column({ name: 'currency', type: 'varchar', default: 2 ** 8, primary: true })
-  readonly currency: 'TON' | 'USDT' | 'РУБ';
+  readonly currency: 'TON' | 'USD' | 'РУБ';
 
   @Column({
     name: 'balance',
