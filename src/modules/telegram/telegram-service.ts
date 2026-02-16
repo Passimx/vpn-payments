@@ -16,10 +16,10 @@ export class TelegramService {
   private bot: Telegraf;
 
   private waitingForYooMoneyAmount = new Set<number>();
-  private waitingForPromoTariff = new Map<number, string>();
+  private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
     number,
-    { tariffId: string; promoCode: string }
+    { id: string; promoCode: string; isRenew: boolean }
   >();
 
   constructor(
@@ -32,6 +32,8 @@ export class TelegramService {
     Markup.button.callback('👤 Профиль', 'BTN_1'),
     Markup.button.callback('📖 Инструкция', 'BTN_4'),
     Markup.button.url('👩‍💻 Поддержка', 'https://t.me/ramzini22'),
+    Markup.button.url('📄 Пользовательское соглашение', 'https://passimx.ru/terms/'),
+
   ]);
 
   private readonly backToMenuButton = Markup.button.callback(
@@ -92,6 +94,9 @@ export class TelegramService {
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
+    this.bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
+    this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
+    this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
     this.bot.on('text', this.onText);
     this.bot.launch();
   }
@@ -209,6 +214,8 @@ export class TelegramService {
     if (!keys.length) {
       text += 'У тебя пока нет активных ключей.';
     } else {
+      const now = new Date();
+      const buttons: any[] = [];
       text += keys
         .map((k, index) => {
           const statusMap: Record<string, string> = {
@@ -226,6 +233,18 @@ export class TelegramService {
             });
           const trafficText =
             k.trafficLimitGb === 0 ? 'Безлимит' : `${k.trafficLimitGb} ГБ`;
+          const isExpired =
+            k.status === 'expired' ||
+            (k.expiresAt && new Date(k.expiresAt) < now);
+
+          if (isExpired) {
+            buttons.push([
+              Markup.button.callback(
+                `🔄 Продлить ключ ${index + 1}`,
+                `RENEW:${k.id}`,
+              ),
+            ]);
+          }
 
           return (
             `${index + 1}) <code>${k.vpnUri}</code>\n` +
@@ -235,6 +254,17 @@ export class TelegramService {
           );
         })
         .join('\n');
+
+      if (buttons.length > 0) {
+        buttons.push([this.backToProfileButton]);
+        await ctx
+          .editMessageText(text, {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard(buttons),
+          })
+          .catch(() => {});
+        return;
+      }
     }
 
     await ctx
@@ -364,6 +394,52 @@ export class TelegramService {
     const telegramId = ctx?.from?.id;
     if (!telegramId) return null;
     return this.em.findOne(UserEntity, { where: { telegramId } });
+  }
+
+  private async showTariffScreen(
+    ctx: Context,
+    tariff: TariffEntity,
+    opts: {
+      buyCallback: string;
+      promoCallback: string;
+      backCallback: string;
+    },
+  ): Promise<void> {
+    const trafficText =
+      tariff.isUnlimited || tariff.trafficGb === 0
+        ? 'Безлимит'
+        : `${tariff.trafficGb} GB`;
+    const text =
+      `📦 <b>${tariff.name}</b>\n\n` +
+      `📊 Трафик: ${trafficText}\n` +
+      `📅 Срок: ${tariff.expirationDays} дн.\n` +
+      `💰 Цена: ${tariff.price} руб.\n`;
+
+    await ctx
+      .editMessageText(text, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback('✅ Купить', opts.buyCallback),
+            Markup.button.callback('🎟 Промокод', opts.promoCallback),
+          ],
+          [Markup.button.callback('⬅️ Назад', opts.backCallback)],
+        ]),
+      })
+      .catch(() => {});
+  }
+
+  private async askPromoCode(
+    ctx: Context,
+    backCallback: string,
+  ): Promise<void> {
+    await ctx
+      .editMessageText('🎟 Введите промокод:', {
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('⬅️ Назад', backCallback)],
+        ]),
+      })
+      .catch(() => {});
   }
 
   onBtn8 = async (ctx: Context) => {
@@ -498,7 +574,7 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     const telegramId = ctx?.from?.id;
     if (telegramId) {
-      this.waitingForPromoTariff.delete(telegramId);
+      this.waitingForPromo.delete(telegramId);
       this.pendingPromo.delete(telegramId);
     }
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
@@ -512,28 +588,11 @@ export class TelegramService {
       return;
     }
 
-    const trafficText =
-      tariff.isUnlimited || tariff.trafficGb === 0
-        ? 'Безлимит'
-        : `${tariff.trafficGb} GB`;
-    const text =
-      `📦 <b>${tariff.name}</b>\n\n` +
-      `📊 Трафик: ${trafficText}\n` +
-      `📅 Срок: ${tariff.expirationDays} дн.\n` +
-      `💰 Цена: ${tariff.price} руб.\n`;
-
-    await ctx
-      .editMessageText(text, {
-        parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('✅ Купить', `BUY:${tariff.id}`),
-            Markup.button.callback('🎟 Промокод', `PROMO:${tariff.id}`),
-          ],
-          [this.backToTariffsButton],
-        ]),
-      })
-      .catch(() => {});
+    await this.showTariffScreen(ctx, tariff, {
+      buyCallback: `BUY:${tariff.id}`,
+      promoCallback: `PROMO:${tariff.id}`,
+      backCallback: 'BTN_9',
+    });
   };
 
   onPromoClick = async (ctx: Context) => {
@@ -542,52 +601,18 @@ export class TelegramService {
     const tariffId = data.replace('PROMO:', '');
     const telegramId = ctx?.from?.id;
     if (!telegramId) return;
-    this.waitingForPromoTariff.set(telegramId, tariffId);
-    await ctx
-      .editMessageText('🎟 Введите промокод:', {
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('⬅️ К тарифу', `T:${tariffId}`)],
-        ]),
-      })
-      .catch(() => {});
+    this.waitingForPromo.set(telegramId, { id: tariffId, isRenew: false });
+    await this.askPromoCode(ctx, `T:${tariffId}`);
   };
 
-  onBuyTariff = async (ctx: Context) => {
-    const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
-    const tariffId = callbackData.replace('BUY:', '');
-    const telegramId = ctx?.from?.id;
-    const user = await this.getUserByCtx(ctx);
-    if (!user) {
-      await ctx.answerCbQuery('Сначала нажми /start').catch(() => {});
-      return;
-    }
-
-    await ctx.answerCbQuery('Обработка...').catch(() => {});
-
-    const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
-    const promoCode =
-      promo?.tariffId === tariffId ? promo.promoCode : undefined;
-    if (telegramId && promo?.tariffId === tariffId)
-      this.pendingPromo.delete(telegramId);
-
-    const result = await this.keyPurchaseService.purchase(
-      user.id,
-      tariffId,
-      promoCode,
-    );
-
-    if (!result.ok) {
-      await ctx
-        .editMessageText(`❌ ${result.error}`, {
-          ...Markup.inlineKeyboard([[this.backToTariffsButton]]),
-        })
-        .catch(() => {});
-      return;
-    }
-
+  private async showKeyCreatedScreen(
+    ctx: Context,
+    uri: string,
+    backButton: any,
+  ): Promise<void> {
     const text =
       `✅ <b>Ключ создан</b>\n\n` +
-      `Подписка (нажми, чтобы скопировать):\n<code>${result.uri}</code>\n\n` +
+      `Подписка (нажми, чтобы скопировать):\n<code>${uri}</code>\n\n` +
       `Как применить: откройте Hiddify → Добавить по ссылке → вставьте ссылку выше. Если приложения нет — нажмите кнопку для вашей ОС ниже.`;
 
     await ctx
@@ -602,35 +627,160 @@ export class TelegramService {
             Markup.button.url('💻 Windows', this.hiddifyLinks.windows),
             Markup.button.url('🍏 Mac', this.hiddifyLinks.mac),
           ],
-          [
-            Markup.button.callback('🛒 Ещё ключ', 'BTN_9'),
-            this.backToProfileButton,
-          ],
+          [Markup.button.callback('🛒 Ещё ключ', 'BTN_9'), backButton],
         ]),
       })
       .catch(() => {});
-  };
+  }
 
-  onText = async (ctx: Context) => {
+  onBuyTariff = async (ctx: Context) => {
+    const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const isRenew = callbackData.startsWith('BUY_KEY:');
+    const id = callbackData.replace(/^(BUY|BUY_KEY):/, '');
     const telegramId = ctx?.from?.id;
-    if (!telegramId) return;
-    const text = (ctx.message as { text?: string })?.text?.trim() ?? '';
+    const user = await this.getUserByCtx(ctx);
+    if (!user) {
+      await ctx.answerCbQuery('Сначала нажми /start').catch(() => {});
+      return;
+    }
 
-    const tariffId = this.waitingForPromoTariff.get(telegramId);
-    if (tariffId) {
-      this.waitingForPromoTariff.delete(telegramId);
-      const user = await this.getUserByCtx(ctx);
-      if (!user) return;
-      const priceResult = await this.keyPurchaseService.getPriceWithPromo(
-        user.id,
-        tariffId,
-        text,
-      );
-      if (!priceResult.ok) {
-        await ctx.reply(`❌ ${priceResult.error}`).catch(() => {});
+    await ctx.answerCbQuery('Обработка...').catch(() => {});
+
+    if (isRenew) {
+      const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
+      const promoCode = promo?.id === id && promo?.isRenew ? promo.promoCode : undefined;
+      if (telegramId && promo?.id === id && promo?.isRenew) this.pendingPromo.delete(telegramId);
+
+      const result = await this.keyPurchaseService.renewKey(user.id, id, promoCode);
+      if (!result.ok) {
+        await ctx
+          .editMessageText(`❌ ${result.error}`, {
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('⬅️ Назад', 'BTN_5')],
+            ]),
+          })
+          .catch(() => {});
         return;
       }
-      this.pendingPromo.set(telegramId, { tariffId, promoCode: text });
+
+      await ctx
+        .editMessageText(
+          `✅ <b>Ключ продлён</b>\n\nКлюч обновлён и снова активен.`,
+          {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
+              [this.backToProfileButton],
+            ]),
+          },
+        )
+        .catch(() => {});
+    } else {
+      const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
+      const promoCode = promo?.id === id && !promo?.isRenew ? promo.promoCode : undefined;
+      if (telegramId && promo?.id === id && !promo?.isRenew) this.pendingPromo.delete(telegramId);
+
+      const result = await this.keyPurchaseService.purchase(user.id, id, promoCode);
+      if (!result.ok) {
+        await ctx
+          .editMessageText(`❌ ${result.error}`, {
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('⬅️ Назад', 'BTN_9')],
+            ]),
+          })
+          .catch(() => {});
+        return;
+      }
+
+      await this.showKeyCreatedScreen(ctx, result.uri, this.backToProfileButton);
+    }
+  };
+
+  onRenewKey = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const keyId = data.replace('RENEW:', '');
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return;
+
+    const vpnKey = await this.em.findOne(VpnKeyEntity, {
+      where: { id: keyId, userId: user.id },
+      relations: ['tariff'],
+    });
+    if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
+      await ctx.answerCbQuery('Ключ или тариф не найден').catch(() => {});
+      return;
+    }
+
+    await this.showTariffScreen(ctx, vpnKey.tariff, {
+      buyCallback: `BUY_KEY:${keyId}`,
+      promoCallback: `PROMO_KEY:${keyId}`,
+      backCallback: 'BTN_5',
+    });
+  };
+
+  onRenewPromo = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const keyId = data.replace('PROMO_KEY:', '');
+    const telegramId = ctx?.from?.id;
+    if (!telegramId) return;
+    this.waitingForPromo.set(telegramId, { id: keyId, isRenew: true });
+    await this.askPromoCode(ctx, `RENEW:${keyId}`);
+  };
+
+
+  private async handlePromoCode(
+    ctx: Context,
+    telegramId: number,
+    promoText: string,
+    isRenew: boolean,
+    id: string,
+  ): Promise<boolean> {
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return false;
+
+    let tariffId: string;
+    if (isRenew) {
+      const vpnKey = await this.em.findOne(VpnKeyEntity, {
+        where: { id, userId: user.id },
+        relations: ['tariff'],
+      });
+      if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
+        await ctx.reply('❌ Ключ не найден').catch(() => {});
+        return false;
+      }
+      tariffId = vpnKey.tariff.id;
+    } else {
+      tariffId = id;
+    }
+
+    const priceResult = await this.keyPurchaseService.getPriceWithPromo(
+      user.id,
+      tariffId,
+      promoText,
+    );
+    if (!priceResult.ok) {
+      await ctx.reply(`❌ ${priceResult.error}`).catch(() => {});
+      return false;
+    }
+
+    if (isRenew) {
+      this.pendingPromo.set(telegramId, { id, promoCode: promoText, isRenew: true });
+      await ctx
+        .reply(
+          `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
+          {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('✅ Купить', `BUY_KEY:${id}`)],
+              [Markup.button.callback('⬅️ К ключам', 'BTN_5')],
+            ]),
+          },
+        )
+        .catch(() => {});
+    } else {
+      this.pendingPromo.set(telegramId, { id: tariffId, promoCode: promoText, isRenew: false });
       await ctx
         .reply(
           `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
@@ -643,6 +793,19 @@ export class TelegramService {
           },
         )
         .catch(() => {});
+    }
+    return true;
+  }
+
+  onText = async (ctx: Context) => {
+    const telegramId = ctx?.from?.id;
+    if (!telegramId) return;
+    const text = (ctx.message as { text?: string })?.text?.trim() ?? '';
+
+    const waitingPromo = this.waitingForPromo.get(telegramId);
+    if (waitingPromo) {
+      this.waitingForPromo.delete(telegramId);
+      await this.handlePromoCode(ctx, telegramId, text, waitingPromo.isRenew, waitingPromo.id);
       return;
     }
 

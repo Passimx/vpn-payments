@@ -115,4 +115,44 @@ export class BlitzService {
       };
     }
   }
+
+  async editUser(params: {
+    username: string;
+    expirationDays?: number;
+    trafficLimitGb?: number;
+    renewCreationDate?: boolean;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const body: Record<string, unknown> = {};
+      if (params.expirationDays !== undefined) {
+        body.new_expiration_days = params.expirationDays;
+      }
+      if (params.trafficLimitGb !== undefined) {
+        body.new_traffic_limit = params.trafficLimitGb;
+      }
+      if (params.renewCreationDate !== undefined) {
+        body.renew_creation_date = params.renewCreationDate;
+      }
+
+      const res = await fetch(
+        `${this.baseUrl}/users/${encodeURIComponent(params.username)}`,
+        {
+          method: 'PATCH',
+          headers: this.headers,
+          body: JSON.stringify(body),
+        },
+      );
+
+      if (!res.ok) {
+        const err = await res.text();
+        return { success: false, error: err || `HTTP ${res.status}` };
+      }
+      return { success: true };
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Unknown error',
+      };
+    }
+  }
 }
