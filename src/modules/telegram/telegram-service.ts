@@ -31,9 +31,11 @@ export class TelegramService {
   private readonly initMenu = Markup.inlineKeyboard([
     Markup.button.callback('👤 Профиль', 'BTN_1'),
     Markup.button.callback('📖 Инструкция', 'BTN_4'),
-    Markup.button.url('👩‍💻 Поддержка', 'https://t.me/ramzini22'),
-    Markup.button.url('📄 Пользовательское соглашение', 'https://passimx.ru/terms/'),
-
+    Markup.button.url('👩‍💻 Поддержка', 'https://t.me/Pro1ootit'),
+    // Markup.button.url(
+    //   '📄 Пользовательское соглашение',
+    //   'https://passimx.ru/terms/',
+    // ),
   ]);
 
   private readonly backToMenuButton = Markup.button.callback(
@@ -367,7 +369,7 @@ export class TelegramService {
         'Выбери способ пополнения:',
         Markup.inlineKeyboard([
           [
-            Markup.button.callback('📲 СБП', 'BTN_3'),
+            // Markup.button.callback('📲 СБП', 'BTN_3'),
             Markup.button.callback('💎 ТОН', 'BTN_8'),
             Markup.button.callback('💳 YooMoney', 'BTN_YOOMONEY'),
           ],
@@ -648,10 +650,16 @@ export class TelegramService {
 
     if (isRenew) {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
-      const promoCode = promo?.id === id && promo?.isRenew ? promo.promoCode : undefined;
-      if (telegramId && promo?.id === id && promo?.isRenew) this.pendingPromo.delete(telegramId);
+      const promoCode =
+        promo?.id === id && promo?.isRenew ? promo.promoCode : undefined;
+      if (telegramId && promo?.id === id && promo?.isRenew)
+        this.pendingPromo.delete(telegramId);
 
-      const result = await this.keyPurchaseService.renewKey(user.id, id, promoCode);
+      const result = await this.keyPurchaseService.renewKey(
+        user.id,
+        id,
+        promoCode,
+      );
       if (!result.ok) {
         await ctx
           .editMessageText(`❌ ${result.error}`, {
@@ -677,10 +685,16 @@ export class TelegramService {
         .catch(() => {});
     } else {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
-      const promoCode = promo?.id === id && !promo?.isRenew ? promo.promoCode : undefined;
-      if (telegramId && promo?.id === id && !promo?.isRenew) this.pendingPromo.delete(telegramId);
+      const promoCode =
+        promo?.id === id && !promo?.isRenew ? promo.promoCode : undefined;
+      if (telegramId && promo?.id === id && !promo?.isRenew)
+        this.pendingPromo.delete(telegramId);
 
-      const result = await this.keyPurchaseService.purchase(user.id, id, promoCode);
+      const result = await this.keyPurchaseService.purchase(
+        user.id,
+        id,
+        promoCode,
+      );
       if (!result.ok) {
         await ctx
           .editMessageText(`❌ ${result.error}`, {
@@ -692,7 +706,11 @@ export class TelegramService {
         return;
       }
 
-      await this.showKeyCreatedScreen(ctx, result.uri, this.backToProfileButton);
+      await this.showKeyCreatedScreen(
+        ctx,
+        result.uri,
+        this.backToProfileButton,
+      );
     }
   };
 
@@ -728,7 +746,6 @@ export class TelegramService {
     this.waitingForPromo.set(telegramId, { id: keyId, isRenew: true });
     await this.askPromoCode(ctx, `RENEW:${keyId}`);
   };
-
 
   private async handlePromoCode(
     ctx: Context,
@@ -766,7 +783,11 @@ export class TelegramService {
     }
 
     if (isRenew) {
-      this.pendingPromo.set(telegramId, { id, promoCode: promoText, isRenew: true });
+      this.pendingPromo.set(telegramId, {
+        id,
+        promoCode: promoText,
+        isRenew: true,
+      });
       await ctx
         .reply(
           `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
@@ -780,7 +801,11 @@ export class TelegramService {
         )
         .catch(() => {});
     } else {
-      this.pendingPromo.set(telegramId, { id: tariffId, promoCode: promoText, isRenew: false });
+      this.pendingPromo.set(telegramId, {
+        id: tariffId,
+        promoCode: promoText,
+        isRenew: false,
+      });
       await ctx
         .reply(
           `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
@@ -805,7 +830,13 @@ export class TelegramService {
     const waitingPromo = this.waitingForPromo.get(telegramId);
     if (waitingPromo) {
       this.waitingForPromo.delete(telegramId);
-      await this.handlePromoCode(ctx, telegramId, text, waitingPromo.isRenew, waitingPromo.id);
+      await this.handlePromoCode(
+        ctx,
+        telegramId,
+        text,
+        waitingPromo.isRenew,
+        waitingPromo.id,
+      );
       return;
     }
 
