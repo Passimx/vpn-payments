@@ -9,8 +9,8 @@ import {
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 
-@Entity({ name: 'yoomoney_balance_payments' })
-export class YooMoneyBalancePaymentEntity {
+@Entity({ name: 'yookassa_balance_payments' })
+export class YooKassaBalancePaymentEntity {
   @PrimaryGeneratedColumn('uuid')
   readonly id: string;
 
