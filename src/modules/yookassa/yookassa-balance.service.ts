@@ -5,6 +5,16 @@ import { Envs } from '../../common/env/envs';
 import { YooKassaBalancePaymentEntity } from '../database/entities/yookassa-balance.entity';
 import { UserEntity } from '../database/entities/user.entity';
 
+export type YooKassaWebhookPayload = {
+  event?: string;
+  object?: {
+    id: string;
+    status: string;
+    amount: { value: string; currency: string };
+    metadata?: { userId?: string };
+  };
+};
+
 @Injectable()
 export class YookassaBalanceService {
   constructor(private readonly em: EntityManager) {}
@@ -119,15 +129,9 @@ export class YookassaBalanceService {
     });
   }
 
-  async handleWebhook(payload: any): Promise<void> {
-    if (!payload || payload.event !== 'payment.succeeded') return;
-    const payment = payload.object as {
-      id: string;
-      status: string;
-      amount: { value: string; currency: string };
-      metadata?: { userId?: string };
-    } | null;
-
+  async handleWebhook(payload: YooKassaWebhookPayload): Promise<void> {
+    if (payload?.event !== 'payment.succeeded') return;
+    const payment = payload.object;
     if (!payment || payment.status !== 'succeeded') return;
 
     const balancePayment = await this.getPaymentByLabel(payment.id);

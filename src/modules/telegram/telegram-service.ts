@@ -100,7 +100,7 @@ export class TelegramService {
     this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
     this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
     this.bot.on('text', this.onText);
-    this.bot.launch();
+    void this.bot.launch();
   }
 
   onModuleDestroy() {
@@ -217,7 +217,8 @@ export class TelegramService {
       text += 'У тебя пока нет активных ключей.';
     } else {
       const now = new Date();
-      const buttons: any[] = [];
+      type IKRows = Parameters<typeof Markup.inlineKeyboard>[0];
+      const buttons: IKRows = [];
       text += keys
         .map((k, index) => {
           const statusMap: Record<string, string> = {
@@ -240,7 +241,7 @@ export class TelegramService {
             (k.expiresAt && new Date(k.expiresAt) < now);
 
           if (isExpired) {
-            buttons.push([
+            (buttons as unknown[]).push([
               Markup.button.callback(
                 `🔄 Продлить ключ ${index + 1}`,
                 `RENEW:${k.id}`,
@@ -258,7 +259,7 @@ export class TelegramService {
         .join('\n');
 
       if (buttons.length > 0) {
-        buttons.push([this.backToProfileButton]);
+        (buttons as unknown[]).push([this.backToProfileButton]);
         await ctx
           .editMessageText(text, {
             parse_mode: 'HTML',
@@ -630,7 +631,7 @@ export class TelegramService {
             Markup.button.url('🍏 Mac', this.hiddifyLinks.mac),
           ],
           [Markup.button.callback('🛒 Ещё ключ', 'BTN_9'), backButton],
-        ]),
+        ] as unknown as Parameters<typeof Markup.inlineKeyboard>[0]),
       })
       .catch(() => {});
   }
