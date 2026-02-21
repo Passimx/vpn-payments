@@ -345,14 +345,14 @@ export class TelegramService {
   };
 
   onBtn7 = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
     const telegramId = ctx?.from?.id;
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId },
     });
     if (!user) return;
-    ctx.answerCbQuery().catch(() => {});
     const amount = this.amountMap.get(user.telegramId!);
-    if (!amount) return;
+    if (amount === undefined) return;
     const result = await this.yookassaBalanceService.createBalancePaymentLink(
       user.id,
       amount,
@@ -379,9 +379,9 @@ export class TelegramService {
     if (!user) return;
     this.amountMap.set(ctx.from!.id, 0);
     await ctx
-      .editMessageText('💳 <b>YooKassa</b>\n\nВведите сумму (руб.):', {
+      .editMessageText('💳 <b>Введите сумму (руб.)</b>:', {
         parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([[this.backToPayWaysButton]]),
+        ...Markup.inlineKeyboard([[this.backToProfileButton]]),
       })
       .catch(() => {});
   };
@@ -443,7 +443,7 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
-    if (!amountFromSet) return;
+    if (amountFromSet === undefined) return;
     const exchange = await this.em.findOne(ExchangeEntity, {
       where: {
         priceCurrency: 'РУБ',
@@ -456,13 +456,15 @@ export class TelegramService {
 
     const address = Envs.ton.walletAddress;
     const text = user.id;
-    const amount = (1 / exchange.price) * amountFromSet * 1e9;
+    const value = (1 / exchange.price) * amountFromSet * 1e9;
+    const amount = Math.ceil(value);
 
     await ctx
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
           `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
           `Адрес кошелька: <code>${Envs.ton.walletAddress}</code>\n` +
+          `Сумма: <code>${amount / 1e9}</code> TON\n` +
           `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
           `Комментарий: <code>${user.id}</code>`,
         {
@@ -502,7 +504,7 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
-    if (!amountFromSet) return;
+    if (amountFromSet === undefined) return;
 
     const exchange = await this.em.findOne(ExchangeEntity, {
       where: {
@@ -517,13 +519,15 @@ export class TelegramService {
     const address = Envs.ton.walletAddress;
     const text = user.id;
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-    const amount = (1 / exchange.price) * amountFromSet * 1e6;
+    const value = (1 / exchange.price) * amountFromSet * 1e6;
+    const amount = Math.ceil(value);
 
     await ctx
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
           `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
           `Адрес кошелька: <code>${Envs.ton.walletAddress}</code>\n` +
+          `Сумма: <code>${amount / 1e6}</code> USDT\n` +
           `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
           `Комментарий: <code>${user.id}</code>`,
         {
