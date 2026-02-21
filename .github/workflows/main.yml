@@ -27,3 +27,19 @@ jobs:
     permissions:
       contents: write
       packages: write
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH Client and sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass
+
+      - name: Deploy via SSH with password
+        run: |
+          sshpass -p '${{ secrets.SSH_PASSWORD }}' \
+            ssh -o StrictHostKeyChecking=no \
+            ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
+            "${{ vars.DEPLOY_SCRIPT }}"
