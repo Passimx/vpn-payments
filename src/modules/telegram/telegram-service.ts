@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Context, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager } from 'typeorm';
+import { EntityManager, LessThanOrEqual } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
@@ -10,12 +10,13 @@ import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
 import { PaymentsEntity } from '../database/entities/balance-debit.entity';
 import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
+import { ExchangeEntity } from '../database/entities/exchange.entity';
 
 @Injectable()
 export class TelegramService {
   private bot: Telegraf;
 
-  private waitingForYooKassaAmount = new Set<number>();
+  private amountMap = new Map<number, number>();
   private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
     number,
@@ -84,7 +85,6 @@ export class TelegramService {
     this.bot.start(this.onStart);
     this.bot.action('BTN_1', this.onBtn1);
     this.bot.action('BTN_2', this.onBtn2);
-    this.bot.action('BTN_3', this.onBtn3);
     this.bot.action('BTN_4', this.onBtn4);
     this.bot.action('BTN_5', this.onBtn5);
     this.bot.action('BTN_6', this.onBtn6);
@@ -93,7 +93,7 @@ export class TelegramService {
     this.bot.action('BTN_9', this.onBtn9);
     this.bot.action('BTN_10', this.onBtn10);
     this.bot.action('BTN_11', this.onBtn11);
-    this.bot.action('BTN_YOOMONEY', this.onYooKassaBalance);
+    this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
@@ -128,6 +128,7 @@ export class TelegramService {
     });
 
     if (!user) return;
+    this.amountMap.delete(telegramId!);
 
     await ctx
       .editMessageText(
@@ -135,7 +136,7 @@ export class TelegramService {
         Markup.inlineKeyboard([
           [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
           [Markup.button.callback('🛒 Приобрести ключ', 'BTN_9')],
-          [Markup.button.callback('💸 Пополнить баланс', 'BTN_7')],
+          [Markup.button.callback('💸 Пополнить баланс', 'BTN_BALANCE')],
           [Markup.button.callback('📋 История пополнений', 'BTN_6')],
           [Markup.button.callback('📉 История списаний', 'BTN_10')],
           [this.backToMenuButton],
@@ -148,27 +149,6 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     await ctx
       .editMessageText('Выбери действие:', this.initMenu)
-      .catch(() => {});
-  };
-
-  onBtn3 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(() => {});
-    const user = await this.getUserByCtx(ctx);
-    if (!user) return;
-
-    await ctx
-      .editMessageText(
-        `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
-          `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-          `Банк получаетля: <b>T-Банк</b>\n` +
-          `Номер телефона: <code>${+79172817235}</code>\n` +
-          `Получатель: <b>Рамиль Ильгизович З.</b>\n` +
-          `Комментарий: <code>${user.id}</code>`,
-        {
-          parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([[this.backToPayWaysButton]]),
-        },
-      )
       .catch(() => {});
   };
 
@@ -365,27 +345,39 @@ export class TelegramService {
   };
 
   onBtn7 = async (ctx: Context) => {
+    const telegramId = ctx?.from?.id;
+    const user = await this.em.findOne(UserEntity, {
+      where: { telegramId },
+    });
+    if (!user) return;
     ctx.answerCbQuery().catch(() => {});
+    const amount = this.amountMap.get(user.telegramId!);
+    if (!amount) return;
+    const result = await this.yookassaBalanceService.createBalancePaymentLink(
+      user.id,
+      amount,
+    );
     await ctx
       .editMessageText(
         'Выбери способ пополнения:',
         Markup.inlineKeyboard([
-          [
-            // Markup.button.callback('📲 СБП', 'BTN_3'),
-            Markup.button.callback('💎 ТОН', 'BTN_8'),
-            Markup.button.callback('💳 YooKassa', 'BTN_YOOMONEY'),
-          ],
+          result.ok
+            ? [
+                Markup.button.callback('💎 ТОН', 'BTN_8'),
+                Markup.button.url('💳 YooKassa', result.paymentUrl),
+              ]
+            : [Markup.button.callback('💎 ТОН', 'BTN_8')],
           [this.backToProfileButton],
         ]),
       )
       .catch(() => {});
   };
 
-  onYooKassaBalance = async (ctx: Context) => {
+  onBalance = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
-    this.waitingForYooKassaAmount.add(ctx.from!.id);
+    this.amountMap.set(ctx.from!.id, 0);
     await ctx
       .editMessageText('💳 <b>YooKassa</b>\n\nВведите сумму (руб.):', {
         parse_mode: 'HTML',
@@ -450,10 +442,12 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
+    const amountFromSet = this.amountMap.get(ctx.from!.id);
+    if (!amountFromSet) return;
 
     const address = Envs.ton.walletAddress;
     const text = user.id;
-    const amount = 1 * 1e9;
+    const amount = amountFromSet * 1e9;
 
     await ctx
       .editMessageText(
@@ -498,11 +492,23 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
+    const amountFromSet = this.amountMap.get(ctx.from!.id);
+    if (!amountFromSet) return;
+
+    const exchange = await this.em.findOne(ExchangeEntity, {
+      where: {
+        priceCurrency: 'РУБ',
+        currency: 'USD',
+        date: LessThanOrEqual(Date.now()),
+      },
+      order: { date: 'DESC' },
+    });
+    if (!exchange) return;
 
     const address = Envs.ton.walletAddress;
     const text = user.id;
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-    const amount = 1 * 1e6;
+    const amount = (1 / exchange.price) * amountFromSet * 1e6;
 
     await ctx
       .editMessageText(
@@ -842,10 +848,10 @@ export class TelegramService {
       return;
     }
 
-    if (!this.waitingForYooKassaAmount.has(telegramId)) return;
+    if (!this.amountMap.has(telegramId)) return;
     const user = await this.getUserByCtx(ctx);
     if (!user) {
-      this.waitingForYooKassaAmount.delete(telegramId);
+      this.amountMap.delete(telegramId);
       return;
     }
     const amount = parseFloat(text);
@@ -853,23 +859,25 @@ export class TelegramService {
       await ctx.reply('❌ Введите число, например 100').catch(() => {});
       return;
     }
-    this.waitingForYooKassaAmount.delete(telegramId);
+    this.amountMap.set(telegramId, amount);
     const result = await this.yookassaBalanceService.createBalancePaymentLink(
       user.id,
       amount,
     );
-    if (!result.ok) {
-      await ctx.reply(`❌ ${result.error}`).catch(() => {});
-      return;
-    }
+
     await ctx
-      .reply(`💳 Сумма: <b>${amount} руб.</b>\n\nНажмите кнопку для оплаты:`, {
-        parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([
-          [Markup.button.url('💳 Оплатить', result.paymentUrl)],
-          [this.backToPayWaysButton],
+      .reply(
+        'Выбери способ пополнения:',
+        Markup.inlineKeyboard([
+          result.ok
+            ? [
+                Markup.button.callback('💎 ТОН', 'BTN_8'),
+                Markup.button.url('💳 YooKassa', result.paymentUrl),
+              ]
+            : [Markup.button.callback('💎 ТОН', 'BTN_8')],
+          [this.backToProfileButton],
         ]),
-      })
+      )
       .catch(() => {});
   };
 }

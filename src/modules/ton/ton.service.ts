@@ -18,7 +18,7 @@ export class TonService {
       apiKey: Envs.ton.endpointApiKey,
     });
 
-    const [transactionEntity] = await this.em.find(TransactionEntity, {
+    const transactionEntity = await this.em.findOne(TransactionEntity, {
       where: { place: 'ton' },
       order: { id: 'DESC' },
     });

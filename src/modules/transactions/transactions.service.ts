@@ -65,7 +65,7 @@ export class TransactionsService {
 
     await Promise.all(
       transactions.map(async (transaction) => {
-        const [exchange] = await this.em.find(ExchangeEntity, {
+        const exchange = await this.em.findOne(ExchangeEntity, {
           where: {
             priceCurrency: 'РУБ',
             currency: transaction.currency,

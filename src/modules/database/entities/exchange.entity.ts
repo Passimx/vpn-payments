@@ -16,7 +16,7 @@ export class ExchangeEntity {
   readonly currency: 'TON' | 'USD' | 'РУБ';
 
   @Column({
-    name: 'balance',
+    name: 'price',
     type: 'numeric',
     transformer: {
       to: (value: number) => value,
