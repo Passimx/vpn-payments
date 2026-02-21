@@ -444,10 +444,19 @@ export class TelegramService {
     if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
     if (!amountFromSet) return;
+    const exchange = await this.em.findOne(ExchangeEntity, {
+      where: {
+        priceCurrency: 'РУБ',
+        currency: 'TON',
+        date: LessThanOrEqual(Date.now()),
+      },
+      order: { date: 'DESC' },
+    });
+    if (!exchange) return;
 
     const address = Envs.ton.walletAddress;
     const text = user.id;
-    const amount = amountFromSet * 1e9;
+    const amount = (1 / exchange.price) * amountFromSet * 1e9;
 
     await ctx
       .editMessageText(
