@@ -5,11 +5,7 @@ import { TonModule } from '../ton/ton.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 
 @Module({
-  imports: [
-    ScheduleModule2.forRoot(),
-    TonModule,
-    TransactionsModule,
-  ],
+  imports: [ScheduleModule2.forRoot(), TonModule, TransactionsModule],
   providers: [ScheduleService],
 })
 export class ScheduleModule {}
