@@ -42,7 +42,7 @@ export class TransactionEntity {
   @Column({ name: 'payment_url', type: 'text', nullable: true })
   readonly paymentUrl?: string;
 
-  @Column({ name: 'label', type: 'varchar', unique: true, nullable: true })
+  @Column({ name: 'paymentId', type: 'varchar', unique: true, nullable: true })
   readonly paymentId?: string;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
