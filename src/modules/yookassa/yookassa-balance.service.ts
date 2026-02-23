@@ -100,21 +100,18 @@ export class YookassaBalanceService {
 
       // Сохраняем платеж в БД
       const now = Date.now();
-      await this.em.save(
-        TransactionEntity,
-        {
-          id: BigInt(now),
-          userId: user.id,
-          paymentId,
-          amount,
-          currency: 'РУБ',
-          type: 'Credit',
-          place: 'yookassa',
-          completed: false,
-          paymentUrl,
-          createdAt: now,
-        } as unknown as TransactionEntity,
-      );
+      await this.em.save(TransactionEntity, {
+        id: BigInt(now),
+        userId: user.id,
+        paymentId,
+        amount,
+        currency: 'РУБ',
+        type: 'Credit',
+        place: 'yookassa',
+        completed: false,
+        paymentUrl,
+        createdAt: now,
+      } as unknown as TransactionEntity);
 
       return {
         ok: true,
