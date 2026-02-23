@@ -28,6 +28,13 @@ export class UserEntity {
   })
   readonly telegramId?: number;
 
+  @Column({
+    name: 'userName',
+    type: 'varchar',
+    nullable: true,
+  })
+  userName?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   readonly createdAt: Date;
 }

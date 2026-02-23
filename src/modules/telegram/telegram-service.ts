@@ -116,7 +116,11 @@ export class TelegramService {
     });
     if (!user) {
       const id = crypto.randomUUID().replace(/-/g, '');
-      await this.em.insert(UserEntity, { id, telegramId });
+      await this.em.insert(UserEntity, {
+        id,
+        telegramId,
+        userName: ctx?.from?.username,
+      });
     }
   };
 

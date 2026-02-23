@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Envs } from '../../common/env/envs';
-import { YooKassaBalancePaymentEntity } from '../database/entities/yookassa-balance.entity';
 import { UserEntity } from '../database/entities/user.entity';
+import { TransactionEntity } from '../database/entities/transaction.entity';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -99,19 +99,29 @@ export class YookassaBalanceService {
       }
 
       // Сохраняем платеж в БД
-      await this.em.save(YooKassaBalancePaymentEntity, {
-        userId: user.id,
-        label: paymentId,
-        amount: amount,
-        status: 'pending',
-        paymentUrl,
-      });
+      const now = Date.now();
+      await this.em.save(
+        TransactionEntity,
+        {
+          id: BigInt(now),
+          userId: user.id,
+          paymentId,
+          amount,
+          currency: 'РУБ',
+          type: 'Credit',
+          place: 'yookassa',
+          completed: false,
+          paymentUrl,
+          createdAt: now,
+        } as unknown as TransactionEntity,
+      );
 
       return {
         ok: true,
         paymentUrl,
       };
-    } catch {
+    } catch (error) {
+      console.log('[YooKassa] createBalancePaymentLink exception', error);
       return {
         ok: false,
         error:
@@ -120,11 +130,11 @@ export class YookassaBalanceService {
     }
   }
 
-  async getPaymentByLabel(
-    label: string,
-  ): Promise<YooKassaBalancePaymentEntity | null> {
-    return await this.em.findOne(YooKassaBalancePaymentEntity, {
-      where: { label },
+  async getPaymentByPaymentId(
+    paymentId: string,
+  ): Promise<TransactionEntity | null> {
+    return await this.em.findOne(TransactionEntity, {
+      where: { paymentId },
       relations: ['user'],
     });
   }
@@ -134,9 +144,9 @@ export class YookassaBalanceService {
     const payment = payload.object;
     if (!payment || payment.status !== 'succeeded') return;
 
-    const balancePayment = await this.getPaymentByLabel(payment.id);
+    const balancePayment = await this.getPaymentByPaymentId(payment.id);
     if (!balancePayment) return;
-    if (balancePayment.status !== 'pending') return;
+    if (balancePayment.completed) return;
 
     const amount = Number(balancePayment.amount);
     await this.em
@@ -146,9 +156,9 @@ export class YookassaBalanceService {
       .where('id = :id', { id: balancePayment.userId })
       .execute();
     await this.em.update(
-      YooKassaBalancePaymentEntity,
+      TransactionEntity,
       { id: balancePayment.id },
-      { status: 'paid' as const },
+      { completed: true as const },
     );
   }
 }

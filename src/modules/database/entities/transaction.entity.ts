@@ -34,10 +34,16 @@ export class TransactionEntity {
   readonly type: 'Credit' | 'Debit';
 
   @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })
-  readonly place: 'ton' | 't_bank';
+  readonly place: 'ton' | 't_bank' | 'yookassa';
 
   @Column({ name: 'completed', type: 'boolean', default: false })
   readonly completed: boolean;
+
+  @Column({ name: 'payment_url', type: 'text', nullable: true })
+  readonly paymentUrl?: string;
+
+  @Column({ name: 'label', type: 'varchar', unique: true, nullable: true })
+  readonly paymentId?: string;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
