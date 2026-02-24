@@ -278,10 +278,18 @@ export class TelegramService {
         Markup.inlineKeyboard([
           result.ok
             ? [
-                Markup.button.callback('💎 ТОН', 'BTN_8'),
+                Markup.button.callback(
+                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+                  'BTN_8',
+                ),
                 Markup.button.url('💳 YooKassa', result.paymentUrl),
               ]
-            : [Markup.button.callback('💎 ТОН', 'BTN_8')],
+            : [
+                Markup.button.callback(
+                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+                  'BTN_8',
+                ),
+              ],
           [this.backToProfileButton],
         ]),
       )
@@ -799,10 +807,18 @@ export class TelegramService {
         Markup.inlineKeyboard([
           result.ok
             ? [
-                Markup.button.callback('💎 ТОН', 'BTN_8'),
+                Markup.button.callback(
+                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+                  'BTN_8',
+                ),
                 Markup.button.url('💳 YooKassa', result.paymentUrl),
               ]
-            : [Markup.button.callback('💎 ТОН', 'BTN_8')],
+            : [
+                Markup.button.callback(
+                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+                  'BTN_8',
+                ),
+              ],
           [this.backToProfileButton],
         ]),
       )

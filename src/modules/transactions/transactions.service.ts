@@ -3,6 +3,7 @@ import { EntityManager, IsNull, Not, LessThanOrEqual } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { ExchangeEntity } from '../database/entities/exchange.entity';
 import { UserEntity } from '../database/entities/user.entity';
+import { Envs } from '../../common/env/envs';
 
 @Injectable()
 export class TransactionsService {
@@ -75,7 +76,9 @@ export class TransactionsService {
         });
         if (!exchange) return;
 
-        const addBalance = transaction.amount * exchange.price;
+        let addBalance = transaction.amount * exchange.price;
+        if (transaction.currency !== 'РУБ')
+          addBalance += addBalance * Envs.crypto.allowance;
 
         await this.em
           .createQueryBuilder()
