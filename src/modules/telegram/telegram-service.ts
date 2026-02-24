@@ -136,7 +136,7 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `Welcome to PassimX\nБаланс: ${user?.balance ?? 0} руб.`,
+        `ID: ${user.id}\nБаланс: ${user?.balance ?? 0} руб.`,
         Markup.inlineKeyboard([
           [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
           [Markup.button.callback('🛒 Приобрести ключ', 'BTN_9')],
