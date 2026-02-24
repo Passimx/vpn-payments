@@ -833,7 +833,7 @@ export class TelegramService {
 
     await this.bot.telegram.sendMessage(
       user.chatId,
-      `Пополнен баланс на сумму <b>${balance} руб.</b>`,
+      `Пополнен баланс на сумму <b>${Math.ceil(balance)} руб.</b>`,
       { parse_mode: 'HTML' },
     );
   }
