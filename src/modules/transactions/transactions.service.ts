@@ -4,10 +4,14 @@ import { TransactionEntity } from '../database/entities/transaction.entity';
 import { ExchangeEntity } from '../database/entities/exchange.entity';
 import { UserEntity } from '../database/entities/user.entity';
 import { Envs } from '../../common/env/envs';
+import { TelegramService } from '../telegram/telegram-service';
 
 @Injectable()
 export class TransactionsService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly telegramService: TelegramService,
+  ) {}
 
   public async scanExchange() {
     const date = new Date();
@@ -93,6 +97,11 @@ export class TransactionsService {
           TransactionEntity,
           { id: transaction.id },
           { completed: true },
+        );
+
+        await this.telegramService.sendMessageAddBalance(
+          transaction.userId,
+          addBalance,
         );
       }),
     );

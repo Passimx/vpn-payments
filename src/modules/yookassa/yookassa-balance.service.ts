@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Envs } from '../../common/env/envs';
 import { UserEntity } from '../database/entities/user.entity';
 import { TransactionEntity } from '../database/entities/transaction.entity';
+import { TelegramService } from '../telegram/telegram-service';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -17,7 +18,11 @@ export type YooKassaWebhookPayload = {
 
 @Injectable()
 export class YookassaBalanceService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    @Inject(forwardRef(() => TelegramService))
+    private readonly telegramService: TelegramService,
+  ) {}
 
   async createBalancePaymentLink(
     userId: string,
@@ -122,7 +127,7 @@ export class YookassaBalanceService {
       return {
         ok: false,
         error:
-          'Оплата через YooKassa временно недоступна, используйте другие сервисы для оплаты (TON или СБП)',
+          'Оплата через YooKassa временно недоступна, используйте другие сервисы для оплаты',
       };
     }
   }
@@ -152,6 +157,12 @@ export class YookassaBalanceService {
       .set({ balance: () => `balance + ${amount}` })
       .where('id = :id', { id: balancePayment.userId })
       .execute();
+
+    await this.telegramService.sendMessageAddBalance(
+      balancePayment.userId,
+      amount,
+    );
+
     await this.em.update(
       TransactionEntity,
       { id: balancePayment.id },

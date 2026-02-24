@@ -109,6 +109,7 @@ export class TelegramService {
   onStart = async (ctx: Context) => {
     await ctx.reply(this.startMessage, this.initMenu);
     const telegramId = ctx?.from?.id;
+    const chatId = ctx?.chat?.id;
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId },
     });
@@ -117,6 +118,7 @@ export class TelegramService {
       await this.em.insert(UserEntity, {
         id,
         telegramId,
+        chatId,
         userName: ctx?.from?.username,
       });
     }
@@ -824,4 +826,15 @@ export class TelegramService {
       )
       .catch(() => {});
   };
+
+  public async sendMessageAddBalance(userId: string, balance: number) {
+    const user = await this.em.findOne(UserEntity, { where: { id: userId } });
+    if (!user?.chatId) return;
+
+    await this.bot.telegram.sendMessage(
+      user.chatId,
+      `Пополнен баланс на сумму <b>${balance} руб.</b>`,
+      { parse_mode: 'HTML' },
+    );
+  }
 }

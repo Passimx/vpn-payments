@@ -29,6 +29,17 @@ export class UserEntity {
   readonly telegramId?: number;
 
   @Column({
+    name: 'chat_id',
+    type: 'bigint',
+    nullable: true,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => Number(value),
+    },
+  })
+  readonly chatId?: number;
+
+  @Column({
     name: 'userName',
     type: 'varchar',
     nullable: true,
