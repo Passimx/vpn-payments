@@ -14,7 +14,6 @@ export const Envs = {
   telegram: {
     botToken: String(process.env.TELEGRAM_BOT_TOKEN),
   },
-  tBank: {},
   ton: {
     walletAddress: String(process.env.TON_WALLET_ADDRESS),
     jettonWalletAddress: String(process.env.TON_JETTON_WALLET_ADDRESS),

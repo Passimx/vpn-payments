@@ -1,0 +1,4 @@
+export enum OpCodeEnum {
+  OP_TRANSFER_NOTIFICATION = 0x7362d09c,
+  OP_SEND = 0x00000000,
+}

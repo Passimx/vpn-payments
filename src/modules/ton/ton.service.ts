@@ -4,9 +4,7 @@ import { Envs } from '../../common/env/envs';
 import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { UserEntity } from '../database/entities/user.entity';
-
-const OP_TRANSFER_NOTIFICATION = 0x7362d09c;
-const OP_SEND = 0x00000000;
+import { OpCodeEnum } from './enums/op-code.enum';
 
 @Injectable()
 export class TonService {
@@ -88,9 +86,9 @@ export class TonService {
 
     const slice = msg.body.beginParse();
     if (slice.remainingBits < 32) return;
-    const op = slice.loadUint(32);
+    const op = slice.loadUint(32) as OpCodeEnum;
 
-    if (op === OP_TRANSFER_NOTIFICATION) {
+    if (op === OpCodeEnum.OP_TRANSFER_NOTIFICATION) {
       const jettonWalletAddress = msg?.info.src?.toString();
       if (jettonWalletAddress != Envs.ton.jettonWalletAddress) return;
 
@@ -116,7 +114,7 @@ export class TonService {
       };
     }
 
-    if (op === OP_SEND) {
+    if (op === OpCodeEnum.OP_SEND) {
       const message = slice
         .loadBuffer(slice.remainingBits / 8)
         .toString('utf8')
