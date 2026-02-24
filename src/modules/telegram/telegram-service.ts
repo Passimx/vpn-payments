@@ -276,7 +276,7 @@ export class TelegramService {
     );
     await ctx
       .editMessageText(
-        'Выбери способ пополнения:',
+        `Сумма пополнения: ${amount} руб.\n` + 'Выбери способ пополнения:',
         Markup.inlineKeyboard([
           result.ok
             ? [
