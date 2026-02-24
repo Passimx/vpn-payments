@@ -14,13 +14,21 @@ export const Envs = {
   telegram: {
     botToken: String(process.env.TELEGRAM_BOT_TOKEN),
   },
-  ton: {
-    walletAddress: String(process.env.TON_WALLET_ADDRESS),
-    jettonWalletAddress: String(process.env.TON_JETTON_WALLET_ADDRESS),
-    endpointUrl: String(process.env.TON_ENDPOINT_URL),
-    endpointApiKey: String(process.env.TON_ENDPOINT_TON_APIKEY),
-  },
   crypto: {
+    ethereum: {
+      walletAddress: '0x6651D1aF77B4997EDA6A9233613e1CAcC7E657BF',
+      jettonWalletAddress: '0x6651D1aF77B4997EDA6A9233613e1CAcC7E657BF',
+    },
+    tron: {},
+    solana: {},
+    bsc: {},
+    bitcoin: {},
+    ton: {
+      walletAddress: String(process.env.TON_WALLET_ADDRESS),
+      jettonWalletAddress: String(process.env.TON_JETTON_WALLET_ADDRESS),
+      endpointUrl: String(process.env.TON_ENDPOINT_URL),
+      endpointApiKey: String(process.env.TON_ENDPOINT_TON_APIKEY),
+    },
     allowance: 0.5,
   },
   blitz: {

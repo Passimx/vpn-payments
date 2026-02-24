@@ -12,8 +12,8 @@ export class TonService {
 
   public async scanTransactions(): Promise<void> {
     const client = new TonClient({
-      endpoint: Envs.ton.endpointUrl,
-      apiKey: Envs.ton.endpointApiKey,
+      endpoint: Envs.crypto.ton.endpointUrl,
+      apiKey: Envs.crypto.ton.endpointApiKey,
     });
 
     const transactionEntity = await this.em.findOne(TransactionEntity, {
@@ -21,7 +21,7 @@ export class TonService {
       order: { id: 'DESC' },
     });
 
-    const address = Address.parse(Envs.ton.walletAddress);
+    const address = Address.parse(Envs.crypto.ton.walletAddress);
     const transactions = await client
       .getTransactions(address, {
         limit: 500,
@@ -90,7 +90,7 @@ export class TonService {
 
     if (op === OpCodeEnum.OP_TRANSFER_NOTIFICATION) {
       const jettonWalletAddress = msg?.info.src?.toString();
-      if (jettonWalletAddress != Envs.ton.jettonWalletAddress) return;
+      if (jettonWalletAddress != Envs.crypto.ton.jettonWalletAddress) return;
 
       slice.loadUintBig(64);
       const jettonAmount = slice.loadCoins();

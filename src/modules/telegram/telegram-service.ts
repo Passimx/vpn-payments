@@ -90,7 +90,13 @@ export class TelegramService {
     this.bot.action('BTN_7', this.onBtn7);
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
+    this.bot.action('BTN_10', this.onBtn10);
     this.bot.action('BTN_11', this.onBtn11);
+    this.bot.action('BTN_13', this.onBtn13);
+    this.bot.action('BTN_14', this.onBtn14);
+    this.bot.action('BTN_15', this.onBtn15);
+    this.bot.action('BTN_16', this.onBtn16);
+    this.bot.action('BTN_17', this.onBtn17);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
@@ -278,20 +284,39 @@ export class TelegramService {
       .editMessageText(
         `Сумма пополнения: ${amount} руб.\n` + 'Выбери способ пополнения:',
         Markup.inlineKeyboard([
+          [
+            Markup.button.callback(
+              `💎 TON (+${Envs.crypto.allowance * 100}%)`,
+              'BTN_8',
+            ),
+            // Markup.button.callback(
+            //   `◈ Ethereum (+${Envs.crypto.allowance * 100}%)`,
+            //   'BTN_10',
+            // ),
+          ],
+          // [
+          //   Markup.button.callback(
+          //     `🔴 Tron (+${Envs.crypto.allowance * 100}%)`,
+          //     'BTN_14',
+          //   ),
+          //   Markup.button.callback(
+          //     `🟪 Solana (+${Envs.crypto.allowance * 100}%)`,
+          //     'BTN_15',
+          //   ),
+          // ],
+          // [
+          //   Markup.button.callback(
+          //     `🟨 BSC (+${Envs.crypto.allowance * 100}%)`,
+          //     'BTN_16',
+          //   ),
+          //   Markup.button.callback(
+          //     `₿ Bitcoin (+${Envs.crypto.allowance * 100}%)`,
+          //     'BTN_17',
+          //   ),
+          // ],
           result.ok
-            ? [
-                Markup.button.callback(
-                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
-                  'BTN_8',
-                ),
-                Markup.button.url('💳 YooKassa', result.paymentUrl),
-              ]
-            : [
-                Markup.button.callback(
-                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
-                  'BTN_8',
-                ),
-              ],
+            ? [Markup.button.url('💳 YooKassa', result.paymentUrl)]
+            : [],
           [this.backToProfileButton],
         ]),
       )
@@ -379,7 +404,7 @@ export class TelegramService {
     });
     if (!exchange) return;
 
-    const address = Envs.ton.walletAddress;
+    const address = Envs.crypto.ton.walletAddress;
     const text = user.id;
     const value = (1 / exchange.price) * amountFromSet * 1e9;
     const amount = Math.ceil(value);
@@ -388,7 +413,7 @@ export class TelegramService {
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
           `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-          `Адрес кошелька: <code>${Envs.ton.walletAddress}</code>\n` +
+          `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
           `Сумма: <code>${amount / 1e9}</code> TON\n` +
           `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
           `Комментарий: <code>${user.id}</code>`,
@@ -441,7 +466,7 @@ export class TelegramService {
     });
     if (!exchange) return;
 
-    const address = Envs.ton.walletAddress;
+    const address = Envs.crypto.ton.walletAddress;
     const text = user.id;
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
     const value = (1 / exchange.price) * amountFromSet * 1e6;
@@ -451,7 +476,7 @@ export class TelegramService {
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
           `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-          `Адрес кошелька: <code>${Envs.ton.walletAddress}</code>\n` +
+          `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
           `Сумма: <code>${amount / 1e6}</code> USDT\n` +
           `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
           `Комментарий: <code>${user.id}</code>`,
@@ -485,6 +510,30 @@ export class TelegramService {
         },
       )
       .catch(() => {});
+  };
+
+  onBtn10 = (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+  };
+
+  onBtn13 = (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+  };
+
+  onBtn14 = (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+  };
+
+  onBtn15 = (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+  };
+
+  onBtn16 = (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
+  };
+
+  onBtn17 = (ctx: Context) => {
+    ctx.answerCbQuery().catch(() => {});
   };
 
   onBtn9 = async (ctx: Context) => {
@@ -838,7 +887,7 @@ export class TelegramService {
     );
     await this.bot.telegram.sendMessage(
       user.chatId,
-      this.startMessage,
+      'Выбери действие:',
       this.initMenu,
     );
   }
