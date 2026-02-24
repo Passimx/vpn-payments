@@ -57,11 +57,13 @@ export class TelegramService {
     'BTN_9',
   );
 
-  private readonly hiddifyLinks = {
-    mac: 'https://github.com/hiddify/hiddify-next/releases',
-    windows: 'https://github.com/hiddify/hiddify-next/releases',
-    android: 'https://play.google.com/store/apps/details?id=app.hiddify.com',
-    ios: 'https://apps.apple.com/app/hiddify-proxy-vpn/id6450514732',
+  private readonly downloadLinks = {
+    mac: 'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_macos.pkg',
+    windows:
+      'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_x64.exe',
+    android:
+      'https://play.google.com/store/apps/details?id=org.amnezia.vpn&utm_source=amnezia.org&utm_campaign=organic&utm_medium=referral',
+    ios: 'https://apps.apple.com/ru/app/defaultvpn/id6744725017',
   };
 
   private readonly startMessage =
@@ -154,21 +156,21 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     const instructionText =
       '📖 <b>Как подключить ключ</b>\n\n' +
-      '1. Установите приложение Hiddify для вашего устройства (кнопки ниже).\n' +
-      '2. Откройте приложение → Добавить подписку по ссылке.\n' +
-      '3. Вставьте ссылку на подписку (она появляется после покупки ключа).\n\n' +
-      'Ссылки на приложение Hiddify:';
+      '1. Установите приложение.\n' +
+      '2. Скопируйте ключ из телеграм бота.\n' +
+      '3. В установленном приложении нажмите на + (добавить ключ) и вставьте ключ.\n\n' +
+      'Ссылки на приложение:';
     await ctx
       .editMessageText(instructionText, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.url('📱 Android', this.hiddifyLinks.android),
-            Markup.button.url('🍎 iOS', this.hiddifyLinks.ios),
+            Markup.button.url('📱 Android', this.downloadLinks.android),
+            Markup.button.url('🍎 iOS', this.downloadLinks.ios),
           ],
           [
-            Markup.button.url('💻 Windows', this.hiddifyLinks.windows),
-            Markup.button.url('🍏 Mac', this.hiddifyLinks.mac),
+            Markup.button.url('💻 Windows', this.downloadLinks.windows),
+            Markup.button.url('🍏 Mac', this.downloadLinks.mac),
           ],
           [this.backToMenuButton],
         ]),
@@ -556,12 +558,12 @@ export class TelegramService {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.url('📱 Android', this.hiddifyLinks.android),
-            Markup.button.url('🍎 iOS', this.hiddifyLinks.ios),
+            Markup.button.url('📱 Android', this.downloadLinks.android),
+            Markup.button.url('🍎 iOS', this.downloadLinks.ios),
           ],
           [
-            Markup.button.url('💻 Windows', this.hiddifyLinks.windows),
-            Markup.button.url('🍏 Mac', this.hiddifyLinks.mac),
+            Markup.button.url('💻 Windows', this.downloadLinks.windows),
+            Markup.button.url('🍏 Mac', this.downloadLinks.mac),
           ],
           [Markup.button.callback('🛒 Ещё ключ', 'BTN_9'), backButton],
         ] as unknown as Parameters<typeof Markup.inlineKeyboard>[0]),
