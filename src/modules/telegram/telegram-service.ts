@@ -836,5 +836,10 @@ export class TelegramService {
       `Пополнен баланс на сумму <b>${Math.ceil(balance)} руб.</b>`,
       { parse_mode: 'HTML' },
     );
+    await this.bot.telegram.sendMessage(
+      user.chatId,
+      this.startMessage,
+      this.initMenu,
+    );
   }
 }
