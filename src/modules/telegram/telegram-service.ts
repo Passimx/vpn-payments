@@ -805,7 +805,7 @@ export class TelegramService {
 
     await ctx
       .reply(
-        'Выбери способ пополнения:',
+        `Сумма пополнения: ${amount} руб.\n` + 'Выбери способ пополнения:',
         Markup.inlineKeyboard([
           result.ok
             ? [
