@@ -31,7 +31,6 @@ export class UserEntity {
   @Column({
     name: 'chat_id',
     type: 'bigint',
-    nullable: true,
     transformer: {
       to: (value: number) => value,
       from: (value: string) => Number(value),
