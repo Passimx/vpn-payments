@@ -196,11 +196,11 @@ export class TelegramService {
     });
     if (!user) return;
 
-      const keys = await this.em.find(UserKeyEntity, {
-        where: { userId: user.id },
-        order: { createdAt: 'DESC' },
-        take: 10,
-      });
+    const keys = await this.em.find(UserKeyEntity, {
+      where: { userId: user.id },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
 
     let text = '<b>🔑 Мои ключи</b>\n\n';
 
@@ -643,10 +643,7 @@ export class TelegramService {
         .editMessageText('Выберите протокол подключения:', {
           ...Markup.inlineKeyboard([
             [
-              Markup.button.callback(
-                'Amnezia (Xray)',
-                `BUY_XRAY:${tariffId}`,
-              ),
+              Markup.button.callback('Amnezia (Xray)', `BUY_XRAY:${tariffId}`),
               Markup.button.callback(
                 'Hiddify (Hysteria)',
                 `BUY_HYST:${tariffId}`,
