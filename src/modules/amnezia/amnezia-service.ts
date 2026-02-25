@@ -19,7 +19,33 @@ export class AmneziaService {
       if (!server) return;
 
       const uuid = crypto.randomUUID();
-      const key = this.exportVpnKey(uuid, server);
+
+      const ssh = new NodeSSH();
+      await ssh.connect({
+        host: server.host,
+        username: server.username,
+        password: server.password,
+      });
+
+      const [result1, result2, result3] = await Promise.all([
+        ssh.execCommand(
+          'docker exec amnezia-xray cat /opt/amnezia/xray/server.json',
+        ),
+        ssh.execCommand(
+          'docker exec amnezia-xray cat /opt/amnezia/xray/xray_public.key',
+        ),
+        ssh.execCommand(
+          'docker exec amnezia-xray cat /opt/amnezia/xray/xray_short_id.key',
+        ),
+      ]);
+
+      if (result1.stderr || result2.stderr || result3.stderr) return;
+
+      const config = JSON.parse(result1.stdout) as XrayServerConfigType;
+      const xrayPublicKey = result2.stdout;
+      const xrayShortId = result3.stdout;
+
+      const key = this.exportVpnKey(uuid, server, xrayPublicKey, xrayShortId);
 
       const userKeyEntity = {
         id: uuid,
@@ -28,24 +54,13 @@ export class AmneziaService {
         key,
         protocol: 'xray',
         tariffId,
+        expiresAt: new Date(),
       } as UserKeyEntity;
 
-      const ssh = new NodeSSH();
-      await ssh.connect({
-        host: server.host,
-        username: server.username,
-        password: server.password,
-      });
-      const result = await ssh.execCommand(
-        'docker exec amnezia-xray cat /opt/amnezia/xray/server.json',
-      );
-
-      if (result.stderr) return;
-
-      const config = JSON.parse(result.stdout) as XrayServerConfigType;
       config.inbounds[0].settings.clients.push({
-        flow: 'xtls-rprx-vision',
         id: uuid,
+        email: uuid,
+        flow: 'xtls-rprx-vision',
       } as never);
       const configString = JSON.stringify(config, null, 2).replace(
         /'/g,
@@ -103,12 +118,19 @@ export class AmneziaService {
     return true;
   }
 
-  private exportVpnKey(uuid: string, server: ServerEntity) {
+  private exportVpnKey(
+    uuid: string,
+    server: ServerEntity,
+    xrayPublicKey: string,
+    xrayShortId: string,
+  ) {
     let key = fs.readFileSync('key.config', { encoding: 'utf8' });
     key = key.replace('UUID', uuid);
     key = key.replaceAll('HOST_NAME', server.host);
     key = key.replaceAll('PORT', server.xRayPort);
     key = key.replaceAll('SERVER_NAME', server.xRayServername);
+    key = key.replaceAll('PUBLIC_KEY', xrayPublicKey);
+    key = key.replaceAll('SHORT_ID', xrayShortId);
 
     const jsonBuffer = Buffer.from(key);
     const compressed = zlib.deflateSync(jsonBuffer);
