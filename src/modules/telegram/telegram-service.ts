@@ -4,7 +4,7 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { EntityManager, LessThanOrEqual } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
-import { VpnKeyEntity } from '../database/entities/vpn-key.entity';
+import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
 import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
@@ -101,6 +101,8 @@ export class TelegramService {
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
+    this.bot.action(/^BUY_XRAY:[\w-]+$/, this.onBuyTariff);
+    this.bot.action(/^BUY_HYST:[\w-]+$/, this.onBuyTariff);
     this.bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
     this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
     this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
@@ -194,11 +196,11 @@ export class TelegramService {
     });
     if (!user) return;
 
-    const keys = await this.em.find(VpnKeyEntity, {
-      where: { userId: user.id },
-      order: { createdAt: 'DESC' },
-      take: 10,
-    });
+      const keys = await this.em.find(UserKeyEntity, {
+        where: { userId: user.id },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      });
 
     let text = '<b>🔑 Мои ключи</b>\n\n';
 
@@ -223,13 +225,13 @@ export class TelegramService {
               month: '2-digit',
               day: '2-digit',
             });
-          const trafficText =
-            k.trafficLimitGb === 0 ? 'Безлимит' : `${k.trafficLimitGb} ГБ`;
+          const trafficText = 'Безлимит';
           const isExpired =
             k.status === 'expired' ||
             (k.expiresAt && new Date(k.expiresAt) < now);
 
-          if (isExpired) {
+          // Продление для Hysteria
+          if (isExpired && k.protocol === 'hysteria') {
             (buttons as unknown[]).push([
               Markup.button.callback(
                 `🔄 Продлить ключ ${index + 1}`,
@@ -239,7 +241,7 @@ export class TelegramService {
           }
 
           return (
-            `${index + 1}) <code>${k.vpnUri}</code>\n` +
+            `${index + 1}) [${k.protocol}] <code>${k.key}</code>\n` +
             `Статус: ${statusText}\n` +
             (expires ? `Действует до: ${expires}\n` : '') +
             `Трафик: ${trafficText}\n`
@@ -610,7 +612,7 @@ export class TelegramService {
     const text =
       `✅ <b>Ключ создан</b>\n\n` +
       `Подписка (нажми, чтобы скопировать):\n<code>${uri}</code>\n\n` +
-      `Как применить: Нажмите на ссылку (ключь) выше → откройте Hiddify → В правом верхнем углу нажмите на значек "+" → Добавить из буфера обмена → вставьте ссылку выше. Если приложения нет — нажмите кнопку для вашей ОС ниже.`;
+      `Как применить: Нажмите на ссылку (ключь) выше → откройте AmneziaVPN/(для ios DefaultVPN) → нажмите на значек "+" → Нажмите Вставить/Insert. Если приложения нет — нажмите кнопку для вашей ОС ниже.`;
 
     await ctx
       .editMessageText(text, {
@@ -633,7 +635,44 @@ export class TelegramService {
   onBuyTariff = async (ctx: Context) => {
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const isRenew = callbackData.startsWith('BUY_KEY:');
-    const id = callbackData.replace(/^(BUY|BUY_KEY):/, '');
+
+    //  без выбора протокола — показываем выбор
+    if (!isRenew && callbackData.startsWith('BUY:')) {
+      const tariffId = callbackData.replace('BUY:', '');
+      await ctx
+        .editMessageText('Выберите протокол подключения:', {
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                'Amnezia (Xray)',
+                `BUY_XRAY:${tariffId}`,
+              ),
+              Markup.button.callback(
+                'Hiddify (Hysteria)',
+                `BUY_HYST:${tariffId}`,
+              ),
+            ],
+            [Markup.button.callback('⬅️ Назад к тарифу', `T:${tariffId}`)],
+          ]),
+        })
+        .catch(() => {});
+      return;
+    }
+
+    let protocol: 'xray' | 'hysteria' = 'xray';
+    let id = callbackData;
+
+    if (callbackData.startsWith('BUY_XRAY:')) {
+      protocol = 'xray';
+      id = callbackData.replace('BUY_XRAY:', '');
+    } else if (callbackData.startsWith('BUY_HYST:')) {
+      protocol = 'hysteria';
+      id = callbackData.replace('BUY_HYST:', '');
+    } else {
+      //  по умолчанию Xray
+      id = callbackData.replace(/^(BUY|BUY_KEY):/, '');
+      protocol = 'xray';
+    }
     const telegramId = ctx?.from?.id;
     const user = await this.getUserByCtx(ctx);
     if (!user) {
@@ -689,6 +728,7 @@ export class TelegramService {
         user.id,
         id,
         promoCode,
+        protocol,
       );
       if (!result.ok) {
         await ctx
@@ -716,7 +756,7 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
 
-    const vpnKey = await this.em.findOne(VpnKeyEntity, {
+    const vpnKey = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId: user.id },
       relations: ['tariff'],
     });
@@ -754,7 +794,7 @@ export class TelegramService {
 
     let tariffId: string;
     if (isRenew) {
-      const vpnKey = await this.em.findOne(VpnKeyEntity, {
+      const vpnKey = await this.em.findOne(UserKeyEntity, {
         where: { id, userId: user.id },
         relations: ['tariff'],
       });

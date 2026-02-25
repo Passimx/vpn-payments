@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import crypto from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
-import { VpnKeyEntity } from '../database/entities/vpn-key.entity';
 import { PaymentsEntity } from '../database/entities/balance-debit.entity';
 import { PromoCodeEntity } from '../database/entities/promo-code.entity';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
+import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { BlitzService } from '../blitz/blitz.service';
+import { AmneziaService } from '../amnezia/amnezia-service';
 
 export type PurchaseResult =
   | { ok: true; uri: string; keyId: string }
@@ -30,12 +32,14 @@ export class KeyPurchaseService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly blitzService: BlitzService,
+    private readonly amneziaService: AmneziaService,
   ) {}
 
   async purchase(
     userId: string,
     tariffId: string,
     promoCode?: string,
+    protocol: 'xray' | 'hysteria' = 'xray',
   ): Promise<PurchaseResult> {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
@@ -79,60 +83,87 @@ export class KeyPurchaseService {
         };
       }
 
-      const isConnected = await this.blitzService.checkConnection();
-      if (!isConnected) {
-        return {
-          ok: false,
-          error: 'Сервис временно недоступен. Попробуйте позже.',
-        };
-      }
-
-      const vpnUsername = `${userId}_${Date.now()}`;
-      const createResult = await this.blitzService.createUserKey({
-        username: vpnUsername,
-        trafficLimitGb: tariff.trafficGb,
-        expirationDays: tariff.expirationDays,
-        isUnlimited: tariff.isUnlimited || tariff.trafficGb === 0,
-        note: `userId:${userId}`,
-      });
-
-      if (!createResult.success) {
-        return {
-          ok: false,
-          error: `Ошибка создания ключа: ${createResult.error}`,
-        };
-      }
-
-      const uriResult = await this.blitzService.getUserKeyUri(vpnUsername);
-      if (!uriResult.success || !uriResult.uri) {
-        return {
-          ok: false,
-          error: `Не удалось получить ключ: ${uriResult.error ?? 'нет URI'}`,
-        };
-      }
-
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
-      const vpnKey = qr.manager.create(VpnKeyEntity, {
-        userId: user.id,
-        vpnUsername,
-        vpnUri: uriResult.normalSub ?? uriResult.uri ?? null,
-        trafficLimitGb: tariff.trafficGb,
-        expirationDays: tariff.expirationDays,
-        expiresAt,
-        status: 'active' as const,
-        tariffId: tariff.id,
-      });
-      const savedKey = await qr.manager.save(VpnKeyEntity, vpnKey);
+      let createdKeyId: string;
+      let vpnUri: string;
+
+      if (protocol === 'xray') {
+        const amKey = await this.amneziaService.createXrayKey(
+          user.id,
+          tariff.id,
+        );
+        if (!amKey) {
+          return {
+            ok: false,
+            error: 'Ошибка создания Xray-ключа. Попробуйте позже.',
+          };
+        }
+
+        createdKeyId = amKey.id;
+        vpnUri = amKey.key;
+
+        await qr.manager.insert(UserKeyEntity, {
+          id: createdKeyId,
+          key: vpnUri,
+          protocol: 'xray',
+          userId: user.id,
+          serverId: amKey.serverId,
+          tariffId: tariff.id,
+          expirationDays: tariff.expirationDays,
+          expiresAt,
+          status: 'active',
+          vpnUsername: amKey.id,
+        });
+      } else {
+        const username = crypto.randomUUID().replace(/-/g, '');
+
+        const createResult = await this.blitzService.createUserKey({
+          username,
+          expirationDays: tariff.expirationDays,
+          isUnlimited: tariff.isUnlimited || tariff.trafficGb === 0,
+          note: user.id,
+        });
+
+        if (!createResult.success) {
+          return {
+            ok: false,
+            error: `Ошибка создания Hysteria-ключа: ${createResult.error ?? 'Неизвестная ошибка'}`,
+          };
+        }
+
+        const uriResult = await this.blitzService.getUserKeyUri(username);
+        if (!uriResult.success || !uriResult.uri) {
+          return {
+            ok: false,
+            error: `Ошибка получения ссылки Hysteria-ключа: ${uriResult.error ?? 'URI не получен'}`,
+          };
+        }
+
+        vpnUri = uriResult.uri;
+        createdKeyId = crypto.randomUUID().replace(/-/g, '');
+
+        await qr.manager.insert(UserKeyEntity, {
+          id: createdKeyId,
+          key: vpnUri,
+          protocol: 'hysteria',
+          userId: user.id,
+          serverId: null,
+          tariffId: tariff.id,
+          expirationDays: tariff.expirationDays,
+          expiresAt,
+          status: 'active',
+          vpnUsername: username,
+        });
+      }
 
       await qr.manager.insert(PaymentsEntity, {
         userId: user.id,
         amount: finalPrice,
         tariffId: tariff.id,
-        vpnKeyId: savedKey.id,
+        vpnKeyId: createdKeyId,
       });
-
       if (finalPrice > 0) {
         const priceRounded = Math.round(finalPrice);
         await qr.manager
@@ -142,7 +173,6 @@ export class KeyPurchaseService {
           .where('id = :id', { id: user.id })
           .execute();
       }
-
       if (appliedPromo) {
         await qr.manager.insert(PromoUsageEntity, {
           userId: user.id,
@@ -153,12 +183,17 @@ export class KeyPurchaseService {
       await qr.commitTransaction();
       return {
         ok: true,
-        uri: uriResult.normalSub ?? uriResult.uri,
-        keyId: savedKey.id,
+        uri: vpnUri,
+        keyId: createdKeyId,
       };
     } catch (e) {
       await qr.rollbackTransaction();
       const msg = e instanceof Error ? e.message : 'Unknown error';
+      console.error(
+        '[KeyPurchase] purchase: unexpected error',
+        msg,
+        e instanceof Error ? e.stack : undefined,
+      );
       return { ok: false, error: `Ошибка: ${msg}` };
     } finally {
       await qr.release();
@@ -231,7 +266,7 @@ export class KeyPurchaseService {
         return { ok: false, error: 'Пользователь не найден' };
       }
 
-      const vpnKey = await qr.manager.findOne(VpnKeyEntity, {
+      const vpnKey = await qr.manager.findOne(UserKeyEntity, {
         where: { id: keyId, userId: user.id },
         relations: ['tariff'],
       });
@@ -277,10 +312,6 @@ export class KeyPurchaseService {
       const editResult = await this.blitzService.editUser({
         username: vpnKey.vpnUsername,
         expirationDays: tariff.expirationDays,
-        trafficLimitGb:
-          tariff.isUnlimited || tariff.trafficGb === 0
-            ? undefined
-            : tariff.trafficGb,
         renewCreationDate: true,
       });
 
@@ -296,7 +327,7 @@ export class KeyPurchaseService {
 
       await qr.manager
         .createQueryBuilder()
-        .update(VpnKeyEntity)
+        .update(UserKeyEntity)
         .set({
           expiresAt,
           expirationDays: tariff.expirationDays,

@@ -15,9 +15,7 @@ export class AmneziaService {
   public async createXrayKey(userId: string, tariffId: string) {
     try {
       const server = await this.getServer();
-
       if (!server) return;
-
       const uuid = crypto.randomUUID();
 
       const ssh = new NodeSSH();
@@ -62,6 +60,7 @@ export class AmneziaService {
         email: uuid,
         flow: 'xtls-rprx-vision',
       } as never);
+
       const configString = JSON.stringify(config, null, 2).replace(
         /'/g,
         "'\\''",
@@ -71,10 +70,10 @@ export class AmneziaService {
       echo '${configString}' | \
       docker exec -i amnezia-xray sh -c 'cat > /opt/amnezia/xray/server.json'
     `);
+
       await ssh.execCommand('docker restart amnezia-xray');
       ssh.dispose();
 
-      await this.em.insert(UserKeyEntity, userKeyEntity);
       return userKeyEntity;
     } catch (error) {
       console.error(error);

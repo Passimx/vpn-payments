@@ -18,18 +18,21 @@ export class UserKeyEntity {
   readonly key: string;
 
   @Column({ name: 'protocol', type: 'varchar' })
-  readonly protocol: 'xray';
+  readonly protocol: 'xray' | 'hysteria';
 
   @Column({ name: 'user_id', type: 'uuid' })
   readonly userId: string;
 
-  @Column({ name: 'server_id', type: 'uuid' })
-  readonly serverId: string;
+  @Column({ name: 'server_id', type: 'uuid', nullable: true })
+  readonly serverId: string | null;
 
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
 
-  @Column({ name: 'expires_at', type: 'timestamp' })
+  @Column({ name: 'expiration_days', type: 'int' })
+  readonly expirationDays: number;
+
+  @Column({ name: 'expires_at', nullable: true, type: 'timestamp' })
   readonly expiresAt: Date;
 
   @Column({
@@ -42,6 +45,9 @@ export class UserKeyEntity {
 
   @CreateDateColumn({ name: 'created_at' })
   readonly createdAt: Date;
+
+  @Column({ name: 'vpn_username', type: 'varchar', length: 64, unique: true })
+  readonly vpnUsername: string;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

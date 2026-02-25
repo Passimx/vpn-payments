@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { TariffEntity } from './tariff.entity';
-import { VpnKeyEntity } from './vpn-key.entity';
+import { UserKeyEntity } from './user-key.entity';
 
 @Entity({ name: 'payments' })
 export class PaymentsEntity {
@@ -38,7 +38,7 @@ export class PaymentsEntity {
   @JoinColumn({ name: 'tariff_id' })
   readonly tariff: TariffEntity;
 
-  @ManyToOne(() => VpnKeyEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserKeyEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'vpn_key_id' })
-  readonly vpnKey: VpnKeyEntity;
+  readonly vpnKey: UserKeyEntity;
 }

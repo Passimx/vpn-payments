@@ -46,7 +46,6 @@ export class BlitzService {
 
   async createUserKey(params: {
     username: string;
-    trafficLimitGb: number;
     expirationDays: number;
     isUnlimited: boolean;
     note?: string;
@@ -54,7 +53,6 @@ export class BlitzService {
     try {
       const body = {
         username: params.username,
-        traffic_limit: params.trafficLimitGb,
         expiration_days: params.expirationDays,
         unlimited: params.isUnlimited,
         note: params.note ?? null,
@@ -119,16 +117,12 @@ export class BlitzService {
   async editUser(params: {
     username: string;
     expirationDays?: number;
-    trafficLimitGb?: number;
     renewCreationDate?: boolean;
   }): Promise<{ success: boolean; error?: string }> {
     try {
       const body: Record<string, unknown> = {};
       if (params.expirationDays !== undefined) {
         body.new_expiration_days = params.expirationDays;
-      }
-      if (params.trafficLimitGb !== undefined) {
-        body.new_traffic_limit = params.trafficLimitGb;
       }
       if (params.renewCreationDate !== undefined) {
         body.renew_creation_date = params.renewCreationDate;
