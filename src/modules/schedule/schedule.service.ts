@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { TonService } from '../ton/ton.service';
 import { TransactionsService } from '../transactions/transactions.service';
+import { AmneziaService } from '../amnezia/amnezia-service';
 
 @Injectable()
 export class ScheduleService {
   constructor(
     private readonly tonService: TonService,
     private readonly transactionsService: TransactionsService,
+    private readonly amneziaService: AmneziaService,
   ) {}
 
   @Cron('* * * * *')
@@ -23,5 +25,11 @@ export class ScheduleService {
   @Cron('*/10 * * * * *')
   async scanUserTransactions() {
     await this.transactionsService.scanUserTransactions();
+  }
+
+  @Cron('0 1 * * *')
+  async checkExpiredKeys() {
+    console.log('start work cron "chekExpiredKeys"');
+    await this.amneziaService.checkExpiredKeys();
   }
 }

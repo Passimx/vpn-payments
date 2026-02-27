@@ -231,7 +231,7 @@ export class TelegramService {
             (k.expiresAt && new Date(k.expiresAt) < now);
 
           // Продление для Hysteria
-          if (isExpired && k.protocol === 'hysteria') {
+          if (isExpired) {
             (buttons as unknown[]).push([
               Markup.button.callback(
                 `🔄 Продлить ключ ${index + 1}`,
@@ -635,7 +635,7 @@ export class TelegramService {
   onBuyTariff = async (ctx: Context) => {
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const isRenew = callbackData.startsWith('BUY_KEY:');
-
+    /*
     //  без выбора протокола — показываем выбор
     if (!isRenew && callbackData.startsWith('BUY:')) {
       const tariffId = callbackData.replace('BUY:', '');
@@ -655,7 +655,7 @@ export class TelegramService {
         .catch(() => {});
       return;
     }
-
+    */
     let protocol: 'xray' | 'hysteria' = 'xray';
     let id = callbackData;
 

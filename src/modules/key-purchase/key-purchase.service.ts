@@ -301,25 +301,37 @@ export class KeyPurchaseService {
         };
       }
 
-      const isConnected = await this.blitzService.checkConnection();
-      if (!isConnected) {
-        return {
-          ok: false,
-          error: 'Сервис временно недоступен. Попробуйте позже.',
-        };
-      }
+      if (vpnKey.protocol === 'hysteria') {
+        const isConnected = await this.blitzService.checkConnection();
+        if (!isConnected) {
+          return {
+            ok: false,
+            error: 'Сервис временно недоступен. Попробуйте позже.',
+          };
+        }
 
-      const editResult = await this.blitzService.editUser({
-        username: vpnKey.vpnUsername,
-        expirationDays: tariff.expirationDays,
-        renewCreationDate: true,
-      });
+        const editResult = await this.blitzService.editUser({
+          username: vpnKey.vpnUsername,
+          expirationDays: tariff.expirationDays,
+          renewCreationDate: true,
+        });
 
-      if (!editResult.success) {
-        return {
-          ok: false,
-          error: `Ошибка продления ключа: ${editResult.error}`,
-        };
+        if (!editResult.success) {
+          return {
+            ok: false,
+            error: `Ошибка продления ключа: ${editResult.error}`,
+          };
+        }
+      } else if (vpnKey.protocol === 'xray') {
+        const reactivated = await this.amneziaService.reactivateXrayKey(
+          vpnKey.id,
+        );
+        if (!reactivated) {
+          return {
+            ok: false,
+            error: 'Ошибка продления Xray-ключа. Попробуйте позже.',
+          };
+        }
       }
 
       const expiresAt = new Date();

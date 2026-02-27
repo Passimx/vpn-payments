@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
-import { EntityManager } from 'typeorm';
+import { EntityManager, LessThanOrEqual } from 'typeorm';
 import { ServerEntity } from '../database/entities/server.entity';
 
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { NodeSSH } from 'node-ssh';
-import { XrayServerConfigType } from './types/xray-server-config.type';
 
 @Injectable()
 export class AmneziaService {
@@ -25,10 +24,7 @@ export class AmneziaService {
         password: server.password,
       });
 
-      const [result1, result2, result3] = await Promise.all([
-        ssh.execCommand(
-          'docker exec amnezia-xray cat /opt/amnezia/xray/server.json',
-        ),
+      const [pubKeyResult, shortIdResult] = await Promise.all([
         ssh.execCommand(
           'docker exec amnezia-xray cat /opt/amnezia/xray/xray_public.key',
         ),
@@ -37,11 +33,13 @@ export class AmneziaService {
         ),
       ]);
 
-      if (result1.stderr || result2.stderr || result3.stderr) return;
+      if (pubKeyResult.stderr || shortIdResult.stderr) {
+        ssh.dispose();
+        return;
+      }
 
-      const config = JSON.parse(result1.stdout) as XrayServerConfigType;
-      const xrayPublicKey = result2.stdout;
-      const xrayShortId = result3.stdout;
+      const xrayPublicKey = pubKeyResult.stdout.trim();
+      const xrayShortId = shortIdResult.stdout.trim();
 
       const key = this.exportVpnKey(uuid, server, xrayPublicKey, xrayShortId);
 
@@ -55,23 +53,10 @@ export class AmneziaService {
         expiresAt: new Date(),
       } as UserKeyEntity;
 
-      config.inbounds[0].settings.clients.push({
-        id: uuid,
-        email: uuid,
-        flow: 'xtls-rprx-vision',
-      } as never);
+      // добавляем пользователя через API контейнера, без перезапуска
+      const added = await this.addXrayClient(ssh, server, uuid);
+      if (!added) return;
 
-      const configString = JSON.stringify(config, null, 2).replace(
-        /'/g,
-        "'\\''",
-      );
-
-      await ssh.execCommand(`
-      echo '${configString}' | \
-      docker exec -i amnezia-xray sh -c 'cat > /opt/amnezia/xray/server.json'
-    `);
-
-      await ssh.execCommand('docker restart amnezia-xray');
       ssh.dispose();
 
       return userKeyEntity;
@@ -95,25 +80,88 @@ export class AmneziaService {
       username: server.username,
       password: server.password,
     });
-    const result = await ssh.execCommand(
-      'docker exec amnezia-xray cat /opt/amnezia/xray/server.json',
+
+    // удаляем пользователя через апишку контенера, без перезапуска контейнера
+    const removeResult = await ssh.execCommand(
+      `docker exec amnezia-xray xray api rmu --server=127.0.0.1:10085 -tag="vless-in" "${keyId}"`,
     );
+    if (removeResult.stderr) {
+      console.error('[AmneziaService] deleteXrayKey rmu error:', removeResult);
+      ssh.dispose();
+      return;
+    }
 
-    if (result.stderr) return;
-
-    const config = JSON.parse(result.stdout) as XrayServerConfigType;
-    config.inbounds[0].settings.clients =
-      config.inbounds[0].settings.clients.filter(({ id }) => id !== keyId);
-    const configString = JSON.stringify(config, null, 2).replace(/'/g, "'\\''");
-
-    await ssh.execCommand(`
-      echo '${configString}' | \
-      docker exec -i amnezia-xray sh -c 'cat > /opt/amnezia/xray/server.json'
-    `);
-    await ssh.execCommand('docker restart amnezia-xray');
     ssh.dispose();
 
-    await this.em.delete(UserKeyEntity, { id: keyId });
+    // помечаем ключ как истёкший, но не удаляем запись
+    await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
+    return true;
+  }
+
+  // повторно включает Xray-ключ на сервере (для продления), без изменения URI
+  public async reactivateXrayKey(keyId: string): Promise<boolean> {
+    const keyEntity = await this.em.findOne(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['server'],
+    });
+    if (!keyEntity || !keyEntity.server) return false;
+    const server = keyEntity.server;
+
+    const ssh = new NodeSSH();
+    await ssh.connect({
+      host: server.host,
+      username: server.username,
+      password: server.password,
+    });
+
+    const added = await this.addXrayClient(ssh, server, keyId);
+    ssh.dispose();
+
+    return added;
+  }
+
+  private async addXrayClient(
+    ssh: NodeSSH,
+    server: ServerEntity,
+    clientId: string,
+  ): Promise<boolean> {
+    const userConfig = {
+      inbounds: [
+        {
+          tag: 'vless-in',
+          port: server.xRayPort,
+          protocol: 'vless',
+          settings: {
+            clients: [
+              {
+                id: clientId,
+                email: clientId,
+                flow: 'xtls-rprx-vision',
+              },
+            ],
+            decryption: 'none',
+          },
+        },
+      ],
+    };
+
+    const userConfigString = JSON.stringify(userConfig, null, 2).replace(
+      /'/g,
+      "'\\''",
+    );
+
+    const addResult = await ssh.execCommand(`
+      echo '${userConfigString}' | \
+      docker exec -i amnezia-xray sh -c 'cat > /opt/amnezia/xray/user-${clientId}.json' && \
+      docker exec amnezia-xray xray api adu --server=127.0.0.1:10085 /opt/amnezia/xray/user-${clientId}.json && \
+      docker exec amnezia-xray rm -f /opt/amnezia/xray/user-${clientId}.json
+    `);
+
+    if (addResult.stderr) {
+      console.error('[AmneziaService] addXrayClient adu error:', addResult);
+      return false;
+    }
+
     return true;
   }
 
@@ -159,5 +207,29 @@ export class AmneziaService {
     return this.em.findOne(ServerEntity, {
       where: { id: server?.id },
     });
+  }
+
+  public async checkExpiredKeys() {
+    const now = new Date();
+
+    const expiredKeys = await this.em.find(UserKeyEntity, {
+      where: {
+        protocol: 'xray',
+        status: 'active',
+        expiresAt: LessThanOrEqual(now),
+      },
+    });
+
+    for (const key of expiredKeys) {
+      try {
+        await this.deleteXrayKey(key.id);
+      } catch (e) {
+        console.error(
+          '[AmneziaService] checkExpiredKeys error for key',
+          key.id,
+          e,
+        );
+      }
+    }
   }
 }

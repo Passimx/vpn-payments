@@ -39,7 +39,7 @@ export class UserEntity {
   readonly chatId?: number;
 
   @Column({
-    name: 'userName',
+    name: 'user_name',
     type: 'varchar',
     nullable: true,
   })
