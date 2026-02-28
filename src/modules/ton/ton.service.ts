@@ -5,10 +5,16 @@ import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { UserEntity } from '../database/entities/user.entity';
 import { OpCodeEnum } from './enums/op-code.enum';
+import { TransactionsService } from '../transactions/transactions.service';
+import { TelegramService } from '../telegram/telegram-service';
 
 @Injectable()
 export class TonService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly transactionsService: TransactionsService,
+    private readonly telegramService: TelegramService,
+  ) {}
 
   public async scanTransactions(): Promise<void> {
     const client = new TonClient({
@@ -27,7 +33,7 @@ export class TonService {
         limit: 500,
       })
       .catch(() => {
-        console.log('Error while getting transactions.');
+        console.log('Error while getting ton transactions.');
       });
 
     if (!transactions || !transactions.length) return;
@@ -77,6 +83,42 @@ export class TonService {
       );
 
     await this.em.insert(TransactionEntity, transactionsNotEmpty);
+
+    if (transactions.length) await this.addBalance(transactionsNotEmpty);
+  }
+
+  private async addBalance(transactions: TransactionEntity[]) {
+    const priceCollection = await this.transactionsService.getCurrencyPrice();
+    if (!priceCollection) return;
+
+    await Promise.all(
+      transactions.map(async (transaction) => {
+        let addBalance =
+          transaction.amount * priceCollection['the-open-network'].rub;
+        if (transaction.currency !== 'rub')
+          addBalance += addBalance * Envs.crypto.allowance;
+
+        await this.em
+          .createQueryBuilder()
+          .update(UserEntity)
+          .set({
+            balance: () => `balance + ${addBalance}`,
+          })
+          .where('id = :id', { id: transaction.userId })
+          .execute();
+
+        await this.em.update(
+          TransactionEntity,
+          { id: transaction.id },
+          { completed: true },
+        );
+
+        await this.telegramService.sendMessageAddBalance(
+          transaction.userId,
+          addBalance,
+        );
+      }),
+    );
   }
 
   private getTransactionInf(transaction: Transaction) {

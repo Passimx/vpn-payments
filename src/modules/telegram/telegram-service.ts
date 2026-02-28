@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Context, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager, LessThanOrEqual } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
 import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
-import { ExchangeEntity } from '../database/entities/exchange.entity';
+import { TransactionsService } from '../transactions/transactions.service';
 
 @Injectable()
 export class TelegramService {
@@ -24,6 +24,7 @@ export class TelegramService {
   constructor(
     private readonly em: EntityManager,
     private readonly keyPurchaseService: KeyPurchaseService,
+    private readonly transactionsService: TransactionsService,
     private readonly yookassaBalanceService: YookassaBalanceService,
   ) {}
 
@@ -396,19 +397,14 @@ export class TelegramService {
     if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
     if (amountFromSet === undefined) return;
-    const exchange = await this.em.findOne(ExchangeEntity, {
-      where: {
-        priceCurrency: 'РУБ',
-        currency: 'TON',
-        date: LessThanOrEqual(Date.now()),
-      },
-      order: { date: 'DESC' },
-    });
-    if (!exchange) return;
+
+    const priceCollection = await this.transactionsService.getCurrencyPrice();
+    if (!priceCollection) return;
 
     const address = Envs.crypto.ton.walletAddress;
     const text = user.id;
-    const value = (1 / exchange.price) * amountFromSet * 1e9;
+    const value =
+      (1 / priceCollection['the-open-network'].rub) * amountFromSet * 1e9;
     const amount = Math.ceil(value);
 
     await ctx
@@ -458,20 +454,13 @@ export class TelegramService {
     const amountFromSet = this.amountMap.get(ctx.from!.id);
     if (amountFromSet === undefined) return;
 
-    const exchange = await this.em.findOne(ExchangeEntity, {
-      where: {
-        priceCurrency: 'РУБ',
-        currency: 'USD',
-        date: LessThanOrEqual(Date.now()),
-      },
-      order: { date: 'DESC' },
-    });
-    if (!exchange) return;
+    const priceCollection = await this.transactionsService.getCurrencyPrice();
+    if (!priceCollection) return;
 
     const address = Envs.crypto.ton.walletAddress;
     const text = user.id;
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-    const value = (1 / exchange.price) * amountFromSet * 1e6;
+    const value = (1 / priceCollection.usd.rub) * amountFromSet * 1e6;
     const amount = Math.ceil(value);
 
     await ctx

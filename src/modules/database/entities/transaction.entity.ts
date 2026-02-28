@@ -9,8 +9,8 @@ export class TransactionEntity {
   @Column({ name: 'balance', type: 'numeric', default: 0 })
   readonly amount: number;
 
-  @Column({ name: 'currency', type: 'varchar', default: 2 ** 8 })
-  readonly currency: 'TON' | 'USD' | 'РУБ';
+  @Column({ name: 'currency', type: 'varchar', default: 2 ** 4 })
+  readonly currency: 'bitcoin' | 'ethereum' | 'solana' | 'ton' | 'usd' | 'rub';
 
   @Column({ name: 'message', type: 'text', nullable: true })
   readonly message: string;

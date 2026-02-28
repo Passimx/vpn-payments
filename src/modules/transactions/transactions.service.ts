@@ -1,147 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager, IsNull, Not, LessThanOrEqual } from 'typeorm';
-import { TransactionEntity } from '../database/entities/transaction.entity';
-import { ExchangeEntity } from '../database/entities/exchange.entity';
-import { UserEntity } from '../database/entities/user.entity';
-import { Envs } from '../../common/env/envs';
-import { TelegramService } from '../telegram/telegram-service';
+import { CryptoPriceType } from './types/crypto-price.type';
 
 @Injectable()
 export class TransactionsService {
-  constructor(
-    private readonly em: EntityManager,
-    private readonly telegramService: TelegramService,
-  ) {}
-
-  public async scanExchange() {
+  public async getCurrencyPrice() {
     const date = new Date();
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы 0-11
     const year = date.getFullYear();
     const formattedDate = `${day}-${month}-${year}`;
 
-    const tonPrice = await this.getTonPrice(formattedDate);
-    const usdPrice = await this.getUsdTPrice(formattedDate);
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,ethereum,bitcoin,solana,usd&vs_currencies=usd,rub,cny,eur&date=${formattedDate}&localization=false`,
+    ).catch(() => {});
+    if (!response) return;
 
-    if (tonPrice)
-      await this.em.insert(ExchangeEntity, [
-        {
-          date: date.getTime(),
-          currency: 'TON',
-          priceCurrency: 'РУБ',
-          price: tonPrice.rub,
-        },
-        {
-          date: date.getTime(),
-          currency: 'TON',
-          priceCurrency: 'USD',
-          price: tonPrice.usd,
-        },
-        {
-          date: date.getTime(),
-          currency: 'TON',
-          priceCurrency: 'CNY',
-          price: tonPrice.cny,
-        },
-      ]);
-
-    if (usdPrice)
-      await this.em.insert(ExchangeEntity, [
-        {
-          date: date.getTime(),
-          currency: 'USD',
-          priceCurrency: 'РУБ',
-          price: usdPrice.rub,
-        },
-        {
-          date: date.getTime(),
-          currency: 'USD',
-          priceCurrency: 'CNY',
-          price: usdPrice.cny,
-        },
-      ]);
-  }
-
-  public async scanUserTransactions() {
-    const transactions = await this.em.find(TransactionEntity, {
-      where: { userId: Not(IsNull()), completed: false, type: 'Credit' },
-    });
-    if (!transactions.length) return;
-
-    await Promise.all(
-      transactions.map(async (transaction) => {
-        const exchange = await this.em.findOne(ExchangeEntity, {
-          where: {
-            priceCurrency: 'РУБ',
-            currency: transaction.currency,
-            date: LessThanOrEqual(transaction.createdAt),
-          },
-          order: { date: 'DESC' },
-        });
-        if (!exchange) return;
-
-        let addBalance = transaction.amount * exchange.price;
-        if (transaction.currency !== 'РУБ')
-          addBalance += addBalance * Envs.crypto.allowance;
-
-        await this.em
-          .createQueryBuilder()
-          .update(UserEntity)
-          .set({
-            balance: () => `balance + ${addBalance}`,
-          })
-          .where('id = :id', { id: transaction.userId })
-          .execute();
-
-        await this.em.update(
-          TransactionEntity,
-          { id: transaction.id },
-          { completed: true },
-        );
-
-        await this.telegramService.sendMessageAddBalance(
-          transaction.userId,
-          addBalance,
-        );
-      }),
-    );
-  }
-
-  private async getTonPrice(date: string) {
-    try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/the-open-network/history?date=${date}&localization=false`,
-      ).catch(() => {});
-      if (!response) return;
-
-      const payload = (await response.json()) as TonPriceType;
-      return payload.market_data?.current_price;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  private async getUsdTPrice(date: string) {
-    try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/tether/history?date=${date}&localization=false`,
-      ).catch(() => {});
-      if (!response) return;
-
-      const payload = (await response.json()) as TonPriceType;
-      return payload?.market_data?.current_price;
-    } catch (error) {
-      console.log(error);
-    }
+    return (await response.json()) as CryptoPriceType;
   }
 }
-
-type TonPriceType = {
-  market_data: {
-    current_price: {
-      rub: number;
-      usd: number;
-      cny: number;
-    };
-  };
-};
