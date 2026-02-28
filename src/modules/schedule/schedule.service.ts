@@ -15,7 +15,7 @@ export class ScheduleService {
     await this.tonService.scanTransactions();
   }
 
-  @Cron('0 1 * * *')
+  @Cron('*/30 * * * * *')
   async checkExpiredKeys() {
     console.log('start work cron "chekExpiredKeys"');
     await this.amneziaService.checkExpiredKeys();
