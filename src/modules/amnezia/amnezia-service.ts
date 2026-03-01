@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { EntityManager, LessThanOrEqual } from 'typeorm';
@@ -6,10 +6,16 @@ import { ServerEntity } from '../database/entities/server.entity';
 
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { NodeSSH } from 'node-ssh';
+import { TelegramService } from '../telegram/telegram-service';
+import { UserEntity } from '../database/entities/user.entity';
 
 @Injectable()
 export class AmneziaService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    @Inject(forwardRef(() => TelegramService))
+    private readonly telegramService: TelegramService,
+  ) {}
 
   public async createXrayKey(userId: string, tariffId: string) {
     try {
@@ -207,6 +213,21 @@ export class AmneziaService {
     return this.em.findOne(ServerEntity, {
       where: { id: server?.id },
     });
+  }
+
+  public async checkAlmostExpiredKeys() {
+    const nowPlusOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const users = await this.em.find(UserEntity, {
+      relations: ['keys'],
+      where: {
+        keys: { status: 'active', expiresAt: LessThanOrEqual(nowPlusOneDay) },
+      },
+    });
+
+    await Promise.all(
+      users.map((user) => this.telegramService.sendAlmostExpiredKey(user)),
+    );
   }
 
   public async checkExpiredKeys() {

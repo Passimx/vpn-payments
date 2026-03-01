@@ -145,7 +145,7 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `ID: ${user.id}\nБаланс: ${user?.balance ?? 0} руб.`,
+        `ID: ${user.id}\nБаланс: ${user.balance} руб.`,
         Markup.inlineKeyboard([
           [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
           [Markup.button.callback('🛒 Приобрести ключ', 'BTN_9')],
@@ -528,6 +528,13 @@ export class TelegramService {
   };
 
   onBtn9 = async (ctx: Context) => {
+    const telegramId = ctx?.from?.id;
+    const user = await this.em.findOne(UserEntity, {
+      where: { telegramId },
+    });
+
+    if (!user) return;
+
     ctx.answerCbQuery().catch(() => {});
     const tariffs = await this.em.find(TariffEntity, {
       where: { active: true },
@@ -548,7 +555,7 @@ export class TelegramService {
     ]);
 
     await ctx
-      .editMessageText('📋 <b>Выбери тариф:</b>', {
+      .editMessageText(`Баланс: ${user.balance} руб.\n<b>Выберите тариф:</b>`, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           ...tariffButtons,
@@ -915,6 +922,24 @@ export class TelegramService {
       user.chatId,
       'Выбери действие:',
       this.initMenu,
+    );
+  }
+
+  public async sendAlmostExpiredKey(user: UserEntity) {
+    if (!user.chatId) return;
+
+    await this.bot.telegram.sendMessage(
+      user.chatId,
+      `Срок действия ключа подходит к концу.\nБаланс: ${user.balance}`,
+      Markup.inlineKeyboard([
+        ...user.keys.map((key, index) => [
+          Markup.button.callback(
+            `🔄 Продлить ключ ${index + 1}`,
+            `RENEW:${key.id}`,
+          ),
+        ]),
+        [this.backToProfileButton],
+      ]),
     );
   }
 }

@@ -6,6 +6,7 @@ export class TransactionsService {
   private cache: CryptoPriceType | null = null;
   private readonly TTL = 10 * 60 * 1000;
 
+  // получение актуального курса криптовалют
   public async getCurrencyPrice() {
     if (this.cache) return this.cache;
 
