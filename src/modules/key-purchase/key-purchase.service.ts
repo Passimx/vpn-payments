@@ -330,9 +330,7 @@ export class KeyPurchaseService {
         }
       }
 
-      const base = vpnKey.expiresAt
-        ? new Date(vpnKey.expiresAt)
-        : new Date();
+      const base = vpnKey.expiresAt ? new Date(vpnKey.expiresAt) : new Date();
       const expiresAt = new Date(base);
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
