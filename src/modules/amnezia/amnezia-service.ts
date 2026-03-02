@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
-import { EntityManager, LessThanOrEqual } from 'typeorm';
+import { EntityManager, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { ServerEntity } from '../database/entities/server.entity';
 
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -219,10 +219,14 @@ export class AmneziaService {
     const nowPlusOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const users = await this.em.find(UserEntity, {
-      relations: ['keys'],
       where: {
-        keys: { status: 'active', expiresAt: LessThanOrEqual(nowPlusOneDay) },
+        keys: {
+          status: 'active',
+          expiresAt: LessThanOrEqual(nowPlusOneDay),
+          tariff: { expirationDays: MoreThanOrEqual(30) },
+        },
       },
+      relations: ['keys', 'tariff'],
     });
 
     await Promise.all(
