@@ -427,11 +427,11 @@ export class TelegramService {
     await ctx
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
-        `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-        `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
-        `Сумма: <code>${amount / 1e9}</code> TON\n` +
-        `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
-        `Комментарий: <code>${user.id}</code>`,
+          `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
+          `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
+          `Сумма: <code>${amount / 1e9}</code> TON\n` +
+          `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
+          `Комментарий: <code>${user.id}</code>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
@@ -483,11 +483,11 @@ export class TelegramService {
     await ctx
       .editMessageText(
         `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
-        `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-        `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
-        `Сумма: <code>${amount / 1e6}</code> USDT\n` +
-        `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
-        `Комментарий: <code>${user.id}</code>`,
+          `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
+          `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
+          `Сумма: <code>${amount / 1e6}</code> USDT\n` +
+          `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
+          `Комментарий: <code>${user.id}</code>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
@@ -921,18 +921,18 @@ export class TelegramService {
         Markup.inlineKeyboard([
           result.ok
             ? [
-              Markup.button.callback(
-                `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
-                'BTN_8',
-              ),
-              Markup.button.url('💳 YooKassa', result.paymentUrl),
-            ]
+                Markup.button.callback(
+                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+                  'BTN_8',
+                ),
+                Markup.button.url('💳 YooKassa', result.paymentUrl),
+              ]
             : [
-              Markup.button.callback(
-                `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
-                'BTN_8',
-              ),
-            ],
+                Markup.button.callback(
+                  `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+                  'BTN_8',
+                ),
+              ],
           [this.backToProfileButton],
         ]),
       )
