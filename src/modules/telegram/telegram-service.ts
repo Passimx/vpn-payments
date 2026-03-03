@@ -32,7 +32,7 @@ export class TelegramService {
     [
       Markup.button.callback('👤 Профиль', 'BTN_1'),
       Markup.button.callback('📖 Инструкция', 'BTN_4'),
-      Markup.button.url('👩‍💻 Поддержка', 'https://t.me/Pro1ootit'),
+      Markup.button.url('👩‍💻 Поддержка', 'https://t.me/passimx'),
     ],
     [
       Markup.button.url(
