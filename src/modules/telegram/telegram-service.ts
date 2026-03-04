@@ -16,6 +16,9 @@ export class TelegramService {
   private bot: Telegraf;
 
   private amountMap = new Map<number, number>();
+  private addKeyVideoId: string | undefined = Envs.telegram.addKeyVideoId;
+  private addBalanceVideoId: string | undefined =
+    Envs.telegram.addBalanceVideoId;
   private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
     number,
@@ -111,6 +114,7 @@ export class TelegramService {
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
     this.bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
+    this.bot.action('ON_ADD_KEY_INSTRUCTION', this.onAddKeyInstruction);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
@@ -176,6 +180,37 @@ export class TelegramService {
       .catch(() => {});
   };
 
+  onAddKeyInstruction = async (ctx: Context) => {
+    const message = await ctx.reply('Загрузка видео...');
+    const filePath = path.join(
+      __dirname,
+      '../',
+      '../',
+      'public',
+      'media',
+      'add-key.mp4',
+    );
+
+    const videoMessage = await ctx.replyWithVideo(
+      this.addKeyVideoId ?? Input.fromLocalFile(filePath),
+      {
+        caption:
+          'Видео инструкция: Как подключить ключ\n\nНеобходимые шаги:\nМеню -> Приобрести ключ -> Выбор тарифа -> Купить -> Скопировать ключ -> Открыть скаченное приложение -> Вставить ключ -> Подключиться к впн',
+        width: 720,
+        height: 1280,
+        supports_streaming: true,
+      },
+    );
+
+    if (!this.addKeyVideoId) {
+      console.log(`Set addKeyVideoId = '${videoMessage.video.file_id}'`);
+      this.addKeyVideoId = videoMessage.video.file_id;
+    }
+
+    await this.bot.telegram.deleteMessage(ctx.chat!.id, message.message_id);
+    await ctx.reply('Выбери действие:', this.initMenu).catch(() => {});
+  };
+
   onAddBalanceInstruction = async (ctx: Context) => {
     const message = await ctx.reply('Загрузка видео...');
 
@@ -187,15 +222,23 @@ export class TelegramService {
       'media',
       'add-balance.mp4',
     );
-    console.log(filePath);
 
-    await ctx.replyWithVideo(Input.fromLocalFile(filePath), {
-      caption:
-        'Видео инструкция: Как пополнить баланс\n\nНеобходимые шаги:\nМеню -> Пополнить баланс -> Ввод суммы -> Выбор способа оплаты -> Оплата',
-      width: 720,
-      height: 1280,
-      supports_streaming: true,
-    });
+    const videoMessage = await ctx.replyWithVideo(
+      this.addBalanceVideoId ?? Input.fromLocalFile(filePath),
+      {
+        caption:
+          'Видео инструкция: Как пополнить баланс\n\nНеобходимые шаги:\nМеню -> Пополнить баланс -> Ввод суммы -> Выбор способа оплаты -> Оплата',
+        width: 720,
+        height: 1280,
+        supports_streaming: true,
+      },
+    );
+
+    if (!this.addBalanceVideoId) {
+      console.log(`Set addBalanceVideoId = '${videoMessage.video.file_id}'`);
+      this.addBalanceVideoId = videoMessage.video.file_id;
+    }
+
     await this.bot.telegram.deleteMessage(ctx.chat!.id, message.message_id);
     await ctx.reply('Выбери действие:', this.initMenu).catch(() => {});
   };
@@ -212,7 +255,12 @@ export class TelegramService {
               `ON_ADD_BALANCE_INSTRUCTION`,
             ),
           ],
-          [Markup.button.callback('🔐 Как подключить ключ', `BUTTON_MONEY:50`)],
+          [
+            Markup.button.callback(
+              '🔐 Как подключить ключ',
+              `ON_ADD_KEY_INSTRUCTION`,
+            ),
+          ],
           [Markup.button.callback('📲 Ссылки на приложение', `BTN_4`)],
           [this.backToMenuButton],
         ]),
