@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Context, Markup, Telegraf } from 'telegraf';
+import { Context, Input, Markup, Telegraf } from 'telegraf';
 
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
@@ -31,7 +31,7 @@ export class TelegramService {
   private readonly initMenu = Markup.inlineKeyboard([
     [Markup.button.callback('🌐️ Меню', 'BTN_1')],
     [
-      Markup.button.callback('📖 Инструкция', 'BTN_4'),
+      Markup.button.callback('📖 Инструкция', 'ON_INSTRUCTION'),
       Markup.button.url('👩‍💻 Поддержка', 'https://t.me/passimx'),
     ],
     [
@@ -95,6 +95,7 @@ export class TelegramService {
     this.bot.start(this.onStart);
     this.bot.action('BTN_1', this.onBtn1);
     this.bot.action('BTN_2', this.onBtn2);
+    this.bot.action('ON_INSTRUCTION', this.onInstruction);
     this.bot.action('BTN_4', this.onBtn4);
     this.bot.action('BTN_5', this.onBtn5);
     this.bot.action('BTN_8', this.onBtn8);
@@ -108,6 +109,7 @@ export class TelegramService {
     this.bot.action('BTN_17', this.onBtn17);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
+    this.bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
@@ -173,14 +175,45 @@ export class TelegramService {
       .catch(() => {});
   };
 
+  onAddBalanceInstruction = async (ctx: Context) => {
+    const message = await ctx.reply('Загрузка видео...');
+    await ctx.replyWithVideo(
+      Input.fromLocalFile('src/public/media/add-balance.mp4'),
+      {
+        caption:
+          'Видео инструкция: Как пополнить баланс\n\nНеобходимые шаги:\nМеню -> Пополнить баланс -> Ввод суммы -> Выбор способа оплаты -> Оплата',
+        width: 720,
+        height: 1280,
+        supports_streaming: true,
+      },
+    );
+    await this.bot.telegram.deleteMessage(ctx.chat!.id, message.message_id);
+    await ctx.reply('Выбери действие:', this.initMenu).catch(() => {});
+  };
+
+  onInstruction = async (ctx: Context) => {
+    await ctx.answerCbQuery().catch(() => {});
+    await ctx
+      .editMessageText('Выбери действие:', {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback(
+              '💸 Как пополнить баланс',
+              `ON_ADD_BALANCE_INSTRUCTION`,
+            ),
+          ],
+          [Markup.button.callback('🔐 Как подключить ключ', `BUTTON_MONEY:50`)],
+          [Markup.button.callback('📲 Ссылки на приложение', `BTN_4`)],
+          [this.backToMenuButton],
+        ]),
+      })
+      .catch(() => {});
+  };
+
   onBtn4 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
-    const instructionText =
-      '📖 <b>Как подключить ключ</b>\n\n' +
-      '1. Установите приложение.\n' +
-      '2. Скопируйте ключ из телеграм бота.\n' +
-      '3. В установленном приложении нажмите на + (добавить ключ) и вставьте ключ.\n\n' +
-      'Ссылки на приложение:';
+    const instructionText = '📲 <b>Ссылки на приложение:</b>';
     await ctx
       .editMessageText(instructionText, {
         parse_mode: 'HTML',
@@ -193,7 +226,7 @@ export class TelegramService {
             Markup.button.url('💻 Windows', this.downloadLinks.windows),
             Markup.button.url('🍏 Mac', this.downloadLinks.mac),
           ],
-          [this.backToMenuButton],
+          [Markup.button.callback('⬅️ Назад', 'ON_INSTRUCTION')],
         ]),
       })
       .catch(() => {});
