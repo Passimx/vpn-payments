@@ -9,6 +9,7 @@ import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
 import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
 import { TransactionsService } from '../transactions/transactions.service';
+import path from 'node:path';
 
 @Injectable()
 export class TelegramService {
@@ -177,16 +178,21 @@ export class TelegramService {
 
   onAddBalanceInstruction = async (ctx: Context) => {
     const message = await ctx.reply('Загрузка видео...');
-    await ctx.replyWithVideo(
-      Input.fromLocalFile('src/public/media/add-balance.mp4'),
-      {
-        caption:
-          'Видео инструкция: Как пополнить баланс\n\nНеобходимые шаги:\nМеню -> Пополнить баланс -> Ввод суммы -> Выбор способа оплаты -> Оплата',
-        width: 720,
-        height: 1280,
-        supports_streaming: true,
-      },
+
+    const filePath = path.join(
+      process.cwd(),
+      'public',
+      'media',
+      'add-balance.mp4',
     );
+
+    await ctx.replyWithVideo(Input.fromLocalFile(filePath), {
+      caption:
+        'Видео инструкция: Как пополнить баланс\n\nНеобходимые шаги:\nМеню -> Пополнить баланс -> Ввод суммы -> Выбор способа оплаты -> Оплата',
+      width: 720,
+      height: 1280,
+      supports_streaming: true,
+    });
     await this.bot.telegram.deleteMessage(ctx.chat!.id, message.message_id);
     await ctx.reply('Выбери действие:', this.initMenu).catch(() => {});
   };
