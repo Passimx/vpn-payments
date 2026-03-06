@@ -199,7 +199,9 @@ export class TelegramService {
   };
 
   onAddKeyInstruction = async (ctx: Context) => {
-    const message = await ctx.reply('Загрузка видео...');
+    const message = await ctx.reply('Загрузка видео...', {
+      disable_notification: true,
+    });
     const filePath = path.join(
       __dirname,
       '../',
@@ -231,7 +233,9 @@ export class TelegramService {
   };
 
   onAddBalanceInstruction = async (ctx: Context) => {
-    const message = await ctx.reply('Загрузка видео...');
+    const message = await ctx.reply('Загрузка видео...', {
+      disable_notification: true,
+    });
 
     const filePath = path.join(
       __dirname,
