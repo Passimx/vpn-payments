@@ -135,17 +135,18 @@ export class TelegramService {
 
     const videoMessage = await ctx.replyWithVideo(
       this.welcomeVideoId ?? Input.fromLocalFile(filePath),
+    );
+    await ctx.reply(
+      'Добро пожаловать в PassimX VPN!\nОзнакомьтесь как работать с ботом в разделе <b>Инструкция</b>\n\nВыберите действие:',
       {
-        caption:
-          'Добро пожаловать в PassimX VPN!\nОзнакомьтесь как работать с ботом в разделе <b>Инструкция</b>\n\nВыберите действие:',
         parse_mode: 'HTML',
         ...this.initMenu,
       },
     );
 
-    if (!this.addKeyVideoId) {
+    if (!this.welcomeVideoId) {
       console.log(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
-      this.addKeyVideoId = videoMessage.video.file_id;
+      this.welcomeVideoId = videoMessage.video.file_id;
     }
 
     const telegramId = ctx?.from?.id;
