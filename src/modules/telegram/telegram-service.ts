@@ -19,6 +19,7 @@ export class TelegramService {
   private addKeyVideoId: string | undefined = Envs.telegram.addKeyVideoId;
   private addBalanceVideoId: string | undefined =
     Envs.telegram.addBalanceVideoId;
+  private welcomeVideoId: string | undefined = Envs.telegram.welcomeVideoId;
   private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
     number,
@@ -80,16 +81,6 @@ export class TelegramService {
     ios: 'https://apps.apple.com/ru/app/defaultvpn/id6744725017',
   };
 
-  private readonly startMessage =
-    'Добро пожаловать в PassimX VPN:\n' +
-    'Преимущества бота:\n\n' +
-    '🔐 Надёжность шифрования трафика\n' +
-    '🏎️ Стабильная скорость передачи данных\n' +
-    '🚌 Равномерное распределение пользователей по серверам\n' +
-    '💨 Серверы не ведут журналы подключений или активности\n' +
-    '🫂 Служба поддержки ответит на все ваши вопросы\n\n' +
-    '👇 Выберите действие:';
-
   onModuleInit() {
     this.bot = new Telegraf(Envs.telegram.botToken);
     this.bot.catch((err) => {
@@ -133,7 +124,30 @@ export class TelegramService {
   }
 
   onStart = async (ctx: Context) => {
-    await ctx.reply(this.startMessage, this.initMenu);
+    const filePath = path.join(
+      __dirname,
+      '../',
+      '../',
+      'public',
+      'media',
+      'welcome.mp4',
+    );
+
+    const videoMessage = await ctx.replyWithVideo(
+      this.welcomeVideoId ?? Input.fromLocalFile(filePath),
+      {
+        caption:
+          'Добро пожаловать в PassimX VPN!\nОзнакомьтесь как работать с ботом в разделе <b>Инструкция</b>\n\nВыберите действие:',
+        parse_mode: 'HTML',
+        ...this.initMenu,
+      },
+    );
+
+    if (!this.addKeyVideoId) {
+      console.log(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
+      this.addKeyVideoId = videoMessage.video.file_id;
+    }
+
     const telegramId = ctx?.from?.id;
     const chatId = ctx?.chat?.id;
     const user = await this.em.findOne(UserEntity, {

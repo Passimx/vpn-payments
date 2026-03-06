@@ -16,6 +16,7 @@ export const Envs = {
     trialTariffId: process.env.TRIAL_TARIFF_ID ?? '',
     addKeyVideoId: process.env.TELEGRAM_ADD_KEY_VIDEO_ID,
     addBalanceVideoId: process.env.TELEGRAM_ADD_BALANCE_VIDEO_ID,
+    welcomeVideoId: process.env.TELEGRAM_WELCOME_VIDEO_ID,
   },
   crypto: {
     ethereum: {
