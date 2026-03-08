@@ -31,4 +31,9 @@ export class ScheduleService {
   public async replyUsersWithoutKeys() {
     await this.telegramService.replyUsersWithoutKeys();
   }
+
+  @Cron('0 18 * * *')
+  public async sendMessageTryFreeKey() {
+    await this.telegramService.send8March();
+  }
 }

@@ -348,7 +348,7 @@ export class TelegramService {
           });
           return [
             Markup.button.callback(
-              `🔄 Продлить ключ ${index + 1} (Продлить до ${dateStr})`,
+              `🔄 Продлить ключ ${index + 1} (До ${dateStr})`,
               `RENEW:${k.id}`,
             ),
           ];
@@ -1023,6 +1023,45 @@ export class TelegramService {
     );
   }
 
+  public async send8MarchMessage(user: UserEntity) {
+    if (!user.chatId) return;
+    const filePath = path.join(
+      __dirname,
+      '../',
+      '../',
+      'public',
+      'media',
+      '8march.jpeg',
+    );
+
+    await this.bot.telegram.sendPhoto(
+      user.chatId,
+      Input.fromLocalFile(filePath),
+      {
+        caption:
+          '<b>🌹Поздравляем всех прекрасных девушек с Международным женским днём!</b>\n\n' +
+          'Пусть этот день будет наполнен улыбками, теплом, вдохновением и приятными сюрпризами. Вы делаете мир ярче, добрее и красивее 💐\n\n' +
+          'В честь этого дня мы запускаем праздничные промокод — <b>месяц беслпатного пользования VPN</b>\n\n' +
+          'Это отличный повод подключиться сейчас или продлить подписку на выгодных условиях!\n\n' +
+          '🎁 Промокод: <b>MARCH8</b>\n\n' +
+          'Как использовать:\n' +
+          '1. Откройте бота\n' +
+          '2. Нажмите «🌐️ Меню»\n' +
+          '3. Нажмите «🛒 Приобрести ключ»\n' +
+          '4. Нажмите «30 дней - 59 руб»\n' +
+          '5. Нажмите «🎟 Промокод»\n' +
+          '6. Отправьте сообщение «MARCH8»\n' +
+          '6. Нажмите «✅ Купить»\n\n' +
+          'С праздником весны! 🌷\n' +
+          'Пусть интернет будет свободным, а настроение — отличным! 💐',
+        parse_mode: 'HTML',
+      },
+    );
+    await this.bot.telegram.sendMessage(user.chatId, '<b>MARCH8</b>', {
+      parse_mode: 'HTML',
+    });
+  }
+
   public async sendRequestToBuyKey(user: UserEntity) {
     if (!user.chatId) return;
 
@@ -1094,6 +1133,17 @@ export class TelegramService {
     await Promise.all(
       users.map(async (user) => this.sendRequestToBuyKey(user)),
     );
+  }
+
+  public async send8March() {
+    const users = await this.em
+      .createQueryBuilder(UserEntity, 'users')
+      .leftJoin('users.keys', 'keys')
+      .groupBy('users.id')
+      .having('COUNT(keys.id) = 0')
+      .getMany();
+
+    await Promise.all(users.map(async (user) => this.send8MarchMessage(user)));
   }
 
   private getPayloadForAddBalance = async (user: UserEntity) => {
