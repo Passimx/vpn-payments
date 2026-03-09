@@ -36,23 +36,6 @@ services:
     networks:
       - vpn-network
 
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_POLL_INTERVAL=60
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-      - WATCHTOWER_ROLLING_RESTART=true
-    command: app
-    depends_on:
-      - app
-    networks:
-      - vpn-network
-
 networks:
   vpn-network:
     driver: bridge
