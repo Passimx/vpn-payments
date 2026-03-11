@@ -27,7 +27,7 @@ export class ScheduleService {
     await this.amneziaService.checkAlmostExpiredKeys();
   }
 
-  @Cron('0 0 */7 * *')
+  @Cron('0 18 * * *')
   public async replyUsersWithoutKeys() {
     await this.telegramService.replyUsersWithoutKeys();
   }
