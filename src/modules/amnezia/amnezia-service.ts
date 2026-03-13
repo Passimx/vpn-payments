@@ -240,6 +240,7 @@ export class AmneziaService {
         status: 'active',
         expiresAt: LessThanOrEqual(now),
       },
+      relations: ['server'],
     });
 
     for (const key of expiredKeys) {
