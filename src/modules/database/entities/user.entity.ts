@@ -39,12 +39,17 @@ export class UserEntity {
   })
   readonly chatId?: number;
 
+  @Column({ name: 'user_name', type: 'varchar', nullable: true })
+  readonly userName?: string;
+
   @Column({
-    name: 'user_name',
+    name: 'language_code',
     type: 'varchar',
+    length: 2 ** 4,
+    default: 'ru',
     nullable: true,
   })
-  readonly userName?: string;
+  readonly languageCode?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   readonly createdAt: Date;

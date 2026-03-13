@@ -10,6 +10,7 @@ import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
 import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import path from 'node:path';
+import { I18nService } from '../i18n/i18n.service';
 
 @Injectable()
 export class TelegramService {
@@ -31,57 +32,10 @@ export class TelegramService {
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly transactionsService: TransactionsService,
     private readonly yookassaBalanceService: YookassaBalanceService,
+    private readonly i18nService: I18nService,
   ) {}
 
-  private readonly initMenu = Markup.inlineKeyboard([
-    [Markup.button.callback('🌐️ Меню', 'BTN_1')],
-    [
-      Markup.button.callback('📖 Инструкция', 'ON_INSTRUCTION'),
-      Markup.button.url('👩‍💻 Поддержка', 'https://t.me/passimx'),
-    ],
-    [
-      Markup.button.url(
-        '📄 Пользовательское соглашение',
-        'https://passimx.ru/info/ru/vpn-user-agreement.html',
-      ),
-    ],
-  ]);
-
-  private readonly backToMenuButton = Markup.button.callback(
-    '⬅️ Назад',
-    'BTN_2',
-  );
-
-  private readonly backToProfileButton = Markup.button.callback(
-    '⬅️ Назад',
-    'BTN_1',
-  );
-
-  private readonly backToPayWaysButton = Markup.button.callback(
-    '⬅️ Назад',
-    'ADD_BALANCE',
-  );
-
-  private readonly backToSetAmountButton = Markup.button.callback(
-    '⬅️ Назад',
-    'BTN_BALANCE',
-  );
-
-  private readonly backToTariffsButton = Markup.button.callback(
-    '⬅️ К тарифам',
-    'BTN_9',
-  );
-
-  private readonly downloadLinks = {
-    mac: 'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_macos.pkg',
-    windows:
-      'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_x64.exe',
-    android:
-      'https://play.google.com/store/apps/details?id=org.amnezia.vpn&utm_source=amnezia.org&utm_campaign=organic&utm_medium=referral',
-    ios: 'https://apps.apple.com/ru/app/defaultvpn/id6744725017',
-  };
-
-  onModuleInit() {
+  async onModuleInit() {
     this.bot = new Telegraf(Envs.telegram.botToken);
     this.bot.catch((err) => {
       console.error('Telegraf error:', err);
@@ -116,12 +70,75 @@ export class TelegramService {
     this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
     this.bot.action(/^BUTTON_MONEY:([\w-]+)$/, this.onSetButtonMoney);
     this.bot.on('text', this.onText);
+
+    for (const lang of Object.keys(this.i18nService.langs)) {
+      await Promise.all([
+        this.bot.telegram.setMyDescription(
+          this.i18nService.t(lang, 'description'),
+          lang,
+        ),
+        this.bot.telegram.setMyShortDescription(
+          this.i18nService.t(lang, 'short_description'),
+          lang,
+        ),
+      ]);
+    }
+
     void this.bot.launch();
   }
 
   onModuleDestroy() {
     this.bot.stop();
   }
+
+  private t(ctx: Context | string | undefined, key: string) {
+    return this.i18nService.t(
+      typeof ctx === 'string' ? ctx : ctx?.from?.language_code,
+      key,
+    );
+  }
+
+  private readonly menu = (ctx: Context | string | undefined) =>
+    Markup.inlineKeyboard([
+      [Markup.button.callback(`🌐️ ${this.t(ctx, 'menu')}`, 'BTN_1')],
+      [
+        Markup.button.callback(
+          `📖 ${this.t(ctx, 'instruction')}`,
+          'ON_INSTRUCTION',
+        ),
+        Markup.button.url(
+          `👩‍💻 ${this.t(ctx, 'support')}`,
+          'https://t.me/passimx',
+        ),
+      ],
+      [
+        Markup.button.url(
+          `📄 ${this.t(ctx, 'user_agreement')}`,
+          'https://passimx.ru/info/ru/vpn-user-agreement.html',
+        ),
+      ],
+    ]);
+
+  private readonly backToProfileButton = (lang?: string) =>
+    Markup.button.callback(`⬅️ ${this.t(lang, 'back')}`, 'BTN_1');
+
+  private readonly backToPayWaysButton = (lang?: string) =>
+    Markup.button.callback(`⬅️ ${this.t(lang, 'back')}`, 'ADD_BALANCE');
+
+  private readonly backToSetAmountButton = (lang?: string) =>
+    Markup.button.callback(`⬅️ ${this.t(lang, 'back')}`, 'BTN_BALANCE');
+
+  private readonly backToTariffsButton = (lang?: string) =>
+    Markup.button.callback(`⬅️ ${this.t(lang, 'to_the_tariffs')}`, 'BTN_9');
+
+  private readonly downloadLinks = {
+    mac: 'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_macos.pkg',
+    windows:
+      'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_x64.exe',
+    android:
+      'https://play.google.com/store/apps/details?id=org.amnezia.vpn&utm_source=amnezia.org&utm_campaign=organic&utm_medium=referral',
+    ios: 'https://apps.apple.com/ru/app/defaultvpn/id6744725017',
+  };
 
   onStart = async (ctx: Context) => {
     const filePath = path.join(
@@ -140,10 +157,10 @@ export class TelegramService {
       },
     );
     await ctx.reply(
-      'Добро пожаловать в PassimX VPN!\nОзнакомьтесь как работать с ботом в разделе <b>Инструкция</b>\n\nВыберите действие:',
+      `${this.t(ctx, 'welcome')} <b>${this.t(ctx, 'instruction')}</b>\n\n${this.t(ctx, 'select_action')}:`,
       {
         parse_mode: 'HTML',
-        ...this.initMenu,
+        ...this.menu(ctx),
       },
     );
 
@@ -164,6 +181,7 @@ export class TelegramService {
         telegramId,
         chatId,
         userName: ctx?.from?.username,
+        languageCode: ctx?.from?.language_code,
       });
     }
   };
@@ -174,18 +192,24 @@ export class TelegramService {
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId },
     });
+    const lang = ctx.from?.language_code;
 
     if (!user) return;
     this.amountMap.delete(telegramId!);
 
     await ctx
       .editMessageText(
-        `ID: ${user.id}\nБаланс: ${user.balance} руб.`,
+        `ID: ${user.id}\n${this.t(lang, 'balance')}: ${user.balance} ${this.t(ctx, 'rub')}`,
         Markup.inlineKeyboard([
-          [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
-          [Markup.button.callback('🛒 Приобрести ключ', 'BTN_9')],
-          [Markup.button.callback('💸 Пополнить баланс', 'BTN_BALANCE')],
-          [this.backToMenuButton],
+          [Markup.button.callback(`🔑 ${this.t(ctx, 'my_keys')}`, 'BTN_5')],
+          [Markup.button.callback(`🛒 ${this.t(ctx, 'buy_key')}`, 'BTN_9')],
+          [
+            Markup.button.callback(
+              `💸 ${this.t(lang, 'put_money')}`,
+              'BTN_BALANCE',
+            ),
+          ],
+          [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_2')],
         ]),
       )
       .catch(() => {});
@@ -194,7 +218,7 @@ export class TelegramService {
   onBtn2 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
     await ctx
-      .editMessageText('Выбери действие:', this.initMenu)
+      .editMessageText(`${this.t(ctx, 'select_action')}:`, this.menu(ctx))
       .catch(() => {});
   };
 
@@ -208,11 +232,11 @@ export class TelegramService {
       'add-key.mp4',
     );
 
+    const lang = ctx?.from?.language_code;
     const videoMessage = await ctx.replyWithVideo(
       this.addKeyVideoId ?? Input.fromLocalFile(filePath),
       {
-        caption:
-          'Видео инструкция: Как подключить ключ\n\nНеобходимые шаги:\nМеню -> Приобрести ключ -> Выбор тарифа -> Купить -> Скопировать ключ -> Открыть скаченное приложение -> Вставить ключ -> Подключиться к VPN',
+        caption: `${this.t(lang, 'video_instruction')}: ${this.t(lang, 'how_to_connect_key')}\n\n${this.t(ctx, 'required_steps')}:\n${this.t(lang, 'menu')} -> ${this.t(lang, 'buy_key')} -> ${this.t(lang, 'select_tariff')} -> ${this.t(lang, 'buy')} -> ${this.t(lang, 'copy_key')} -> ${this.t(lang, 'open_download_app')} -> ${this.t(lang, 'insert_key')} -> ${this.t(lang, 'connect_vpn')}`,
         width: 720,
         height: 1280,
         supports_streaming: true,
@@ -225,7 +249,9 @@ export class TelegramService {
       this.addKeyVideoId = videoMessage.video.file_id;
     }
 
-    await ctx.reply('Выбери действие:', this.initMenu).catch(() => {});
+    await ctx
+      .reply(`${this.t(ctx, 'select_action')}:`, this.menu(ctx))
+      .catch(() => {});
   };
 
   onAddBalanceInstruction = async (ctx: Context) => {
@@ -241,8 +267,7 @@ export class TelegramService {
     const videoMessage = await ctx.replyWithVideo(
       this.addBalanceVideoId ?? Input.fromLocalFile(filePath),
       {
-        caption:
-          'Видео инструкция: Как пополнить баланс\n\nНеобходимые шаги:\nМеню -> Пополнить баланс -> Ввод суммы -> Выбор способа оплаты -> Оплата',
+        caption: `${this.t(ctx, 'video_instruction')}: ${this.t(ctx, 'how_to_put_money')}\n\n${this.t(ctx, 'required_steps')}:\n${this.t(ctx, 'menu')} -> ${this.t(ctx, 'put_money')} -> ${this.t(ctx, 'enter_amount')} -> ${this.t(ctx, 'select_payment_method')} -> ${this.t(ctx, 'payment')}`,
         width: 720,
         height: 1280,
         supports_streaming: true,
@@ -255,29 +280,31 @@ export class TelegramService {
       this.addBalanceVideoId = videoMessage.video.file_id;
     }
 
-    await ctx.reply('Выбери действие:', this.initMenu).catch(() => {});
+    await ctx
+      .reply(`${this.t(ctx, 'select_action')}:`, this.menu(ctx))
+      .catch(() => {});
   };
 
   onInstruction = async (ctx: Context) => {
     await ctx.answerCbQuery().catch(() => {});
     await ctx
-      .editMessageText('Выбери действие:', {
+      .editMessageText(`${this.t(ctx, 'select_action')}:`, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
             Markup.button.callback(
-              '💸 Как пополнить баланс',
+              `💸 ${this.t(ctx, 'how_to_put_money')}`,
               `ON_ADD_BALANCE_INSTRUCTION`,
             ),
           ],
           [
             Markup.button.callback(
-              '🔐 Как подключить ключ',
+              `🔐 ${this.t(ctx, 'how_to_connect_key')}`,
               `ON_ADD_KEY_INSTRUCTION`,
             ),
           ],
-          [Markup.button.callback('📲 Ссылки на приложение', `BTN_4`)],
-          [this.backToMenuButton],
+          [Markup.button.callback(`📲 ${this.t(ctx, 'app_links')}`, `BTN_4`)],
+          [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_2')],
         ]),
       })
       .catch(() => {});
@@ -285,7 +312,7 @@ export class TelegramService {
 
   onBtn4 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
-    const instructionText = '📲 <b>Ссылки на приложение:</b>';
+    const instructionText = `📲 <b>${this.t(ctx, 'app_links')}:</b>`;
     await ctx
       .editMessageText(instructionText, {
         parse_mode: 'HTML',
@@ -298,7 +325,12 @@ export class TelegramService {
             Markup.button.url('💻 Windows', this.downloadLinks.windows),
             Markup.button.url('🍏 Mac', this.downloadLinks.mac),
           ],
-          [Markup.button.callback('⬅️ Назад', 'ON_INSTRUCTION')],
+          [
+            Markup.button.callback(
+              `⬅️ ${this.t(ctx, 'back')}`,
+              'ON_INSTRUCTION',
+            ),
+          ],
         ]),
       })
       .catch(() => {});
@@ -326,10 +358,10 @@ export class TelegramService {
         ),
     );
 
-    let text = '<b>🔑 Мои ключи</b>\n\n';
+    let text = `<b>🔑 ${this.t(ctx, 'my_keys')}</b>\n\n`;
 
     if (!visibleKeys.length) {
-      text += 'У тебя пока нет активных ключей.';
+      text += `${this.t(ctx, 'no_active_keys')}.`;
     } else {
       const indexedKeys = visibleKeys.map((k, index) => ({ k, index }));
 
@@ -348,7 +380,7 @@ export class TelegramService {
           });
           return [
             Markup.button.callback(
-              `🔄 Продлить ключ ${index + 1} (До ${dateStr})`,
+              `🔄 ${this.t(ctx, 'extend_key')} ${index + 1} (${this.t(ctx, 'until')} ${dateStr})`,
               `RENEW:${k.id}`,
             ),
           ];
@@ -356,12 +388,6 @@ export class TelegramService {
 
       text += indexedKeys
         .map(({ k, index }) => {
-          const statusMap: Record<string, string> = {
-            active: 'Активен',
-            expired: 'Истёк',
-            revoked: 'Отозван',
-          };
-          const statusText = statusMap[k.status] ?? k.status;
           const expires =
             k.expiresAt &&
             new Date(k.expiresAt).toLocaleDateString('ru-RU', {
@@ -369,12 +395,11 @@ export class TelegramService {
               month: '2-digit',
               day: '2-digit',
             });
-          const trafficText = 'Безлимит';
           return (
             `${index + 1}) [${k.protocol}] <code>${k.key}</code>\n` +
-            `Статус: ${statusText}\n` +
-            (expires ? `Действует до: ${expires}\n` : '') +
-            `Трафик: ${trafficText}\n`
+            `${this.t(ctx, 'status')}: ${this.t(ctx, k.status)}\n` +
+            (expires ? `${this.t(ctx, 'active_until')}: ${expires}\n` : '') +
+            `${this.t(ctx, 'traffic')}: ${this.t(ctx, 'unlimited')}\n`
           );
         })
         .join('\n');
@@ -382,7 +407,10 @@ export class TelegramService {
       await ctx
         .editMessageText(text, {
           parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([...keyRows, [this.backToProfileButton]]),
+          ...Markup.inlineKeyboard([
+            ...keyRows,
+            [this.backToProfileButton(ctx.from?.language_code)],
+          ]),
         })
         .catch((e) => console.log(e));
       // .catch(() => {});
@@ -392,7 +420,9 @@ export class TelegramService {
     await ctx
       .editMessageText(text, {
         parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([[this.backToProfileButton]]),
+        ...Markup.inlineKeyboard([
+          [this.backToProfileButton(ctx.from?.language_code)],
+        ]),
       })
       .catch((e) => console.log(e));
     // .catch(() => {});
@@ -416,20 +446,35 @@ export class TelegramService {
     if (!user) return;
     this.amountMap.set(ctx.from!.id, 0);
     await ctx
-      .editMessageText('💳 <b>Введите сумму (руб.)</b>:', {
-        parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('50 руб', `BUTTON_MONEY:50`),
-            Markup.button.callback('100 руб', `BUTTON_MONEY:100`),
-          ],
-          [
-            Markup.button.callback('300 руб', `BUTTON_MONEY:300`),
-            Markup.button.callback('500 руб', `BUTTON_MONEY:500`),
-          ],
-          [this.backToProfileButton],
-        ]),
-      })
+      .editMessageText(
+        `💳 <b>${this.t(ctx, 'enter_amount')} (${this.t(ctx, 'rub')})</b>:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                `50 ${this.t(ctx, 'rub')}`,
+                `BUTTON_MONEY:50`,
+              ),
+              Markup.button.callback(
+                `100 ${this.t(ctx, 'rub')}`,
+                `BUTTON_MONEY:100`,
+              ),
+            ],
+            [
+              Markup.button.callback(
+                `300 ${this.t(ctx, 'rub')}`,
+                `BUTTON_MONEY:300`,
+              ),
+              Markup.button.callback(
+                `500 ${this.t(ctx, 'rub')}`,
+                `BUTTON_MONEY:500`,
+              ),
+            ],
+            [this.backToProfileButton(ctx.from?.language_code)],
+          ]),
+        },
+      )
       .catch(() => {});
   };
 
@@ -450,23 +495,34 @@ export class TelegramService {
   ): Promise<void> {
     const trafficText =
       tariff.isUnlimited || tariff.trafficGb === 0
-        ? 'Безлимит'
+        ? this.t(ctx, 'unlimited')
         : `${tariff.trafficGb} GB`;
     const text =
       `📦 <b>${tariff.name}</b>\n\n` +
-      `📊 Трафик: ${trafficText}\n` +
-      `📅 Срок: ${tariff.expirationDays} дн.\n` +
-      `💰 Цена: ${tariff.price} руб.\n`;
+      `📊 ${this.t(ctx, 'traffic')}: ${trafficText}\n` +
+      `📅 ${this.t(ctx, 'term')}: ${tariff.expirationDays} ${this.t(ctx, 'days')}\n` +
+      `💰 ${this.t(ctx, 'price')}: ${tariff.price} ${this.t(ctx, 'rub')}\n`;
 
     await ctx
       .editMessageText(text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.callback('✅ Купить', opts.buyCallback),
-            Markup.button.callback('🎟 Промокод', opts.promoCallback),
+            Markup.button.callback(
+              `✅ ${this.t(ctx, 'buy')}`,
+              opts.buyCallback,
+            ),
+            Markup.button.callback(
+              `🎟 ${this.t(ctx, 'promo')}`,
+              opts.promoCallback,
+            ),
           ],
-          [Markup.button.callback('⬅️ Назад', opts.backCallback)],
+          [
+            Markup.button.callback(
+              `⬅️ ${this.t(ctx, 'back')}`,
+              opts.backCallback,
+            ),
+          ],
         ]),
       })
       .catch(() => {});
@@ -477,9 +533,9 @@ export class TelegramService {
     backCallback: string,
   ): Promise<void> {
     await ctx
-      .editMessageText('🎟 Введите промокод:', {
+      .editMessageText(`🎟 ${this.t(ctx, 'enter_promo')}:`, {
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('⬅️ Назад', backCallback)],
+          [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, backCallback)],
         ]),
       })
       .catch(() => {});
@@ -503,17 +559,20 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
-          `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-          `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
-          `Сумма: <code>${amount / 1e9}</code> TON\n` +
-          `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
-          `Комментарий: <code>${user.id}</code>`,
+        `⬇️ <b>${this.t(ctx, 'payment_inf')}</b>\n` +
+          `${this.t(ctx, 'click_for_the_copy')}` +
+          `${this.t(ctx, 'wallet_address')}: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
+          `${this.t(ctx, 'amount')}: <code>${amount / 1e9}</code> TON\n` +
+          `${this.t(ctx, 'allowed_jettons')}: <b>TON</b>, <b>USDT</b>\n` +
+          `${this.t(ctx, 'comment')}: <code>${user.id}</code>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
             [
-              Markup.button.callback('TON (выбрано)', `BTN_8`),
+              Markup.button.callback(
+                `TON (${this.t(ctx, 'selected')})`,
+                `BTN_8`,
+              ),
               Markup.button.callback('USDT', `BTN_11`),
             ],
             [
@@ -534,7 +593,7 @@ export class TelegramService {
                 `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount}`,
               ),
             ],
-            [this.backToPayWaysButton],
+            [this.backToPayWaysButton(ctx.from?.language_code)],
           ]),
         },
       )
@@ -559,18 +618,21 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `⬇️ <b>РЕКВЕЗИТЫ ДЛЯ ОПЛАТЫ</b>\n` +
-          `Для копирования достаточно нажать <b>1 раз</b>️\n\n` +
-          `Адрес кошелька: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
-          `Сумма: <code>${amount / 1e6}</code> USDT\n` +
-          `Принимаемые монеты: <b>TON</b>, <b>USDT</b>\n` +
-          `Комментарий: <code>${user.id}</code>`,
+        `⬇️ <b>${this.t(ctx, 'payment_inf')}</b>\n` +
+          `${this.t(ctx, 'click_for_the_copy')}` +
+          `${this.t(ctx, 'wallet_address')}: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
+          `${this.t(ctx, 'amount')}: <code>${amount / 1e6}</code> USDT\n` +
+          `${this.t(ctx, 'allowed_jettons')}: <b>TON</b>, <b>USDT</b>\n` +
+          `${this.t(ctx, 'comment')}: <code>${user.id}</code>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
             [
               Markup.button.callback('TON', `BTN_8`),
-              Markup.button.callback('USDT (выбрано)', `BTN_11`),
+              Markup.button.callback(
+                `USDT (${this.t(ctx, 'selected')})`,
+                `BTN_11`,
+              ),
             ],
             [
               Markup.button.url(
@@ -590,7 +652,7 @@ export class TelegramService {
                 `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
               ),
             ],
-            [this.backToPayWaysButton],
+            [this.backToPayWaysButton(ctx.from?.language_code)],
           ]),
         },
       )
@@ -638,25 +700,33 @@ export class TelegramService {
     if (!tariffs.length) {
       await ctx
         .editMessageText(
-          'Сейчас нет доступных тарифов.',
-          Markup.inlineKeyboard([[this.backToProfileButton]]),
+          `${this.t(ctx, 'active_tariffs_not_found')}.`,
+          Markup.inlineKeyboard([
+            [this.backToProfileButton(ctx.from?.language_code)],
+          ]),
         )
         .catch(() => {});
       return;
     }
 
     const tariffButtons = tariffs.map((t) => [
-      Markup.button.callback(`${t.name} — ${t.price} руб.`, `T:${t.id}`),
+      Markup.button.callback(
+        `${t.name} — ${t.price} ${this.t(ctx, 'rub')}`,
+        `T:${t.id}`,
+      ),
     ]);
 
     await ctx
-      .editMessageText(`Баланс: ${user.balance} руб.\n<b>Выберите тариф:</b>`, {
-        parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([
-          ...tariffButtons,
-          [this.backToProfileButton],
-        ]),
-      })
+      .editMessageText(
+        `${this.t(ctx, 'balance')}: ${user.balance} ${this.t(ctx, 'rub')}\n<b>${this.t(ctx, 'select_tariff')}:</b>`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            ...tariffButtons,
+            [this.backToProfileButton(ctx.from?.language_code)],
+          ]),
+        },
+      )
       .catch(() => {});
   };
 
@@ -674,7 +744,9 @@ export class TelegramService {
       where: { id: tariffId, active: true },
     });
     if (!tariff) {
-      await ctx.answerCbQuery('Тариф не найден.').catch(() => {});
+      await ctx
+        .answerCbQuery(`${this.t(ctx, 'tariff_not_found')}.`)
+        .catch(() => {});
       return;
     }
 
@@ -701,9 +773,9 @@ export class TelegramService {
     backButton: any,
   ): Promise<void> {
     const text =
-      `✅ <b>Ключ создан</b>\n\n` +
-      `Подписка (нажми, чтобы скопировать):\n<code>${uri}</code>\n\n` +
-      `Как применить: Нажмите на ссылку (ключь) выше → откройте AmneziaVPN/(для ios DefaultVPN) → нажмите на значек "+" → Нажмите Вставить/Insert. Если приложения нет — нажмите кнопку для вашей ОС ниже.`;
+      `✅ <b>${this.t(ctx, 'key_created')}</b>\n\n` +
+      `${this.t(ctx, 'click_to_copy_key')}:\n<code>${uri}</code>\n\n` +
+      `${this.t(ctx, 'instruction_how_to_use_key')}.`;
 
     await ctx
       .editMessageText(text, {
@@ -717,7 +789,13 @@ export class TelegramService {
             Markup.button.url('💻 Windows', this.downloadLinks.windows),
             Markup.button.url('🍏 Mac', this.downloadLinks.mac),
           ],
-          [Markup.button.callback('🛒 Ещё ключ', 'BTN_9'), backButton],
+          [
+            Markup.button.callback(
+              `🛒 ${this.t(ctx, 'one_key_more')}`,
+              'BTN_9',
+            ),
+            backButton,
+          ],
         ] as unknown as Parameters<typeof Markup.inlineKeyboard>[0]),
       })
       .catch(() => {});
@@ -727,7 +805,6 @@ export class TelegramService {
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const isRenew = callbackData.startsWith('BUY_KEY:');
     /*
-    //  без выбора протокола — показываем выбор
     if (!isRenew && callbackData.startsWith('BUY:')) {
       const tariffId = callbackData.replace('BUY:', '');
       await ctx
@@ -740,7 +817,7 @@ export class TelegramService {
                 `BUY_HYST:${tariffId}`,
               ),
             ],
-            [Markup.button.callback('⬅️ Назад к тарифу', `T:${tariffId}`)],
+            [Markup.button.callback(`⬅️ ${this.tctx.from?.language_code, 'back}`, `T:${tariffId}`)],
           ]),
         })
         .catch(() => {});
@@ -757,18 +834,20 @@ export class TelegramService {
       protocol = 'hysteria';
       id = callbackData.replace('BUY_HYST:', '');
     } else {
-      //  по умолчанию Xray
+      //  default Xray
       id = callbackData.replace(/^(BUY|BUY_KEY):/, '');
       protocol = 'xray';
     }
     const telegramId = ctx?.from?.id;
     const user = await this.getUserByCtx(ctx);
     if (!user) {
-      await ctx.answerCbQuery('Сначала нажми /start').catch(() => {});
+      await ctx
+        .answerCbQuery(`${this.t(ctx, 'click_start')} /start`)
+        .catch(() => {});
       return;
     }
 
-    await ctx.answerCbQuery('Обработка...').catch(() => {});
+    await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(() => {});
 
     if (isRenew) {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
@@ -786,8 +865,13 @@ export class TelegramService {
         await ctx
           .editMessageText(`❌ ${result.error}`, {
             ...Markup.inlineKeyboard([
-              [Markup.button.callback('💸 Пополнить баланс', 'BTN_BALANCE')],
-              [Markup.button.callback('⬅️ Назад', 'BTN_5')],
+              [
+                Markup.button.callback(
+                  `💸 ${this.t(ctx, 'put_money')}`,
+                  'BTN_BALANCE',
+                ),
+              ],
+              [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5')],
             ]),
           })
           .catch(() => {});
@@ -795,16 +879,13 @@ export class TelegramService {
       }
 
       await ctx
-        .editMessageText(
-          `✅ <b>Ключ продлён</b>\n\nКлюч обновлён и снова активен.`,
-          {
-            parse_mode: 'HTML',
-            ...Markup.inlineKeyboard([
-              [Markup.button.callback('🔑 Мои ключи', 'BTN_5')],
-              [this.backToProfileButton],
-            ]),
-          },
-        )
+        .editMessageText(`✅ ${this.t(ctx, 'extended_key')}`, {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback(`🔑 ${this.t(ctx, 'my_keys')}`, 'BTN_5')],
+            [this.backToProfileButton(ctx.from?.language_code)],
+          ]),
+        })
         .catch(() => {});
     } else {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
@@ -827,8 +908,13 @@ export class TelegramService {
         await ctx
           .editMessageText(`❌ ${result.error}`, {
             ...Markup.inlineKeyboard([
-              [Markup.button.callback('💸 Пополнить баланс', 'BTN_BALANCE')],
-              [Markup.button.callback('⬅️ Назад', 'BTN_9')],
+              [
+                Markup.button.callback(
+                  `💸 ${this.t(ctx, 'put_money')}`,
+                  'BTN_BALANCE',
+                ),
+              ],
+              [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_9')],
             ]),
           })
           .catch(() => {});
@@ -855,7 +941,7 @@ export class TelegramService {
       relations: ['tariff'],
     });
     if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
-      await ctx.answerCbQuery('Ключ или тариф не найден').catch(() => {});
+      await ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(() => {});
       return;
     }
 
@@ -893,7 +979,7 @@ export class TelegramService {
         relations: ['tariff'],
       });
       if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
-        await ctx.reply('❌ Ключ не найден').catch(() => {});
+        await ctx.reply(`❌ ${this.t(ctx, 'key_not_found')}`).catch(() => {});
         return false;
       }
       tariffId = vpnKey.tariff.id;
@@ -911,7 +997,7 @@ export class TelegramService {
       await ctx
         .reply(`❌ ${priceResult.error}`, {
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('⬅️ Назад', backCallback)],
+            [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, backCallback)],
           ]),
         })
         .catch(() => {});
@@ -926,12 +1012,17 @@ export class TelegramService {
       });
       await ctx
         .reply(
-          `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
+          `✅ ${this.t(ctx, 'promo_activated')}. ${this.t(ctx, 'price')}: <b>${priceResult.finalPrice} ${this.t(ctx, 'rub')}</b>\n${this.t(ctx, 'click')} ${this.t(ctx, 'buy')}:`,
           {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
-              [Markup.button.callback('✅ Купить', `BUY_KEY:${id}`)],
-              [Markup.button.callback('⬅️ К ключам', 'BTN_5')],
+              [
+                Markup.button.callback(
+                  `✅ ${this.t(ctx, 'buy')}`,
+                  `BUY_KEY:${id}`,
+                ),
+              ],
+              [Markup.button.callback(`⬅️ ${this.t(ctx, 'to_keys')}`, 'BTN_5')],
             ]),
           },
         )
@@ -944,12 +1035,17 @@ export class TelegramService {
       });
       await ctx
         .reply(
-          `✅ Промокод применён. Цена: <b>${priceResult.finalPrice} руб.</b> Нажмите Купить:`,
+          `✅ ${this.t(ctx, 'promo_activated')}. ${this.t(ctx, 'price')}: <b>${priceResult.finalPrice} ${this.t(ctx, 'rub')}</b>\n${this.t(ctx, 'click')} ${this.t(ctx, 'buy')}:`,
           {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
-              [Markup.button.callback('✅ Купить', `BUY:${tariffId}`)],
-              [this.backToTariffsButton],
+              [
+                Markup.button.callback(
+                  `✅ ${this.t(ctx, 'buy')}`,
+                  `BUY:${tariffId}`,
+                ),
+              ],
+              [this.backToTariffsButton(ctx.from?.language_code)],
             ]),
           },
         )
@@ -998,7 +1094,9 @@ export class TelegramService {
     }
     const amount = parseFloat(text);
     if (isNaN(amount) || amount <= 0) {
-      await ctx.reply('❌ Введите число, например 100').catch(() => {});
+      await ctx
+        .reply(`❌ ${this.t(ctx, 'enter_correct_number')}`)
+        .catch(() => {});
       return;
     }
     this.amountMap.set(telegramId, amount);
@@ -1014,13 +1112,13 @@ export class TelegramService {
 
     await this.bot.telegram.sendMessage(
       user.chatId,
-      `Пополнен баланс на сумму <b>${Math.ceil(balance)} руб.</b>`,
+      `${this.t(user.languageCode, 'improve_balance')} <b>${Math.ceil(balance)} ${this.t(user.languageCode, 'rub')}</b>`,
       { parse_mode: 'HTML' },
     );
     await this.bot.telegram.sendMessage(
       user.chatId,
-      'Выбери действие:',
-      this.initMenu,
+      `${this.t(user.languageCode, 'select_action')}:`,
+      this.menu(user.languageCode),
     );
   }
 
@@ -1039,31 +1137,20 @@ export class TelegramService {
       user.chatId,
       Input.fromLocalFile(filePath),
       {
-        caption:
-          '<b>🌹Поздравляем всех прекрасных девушек с Международным женским днём!</b>\n\n' +
-          'Пусть этот день будет наполнен улыбками, теплом, вдохновением и приятными сюрпризами. Вы делаете мир ярче, добрее и красивее 💐\n\n' +
-          'В честь этого дня мы запускаем праздничные промокод — <b>месяц беслпатного пользования VPN</b>\n\n' +
-          'Это отличный повод подключиться сейчас или продлить подписку на выгодных условиях!\n\n' +
-          '🎁 Промокод: <b>MARCH8</b>\n\n' +
-          'Как использовать:\n' +
-          '1. Откройте бота\n' +
-          '2. Нажмите «🌐️ Меню»\n' +
-          '3. Нажмите «🛒 Приобрести ключ»\n' +
-          '4. Нажмите «30 дней - 59 руб»\n' +
-          '5. Нажмите «🎟 Промокод»\n' +
-          '6. Отправьте сообщение «MARCH8»\n' +
-          '6. Нажмите «✅ Купить»\n\n' +
-          'С праздником весны! 🌷\n' +
-          'Пусть интернет будет свободным, а настроение — отличным! 💐',
+        caption: this.t(user.languageCode, 'message_8_march'),
         parse_mode: 'HTML',
       },
     );
     await this.bot.telegram.sendMessage(user.chatId, '<b>MARCH8</b>', {
       parse_mode: 'HTML',
     });
-    await this.bot.telegram.sendMessage(user.chatId, 'Выберите действие:', {
-      ...this.initMenu,
-    });
+    await this.bot.telegram.sendMessage(
+      user.chatId,
+      `${this.t(user.languageCode, 'select_action')}:`,
+      {
+        ...this.menu(user.languageCode),
+      },
+    );
   }
 
   public async sendRequestToBuyKey(user: UserEntity) {
@@ -1092,16 +1179,28 @@ export class TelegramService {
 
     await this.bot.telegram.sendMessage(
       user.chatId,
-      '<b>Давайте подключим первое устройство</b>\n' +
-        'Воспользуйтесь пробным периодом, чтобы открыть доступ к интернету без ограничений\n\n' +
-        'Это займет всего пару минут\n\n' +
-        '<b>Появились трудности с подключением?</b>\nПри любых вопросах вы можете обратиться в поддержку',
+      this.t(user.languageCode, 'message_try_first_key'),
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('⬅️ К тарифам', 'BTN_9')],
-          [Markup.button.callback('📖 Инструкция', 'ON_INSTRUCTION')],
-          [Markup.button.url('👩‍💻 Поддержка', 'https://t.me/passimx')],
+          [
+            Markup.button.callback(
+              `⬅️ ${this.t(user.languageCode, 'to_the_tariffs')}`,
+              'BTN_9',
+            ),
+          ],
+          [
+            Markup.button.callback(
+              `📖 ${this.t(user.languageCode, 'instruction')}`,
+              'ON_INSTRUCTION',
+            ),
+          ],
+          [
+            Markup.button.url(
+              `👩‍💻 ${this.t(user.languageCode, 'support')}`,
+              'https://t.me/passimx',
+            ),
+          ],
         ]),
       },
     );
@@ -1112,17 +1211,17 @@ export class TelegramService {
 
     await this.bot.telegram.sendMessage(
       user.chatId,
-      `Срок действия ключа подходит к концу.\nБаланс: ${user.balance}`,
+      `${this.t(user.languageCode, 'key_almost_expired')}: ${user.balance}`,
       Markup.inlineKeyboard([
         ...user.keys
           .filter((key) => key.tariff?.id !== Envs.telegram.trialTariffId)
           .map((key, index) => [
             Markup.button.callback(
-              `🔄 Продлить ключ ${index + 1}`,
+              `🔄 ${this.t(user.languageCode, 'extend_key')} ${index + 1}`,
               `RENEW:${key.id}`,
             ),
           ]),
-        [this.backToProfileButton],
+        [this.backToProfileButton(user.languageCode)],
       ]),
     );
   }
@@ -1140,16 +1239,16 @@ export class TelegramService {
     );
   }
 
-  public async send8March() {
-    const users = await this.em
-      .createQueryBuilder(UserEntity, 'users')
-      .leftJoin('users.keys', 'keys')
-      .groupBy('users.id')
-      .having('COUNT(keys.id) = 0')
-      .getMany();
-
-    await Promise.all(users.map(async (user) => this.send8MarchMessage(user)));
-  }
+  // public async send8March() {
+  //   const users = await this.em
+  //     .createQueryBuilder(UserEntity, 'users')
+  //     .leftJoin('users.keys', 'keys')
+  //     .groupBy('users.id')
+  //     .having('COUNT(keys.id) = 0')
+  //     .getMany();
+  //
+  //   await Promise.all(users.map(async (user) => this.send8MarchMessage(user)));
+  // }
 
   private getPayloadForAddBalance = async (user: UserEntity) => {
     const amount = this.amountMap.get(user.telegramId!);
@@ -1159,23 +1258,24 @@ export class TelegramService {
       amount,
     );
     const text: string =
-      `Сумма пополнения: ${amount} руб.\n` + 'Выбери способ пополнения:';
+      `${this.t(user.languageCode, 'deposit_amount')}: ${amount} ${this.t(user.languageCode, 'rub')}\n` +
+      `${this.t(user.languageCode, 'select_payment_method')}:`;
     const extra = Markup.inlineKeyboard([
       result.ok
         ? [
             Markup.button.callback(
-              `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+              `💎 ${this.t(user.languageCode, 'ton')} (+${Envs.crypto.allowance * 100}%)`,
               'BTN_8',
             ),
             Markup.button.url('💳 YooKassa', result.paymentUrl),
           ]
         : [
             Markup.button.callback(
-              `💎 ТОН (+${Envs.crypto.allowance * 100}%)`,
+              `💎 ${this.t(user.languageCode, 'ton')} (+${Envs.crypto.allowance * 100}%)`,
               'BTN_8',
             ),
           ],
-      [this.backToSetAmountButton],
+      [this.backToSetAmountButton(user.languageCode)],
     ]);
 
     return { text, extra };

@@ -72,12 +72,8 @@ export class AmneziaService {
     }
   }
 
-  public async deleteXrayKey(keyId: string) {
-    const keyEntity = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId },
-      relations: ['server'],
-    });
-    if (!keyEntity) return;
+  public async deleteXrayKey(keyEntity: UserKeyEntity) {
+    const keyId = keyEntity.id;
     const server = keyEntity.server;
 
     const ssh = new NodeSSH();
@@ -247,7 +243,7 @@ export class AmneziaService {
 
     for (const key of expiredKeys) {
       try {
-        await this.deleteXrayKey(key.id);
+        await this.deleteXrayKey(key);
       } catch (e) {
         console.error(
           '[AmneziaService] checkExpiredKeys error for key',
