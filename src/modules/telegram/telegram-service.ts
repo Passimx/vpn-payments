@@ -73,12 +73,9 @@ export class TelegramService {
 
     for (const lang of Object.keys(this.i18nService.langs)) {
       await Promise.all([
-        this.bot.telegram.setMyDescription(
-          this.i18nService.t(lang, 'description'),
-          lang,
-        ),
+        this.bot.telegram.setMyDescription(this.t(lang, 'description'), lang),
         this.bot.telegram.setMyShortDescription(
-          this.i18nService.t(lang, 'short_description'),
+          this.t(lang, 'short_description'),
           lang,
         ),
       ]);
