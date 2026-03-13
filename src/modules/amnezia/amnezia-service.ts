@@ -253,4 +253,30 @@ export class AmneziaService {
       }
     }
   }
+
+  public async syncActiveKeys(serverId?: string): Promise<number> {
+    const now = new Date();
+
+    const activeKeys = await this.em.find(UserKeyEntity, {
+      where: {
+        protocol: 'xray',
+        status: 'active',
+        expiresAt: MoreThanOrEqual(now),
+        serverId: serverId ? serverId : undefined,
+      },
+    });
+
+    let successCount = 0;
+
+    for (const key of activeKeys) {
+      try {
+        const ok = await this.reactivateXrayKey(key.id);
+        if (ok) successCount += 1;
+      } catch (e) {
+        console.error('Ошибка при восстановлении ключа', key.id, e);
+      }
+    }
+
+    return successCount;
+  }
 }
