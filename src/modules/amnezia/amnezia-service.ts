@@ -21,6 +21,9 @@ export class AmneziaService {
     try {
       const server = await this.getServer();
       if (!server) return;
+
+      console.log(server);
+
       const uuid = crypto.randomUUID();
 
       const ssh = new NodeSSH();
