@@ -632,6 +632,7 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     const tariffs = await this.em.find(TariffEntity, {
       where: { active: true },
+      order: { price: 'ASC' },
     });
 
     if (!tariffs.length) {
