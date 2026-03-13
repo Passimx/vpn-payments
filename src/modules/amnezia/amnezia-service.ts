@@ -207,6 +207,8 @@ export class AmneziaService {
       .orderBy('count', 'ASC')
       .getOne();
 
+    console.log(server);
+
     return this.em.findOne(ServerEntity, {
       where: { id: server?.id },
     });
