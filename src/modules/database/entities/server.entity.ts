@@ -21,6 +21,9 @@ export class ServerEntity {
   @Column({ type: 'varchar' })
   readonly xRayServername: string;
 
+  @Column({ type: 'varchar', length: 2 ** 4, default: 'active' })
+  readonly status: 'active' | 'inactive';
+
   @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.server)
   readonly keys: UserKeyEntity[];
 }

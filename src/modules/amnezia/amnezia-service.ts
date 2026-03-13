@@ -200,6 +200,7 @@ export class AmneziaService {
     const server = await this.em
       .createQueryBuilder(ServerEntity, 'servers')
       .select('servers.id')
+      .where('servers.status =:status', { status: 'active' })
       .addSelect('COUNT(keys.id)', 'count')
       .leftJoin('servers.keys', 'keys')
       .groupBy('servers.id')
