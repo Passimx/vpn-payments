@@ -767,7 +767,7 @@ export class TelegramService {
   private async showKeyCreatedScreen(
     ctx: Context,
     uri: string,
-    backButton: any,
+    backButton: ReturnType<typeof Markup.button.callback>,
   ): Promise<void> {
     const text =
       `✅ <b>${this.t(ctx, 'key_created')}</b>\n\n` +
@@ -921,7 +921,7 @@ export class TelegramService {
       await this.showKeyCreatedScreen(
         ctx,
         result.uri,
-        this.backToProfileButton,
+        this.backToProfileButton(ctx.from?.language_code),
       );
     }
   };
