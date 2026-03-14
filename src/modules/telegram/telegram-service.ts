@@ -60,10 +60,7 @@ export class TelegramService {
     this.bot.action('BTN_16', this.onBtn16);
     this.bot.action('BTN_17', this.onBtn17);
     this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
-    this.bot.action(
-      /^MIGRATE_SERVER_COUNTRY:.+$/,
-      this.onMigrateServerCountry,
-    );
+    this.bot.action(/^MIGRATE_SERVER_COUNTRY:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
@@ -392,10 +389,7 @@ export class TelegramService {
         ].filter(Boolean);
 
         return [
-          Markup.button.callback(
-            labelParts.join(' • '),
-            `KEY_DETAILS:${k.id}`,
-          ),
+          Markup.button.callback(labelParts.join(' • '), `KEY_DETAILS:${k.id}`),
         ];
       });
 
@@ -958,7 +952,9 @@ export class TelegramService {
 
   onMigrateServer = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
-    const keyId = ((ctx.callbackQuery as { data?: string })?.data ?? '').replace('MIGRATE_SERVER:', '');
+    const keyId = (
+      (ctx.callbackQuery as { data?: string })?.data ?? ''
+    ).replace('MIGRATE_SERVER:', '');
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
     const vpnKey = await this.em.findOne(UserKeyEntity, {
@@ -971,18 +967,23 @@ export class TelegramService {
     }
     const kb = Markup.inlineKeyboard([
       ...this.migrateCountries.map(([label, code]) => [
-        Markup.button.callback(label, `MIGRATE_SERVER_COUNTRY:${keyId}:${code}`),
+        Markup.button.callback(
+          label,
+          `MIGRATE_SERVER_COUNTRY:${keyId}:${code}`,
+        ),
       ]),
       [this.backToProfileButton(ctx.from?.language_code)],
     ]);
-    await ctx.editMessageText('Выберите страну сервера:', kb).catch(() =>
-      ctx.reply('Выберите страну сервера:', kb),
-    );
+    await ctx
+      .editMessageText('Выберите страну сервера:', kb)
+      .catch(() => ctx.reply('Выберите страну сервера:', kb));
   };
 
   onMigrateServerCountry = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
-    const [, keyId, code] = ((ctx.callbackQuery as { data?: string })?.data ?? '').split(':');
+    const [, keyId, code] = (
+      (ctx.callbackQuery as { data?: string })?.data ?? ''
+    ).split(':');
     const country = this.migrateCountries.find(([, c]) => c === code)?.[2];
     if (!country) return;
     const user = await this.getUserByCtx(ctx);
@@ -997,17 +998,26 @@ export class TelegramService {
       return;
     }
     await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(() => {});
-    const newUri = await this.amneziaService.migrateXrayKeyToAnotherServer(vpnKey.id, country);
+    const newUri = await this.amneziaService.migrateXrayKeyToAnotherServer(
+      vpnKey.id,
+      country,
+    );
     if (!newUri) {
-      await ctx.editMessageText(`❌ ${this.t(ctx, 'error_try_again_later')}`, {
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback(`🔑 ${this.t(ctx, 'my_keys')}`, 'BTN_5')],
-          [this.backToProfileButton(ctx.from?.language_code)],
-        ]),
-      }).catch(() => {});
+      await ctx
+        .editMessageText(`❌ ${this.t(ctx, 'error_try_again_later')}`, {
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback(`🔑 ${this.t(ctx, 'my_keys')}`, 'BTN_5')],
+            [this.backToProfileButton(ctx.from?.language_code)],
+          ]),
+        })
+        .catch(() => {});
       return;
     }
-    await this.showKeyCreatedScreen(ctx, newUri, this.backToProfileButton(ctx.from?.language_code));
+    await this.showKeyCreatedScreen(
+      ctx,
+      newUri,
+      this.backToProfileButton(ctx.from?.language_code),
+    );
   };
 
   onKeyDetails = async (ctx: Context) => {
@@ -1023,9 +1033,7 @@ export class TelegramService {
       relations: ['tariff', 'server'],
     });
     if (!vpnKey) {
-      await ctx
-        .answerCbQuery(this.t(ctx, 'key_not_found'))
-        .catch(() => {});
+      await ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(() => {});
       return;
     }
 

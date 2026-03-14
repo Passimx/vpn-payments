@@ -149,12 +149,16 @@ export class AmneziaService {
 
     if (!added) return null;
 
-    await this.em.update(UserKeyEntity, {
-      id: keyId,
-    }, {
-      serverId: newServer.id,
-      key: newKey,
-    });
+    await this.em.update(
+      UserKeyEntity,
+      {
+        id: keyId,
+      },
+      {
+        serverId: newServer.id,
+        key: newKey,
+      },
+    );
 
     return newKey;
   }
