@@ -72,6 +72,11 @@ export default {
   payment: 'Payment',
   processing: 'Processing...',
   click_start: 'First click',
+  country: 'Country',
+  start_date: 'Start date',
+  key: 'Key',
+  change_server: 'Change server country',
+  error_try_again_later: 'Server is temporarily unavailable',
 
   message_try_first_key:
     '<b>Let’s connect your first device</b>\nUse the trial period to get unrestricted internet access\n\nIt will only take a couple of minutes\n\n<b>Having trouble connecting?</b>\nIf you have any questions, you can contact support',

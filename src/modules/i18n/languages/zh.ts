@@ -69,6 +69,11 @@ export default {
   payment: '支付',
   processing: '处理中...',
   click_start: '请先点击',
+  country: '国家',
+  start_date: '开始日期',
+  key: '密钥',
+  change_server: '更换服务器国家',
+  error_try_again_later: '服务器暂时不可用',
 
   message_try_first_key:
     '<b>让我们连接您的第一个设备</b>\n使用试用即可获得无阻碍的互联网访问\n\n只需几分钟即可完成\n\n<b>连接时遇到问题？</b>\n如有任何问题，请联系客服',
