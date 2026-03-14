@@ -19,7 +19,7 @@ export default {
   status: 'Статус',
   active_until: 'Действует до',
   copy_key: 'Скопировать ключ',
-  click_to_copy_key: 'Нажмите, чтобы скопировать',
+  click_to_copy_key: 'Чтобы скопировать ключ, просто нажмите на него',
   insert_key: 'Вставить ключ',
   connect_vpn: 'Подключиться к VPN',
   enter_amount: 'Введите сумму',

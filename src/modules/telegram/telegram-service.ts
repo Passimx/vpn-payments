@@ -771,7 +771,7 @@ export class TelegramService {
   ): Promise<void> {
     const text =
       `✅ <b>${this.t(ctx, 'key_created')}</b>\n\n` +
-      `<b>📋 Чтобы скопировать ключ, просто нажмите на него:</b>\n` +
+      `<b>📋${this.t(ctx, 'click_to_copy_key')}:</b>\n` +
       `<code>${uri}</code>\n\n` +
       `${this.t(ctx, 'instruction_how_to_use_key')}.`;
 
