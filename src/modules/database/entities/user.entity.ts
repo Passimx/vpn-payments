@@ -18,7 +18,14 @@ export class UserEntity {
   })
   readonly balance: number;
 
-  @Column({ name: 'telegram_id', type: 'bigint' })
+  @Column({
+    name: 'telegram_id',
+    type: 'bigint',
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => Number(value),
+    },
+  })
   readonly telegramId: number;
 
   @Column({ name: 'chat_id', type: 'bigint' })

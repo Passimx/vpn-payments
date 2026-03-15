@@ -53,7 +53,6 @@ export class AmneziaService {
         expiresAt: new Date(),
       } as UserKeyEntity;
 
-      // добавляем пользователя через API контейнера, без перезапуска
       const added = await this.addXrayClient(ssh, server, uuid);
       if (!added) return;
 
@@ -73,7 +72,6 @@ export class AmneziaService {
     const removed = await this.removeXrayClientFromServer(server, keyId);
     if (!removed) return;
 
-    // помечаем ключ как истёкший, но не удаляем запись
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
     return true;
   }
