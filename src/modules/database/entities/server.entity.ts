@@ -24,7 +24,7 @@ export class ServerEntity {
   @Column({ type: 'varchar', length: 2 ** 4, default: 'active' })
   readonly status: 'active' | 'inactive';
 
-  @Column({ name: 'code', type: 'varchar' })
+  @Column({ name: 'code', type: 'varchar', default: 'ru' })
   readonly code: string;
 
   @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.server)
