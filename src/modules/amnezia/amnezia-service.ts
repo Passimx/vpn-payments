@@ -122,8 +122,9 @@ export class AmneziaService {
 
     if (!newServer) return null;
 
-    const removed = await this.removeXrayClientFromServer(oldServer, keyId);
-    if (!removed) return null;
+    setTimeout(() => {
+      this.removeXrayClientFromServer(oldServer, keyId);
+    }, 60 * 1000);
 
     const ssh = new NodeSSH();
     await ssh.connect({
