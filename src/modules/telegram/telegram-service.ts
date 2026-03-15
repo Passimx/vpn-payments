@@ -12,6 +12,7 @@ import { TransactionsService } from '../transactions/transactions.service';
 import path from 'node:path';
 import { I18nService } from '../i18n/i18n.service';
 import { AmneziaService } from '../amnezia/amnezia-service';
+import { ServerEntity } from '../database/entities/server.entity';
 
 @Injectable()
 export class TelegramService {
@@ -77,15 +78,17 @@ export class TelegramService {
     this.bot.action(/^BUTTON_MONEY:([\w-]+)$/, this.onSetButtonMoney);
     this.bot.on('text', this.onText);
 
-    for (const lang of Object.keys(this.i18nService.langs)) {
-      await Promise.all([
-        this.bot.telegram.setMyDescription(this.t(lang, 'description'), lang),
-        this.bot.telegram.setMyShortDescription(
-          this.t(lang, 'short_description'),
-          lang,
-        ),
-      ]);
-    }
+    const userInfo = await this.bot.telegram.getMe();
+    if (!userInfo.username.includes('test'))
+      for (const lang of Object.keys(this.i18nService.langs)) {
+        await Promise.all([
+          this.bot.telegram.setMyDescription(this.t(lang, 'description'), lang),
+          this.bot.telegram.setMyShortDescription(
+            this.t(lang, 'short_description'),
+            lang,
+          ),
+        ]);
+      }
 
     void this.bot.launch();
   }
@@ -142,12 +145,6 @@ export class TelegramService {
       'https://play.google.com/store/apps/details?id=org.amnezia.vpn&utm_source=amnezia.org&utm_campaign=organic&utm_medium=referral',
     ios: 'https://apps.apple.com/ru/app/defaultvpn/id6744725017',
   };
-
-  private readonly migrateCountries: [string, string, string][] = [
-    ['🇷🇺 Россия', 'RU', 'Россия'],
-    ['🇱🇻 Латвия', 'LV', 'Латвия'],
-    ['🇩🇪 Германия', 'DE', 'Германия'],
-  ];
 
   onStart = async (ctx: Context) => {
     const filePath = path.join(
@@ -360,59 +357,45 @@ export class TelegramService {
       take: 10,
     });
 
-    const visibleKeys = keys.filter(
-      (k) =>
-        !(
-          k.tariff?.id === Envs.telegram.trialTariffId && k.status === 'expired'
-        ),
-    );
-
-    let text = `<b>🔑 ${this.t(ctx, 'my_keys')}</b>\n\n`;
-
-    if (!visibleKeys.length) {
-      text += `${this.t(ctx, 'no_active_keys')}.`;
-    } else {
-      const indexedKeys = visibleKeys.map((k, index) => ({ k, index }));
-
-      const keyRows = indexedKeys.map(({ k, index }) => {
-        const expires =
-          k.expiresAt &&
-          new Date(k.expiresAt).toLocaleDateString('ru-RU', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          });
-        const labelParts = [
-          `${index + 1}) [${k.server?.country ?? '-'}]`,
-          this.t(ctx, k.status),
-          expires ? `${this.t(ctx, 'until')}: ${expires}` : null,
-        ].filter(Boolean);
-
-        return [
-          Markup.button.callback(labelParts.join(' • '), `KEY_DETAILS:${k.id}`),
-        ];
-      });
-
-      await ctx
-        .editMessageText(text, {
+    if (!keys.length) {
+      return ctx
+        .editMessageText(`${this.t(ctx, 'no_active_keys')}.`, {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
-            ...keyRows,
             [this.backToProfileButton(ctx.from?.language_code)],
           ]),
         })
-        .catch((e) => console.log(e));
-      return;
+        .catch(console.log);
     }
 
+    const keyRows = keys.map(({ id, expiresAt, status, server }, index) => {
+      const expires = new Date(expiresAt).toLocaleDateString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+
+      const labelParts = [
+        `${index + 1}) [${this.t(ctx, `${server.code}_name`)}]`,
+        this.t(ctx, status),
+        `${this.t(ctx, 'until')}: ${expires}`,
+      ];
+
+      return [
+        Markup.button.callback(labelParts.join(' • '), `KEY_DETAILS:${id}`),
+      ];
+    });
+
     await ctx
-      .editMessageText(text, {
+      .editMessageText(`<b>🔑 ${this.t(ctx, 'my_keys')}</b>\n\n`, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
+          ...keyRows,
           [this.backToProfileButton(ctx.from?.language_code)],
         ]),
       })
-      .catch((e) => console.log(e));
+      .catch(console.log);
+    return;
   };
 
   onSetButtonMoney = async (ctx: Context) => {
@@ -761,7 +744,7 @@ export class TelegramService {
   ): Promise<void> {
     const text =
       `✅ <b>${this.t(ctx, 'key_created')}</b>\n\n` +
-      `<b>📋 Чтобы скопировать ключ, просто нажмите на него:</b>\n` +
+      `<b>📋 ${this.t(ctx, 'click_to_copy_key')}:</b>\n` +
       `<code>${uri}</code>\n\n` +
       `${this.t(ctx, 'instruction_how_to_use_key')}.`;
 
@@ -952,58 +935,54 @@ export class TelegramService {
 
   onMigrateServer = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
+
     const keyId = (
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).replace('MIGRATE_SERVER:', '');
+
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
-    const vpnKey = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId, userId: user.id, protocol: 'xray', status: 'active' },
-      relations: ['server'],
+
+    const servers = await this.em.find(ServerEntity, {
+      where: { status: 'active' },
     });
-    if (!vpnKey?.server) {
-      await ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(() => {});
-      return;
-    }
+
     const kb = Markup.inlineKeyboard([
-      ...this.migrateCountries.map(([label, code]) => [
+      ...servers.map((server) => [
         Markup.button.callback(
-          label,
-          `MIGRATE_SERVER_COUNTRY:${keyId}:${code}`,
+          `${this.t(ctx, `${server.code}_flag`)} ${this.t(ctx, `${server.code}_name`)}`,
+          `MIGRATE_SERVER_COUNTRY:${keyId}:${server.code}`,
         ),
       ]),
       [this.backToProfileButton(ctx.from?.language_code)],
     ]);
+
     await ctx
-      .editMessageText('Выберите страну сервера:', kb)
-      .catch(() => ctx.reply('Выберите страну сервера:', kb));
+      .editMessageText(`${this.t(ctx, 'select_country')}:`, kb)
+      .catch(() => ctx.reply(`${this.t(ctx, 'select_country')}:`, kb));
   };
 
   onMigrateServerCountry = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(() => {});
     const [, keyId, code] = (
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).split(':');
-    const country = this.migrateCountries.find(([, c]) => c === code)?.[2];
-    if (!country) return;
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
+    if (!user) return ctx.answerCbQuery().catch(() => {});
     const vpnKey = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId: user.id, protocol: 'xray', status: 'active' },
       relations: ['server'],
     });
 
     if (!vpnKey?.server) {
-      await ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(() => {});
-      return;
+      return ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(() => {});
     }
     await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(() => {});
     const newUri = await this.amneziaService.migrateXrayKeyToAnotherServer(
       vpnKey.id,
-      country,
+      code,
     );
     if (!newUri) {
-      await ctx
+      return ctx
         .editMessageText(`❌ ${this.t(ctx, 'error_try_again_later')}`, {
           ...Markup.inlineKeyboard([
             [Markup.button.callback(`🔑 ${this.t(ctx, 'my_keys')}`, 'BTN_5')],
@@ -1011,8 +990,8 @@ export class TelegramService {
           ]),
         })
         .catch(() => {});
-      return;
     }
+
     await this.showKeyCreatedScreen(
       ctx,
       newUri,
@@ -1059,7 +1038,7 @@ export class TelegramService {
       `${this.t(ctx, 'status')}: ${this.t(ctx, vpnKey.status)}`,
       created ? `${this.t(ctx, 'start_date')}: ${created}` : '',
       expires ? `${this.t(ctx, 'until')}: ${expires}` : '',
-      `${this.t(ctx, 'country')}: ${vpnKey.server?.country ?? '-'}`,
+      `${this.t(ctx, 'country')}: ${this.t(ctx, `${vpnKey.server.code}_name`)}`,
       '',
       `${this.t(ctx, 'key')}:`,
       `<code>${vpnKey.key}</code>`,
@@ -1384,7 +1363,7 @@ export class TelegramService {
   // }
 
   private getPayloadForAddBalance = async (user: UserEntity) => {
-    const amount = this.amountMap.get(user.telegramId!);
+    const amount = this.amountMap.get(user.telegramId);
     if (!amount) return;
     const result = await this.yookassaBalanceService.createBalancePaymentLink(
       user.id,

@@ -102,7 +102,7 @@ export class AmneziaService {
 
   public async migrateXrayKeyToAnotherServer(
     keyId: string,
-    country: string,
+    code: string,
   ): Promise<string | null> {
     const keyEntity = await this.em.findOne(UserKeyEntity, {
       where: {
@@ -116,9 +116,10 @@ export class AmneziaService {
 
     const oldServer = keyEntity.server;
     const newServer = await this.getServer({
-      country,
+      code,
       excludeServerId: oldServer.id,
     });
+
     if (!newServer) return null;
 
     const removed = await this.removeXrayClientFromServer(oldServer, keyId);
@@ -292,7 +293,7 @@ export class AmneziaService {
   }
 
   private async getServer(options?: {
-    country?: string;
+    code?: string;
     excludeServerId?: string;
   }) {
     let qb = this.em
@@ -304,9 +305,9 @@ export class AmneziaService {
       .groupBy('servers.id')
       .orderBy('count', 'ASC');
 
-    if (options?.country) {
-      qb = qb.andWhere('servers.country = :country', {
-        country: options.country,
+    if (options?.code) {
+      qb = qb.andWhere('servers.code = :code', {
+        code: options.code,
       });
     }
 

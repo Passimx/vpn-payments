@@ -29,6 +29,7 @@ export default {
   select_payment_method: 'Select payment method',
   select_action: 'Select action',
   select_tariff: 'Select tariff',
+  select_country: 'Select server country',
   extend_key: 'Extend key',
   until: 'Until',
   days: 'days',
@@ -82,4 +83,11 @@ export default {
     '<b>Let’s connect your first device</b>\nUse the trial period to get unrestricted internet access\n\nIt will only take a couple of minutes\n\n<b>Having trouble connecting?</b>\nIf you have any questions, you can contact support',
   message_8_march:
     '<b>🌹Congratulations to all wonderful women on International Women’s Day!</b>\n\nMay this day be filled with smiles, warmth, inspiration, and pleasant surprises. You make the world brighter, kinder, and more beautiful 💐\n\nIn honor of this day, we are launching a holiday promo code — <b>one month of free VPN usage</b>\n\nThis is a great opportunity to connect now or extend your subscription on favorable terms!\n\n🎁 Promo code: <b>MARCH8</b>\n\nHow to use:\n1. Open the bot\n2. Click “🌐️ Menu”\n3. Click “🛒 Buy key”\n4. Click “30 days - 59 RUB”\n5. Click “🎟 Promo code”\n6. Send the message “MARCH8”\n6. Click “✅ Buy”\n\nHappy Spring Holiday! 🌷\nMay the internet be free and your mood be great! 💐',
+
+  ru_name: 'Russia',
+  ru_flag: '🇷🇺',
+  lv_name: 'Latvia',
+  lv_flag: '🇱🇻',
+  de_name: 'Germany',
+  de_flag: '🇩🇪',
 };

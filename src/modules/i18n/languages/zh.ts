@@ -28,6 +28,7 @@ export default {
   select_payment_method: '选择支付方式',
   select_action: '选择操作',
   select_tariff: '选择套餐',
+  select_country: '选择服务器国家',
   extend_key: '续期密钥',
   until: '至',
   days: '天',
@@ -80,4 +81,11 @@ export default {
 
   message_8_march:
     '<b>🌹祝所有美丽的女士们国际妇女节快乐！</b>\n\n愿这一天充满微笑、温暖、灵感与惊喜。你们让世界更加明亮、温暖和美好 💐\n\n为庆祝这个节日，我们推出特别优惠码 —— <b>一个月免费使用 VPN</b>\n\n现在连接或续费订阅都非常划算！\n\n🎁 优惠码：<b>MARCH8</b>\n\n使用方法：\n1. 打开机器人\n2. 点击「🌐️ 功能」\n3. 点击「🛒 购买密钥」\n4. 点击「30 天 - 59 卢布」\n5. 点击「🎟 优惠码」\n6. 发送消息「MARCH8」\n7. 点击「✅ 购买」\n\n祝大家春日快乐！🌷\n愿互联网自由，心情愉快！💐',
+
+  ru_name: '俄罗斯',
+  ru_flag: '🇷🇺',
+  lv_name: '拉脱维亚',
+  lv_flag: '🇱🇻',
+  de_name: '德国',
+  de_flag: '🇩🇪',
 };
