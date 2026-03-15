@@ -22,8 +22,6 @@ export class AmneziaService {
       const server = await this.getServer();
       if (!server) return;
 
-      const uuid = crypto.randomUUID();
-
       const ssh = new NodeSSH();
       await ssh.connect({
         host: server.host,
@@ -31,24 +29,19 @@ export class AmneziaService {
         password: server.password,
       });
 
-      const [pubKeyResult, shortIdResult] = await Promise.all([
-        ssh.execCommand(
-          'docker exec amnezia-xray cat /opt/amnezia/xray/xray_public.key',
-        ),
-        ssh.execCommand(
-          'docker exec amnezia-xray cat /opt/amnezia/xray/xray_short_id.key',
-        ),
-      ]);
-
-      if (pubKeyResult.stderr || shortIdResult.stderr) {
+      const uuid = crypto.randomUUID();
+      const xrayKeys = await this.readXrayKeys(ssh);
+      if (!xrayKeys) {
         ssh.dispose();
         return;
       }
 
-      const xrayPublicKey = pubKeyResult.stdout.trim();
-      const xrayShortId = shortIdResult.stdout.trim();
-
-      const key = this.exportVpnKey(uuid, server, xrayPublicKey, xrayShortId);
+      const key = this.exportVpnKey(
+        uuid,
+        server,
+        xrayKeys.publicKey,
+        xrayKeys.shortId,
+      );
 
       const userKeyEntity = {
         id: uuid,
@@ -77,24 +70,8 @@ export class AmneziaService {
     const keyId = keyEntity.id;
     const server = keyEntity.server;
 
-    const ssh = new NodeSSH();
-    await ssh.connect({
-      host: server.host,
-      username: server.username,
-      password: server.password,
-    });
-
-    // удаляем пользователя через апишку контенера, без перезапуска контейнера
-    const removeResult = await ssh.execCommand(
-      `docker exec amnezia-xray xray api rmu --server=127.0.0.1:10085 -tag="vless-in" "${keyId}"`,
-    );
-    if (removeResult.stderr) {
-      console.error('[AmneziaService] deleteXrayKey rmu error:', removeResult);
-      ssh.dispose();
-      return;
-    }
-
-    ssh.dispose();
+    const removed = await this.removeXrayClientFromServer(server, keyId);
+    if (!removed) return;
 
     // помечаем ключ как истёкший, но не удаляем запись
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
@@ -121,6 +98,71 @@ export class AmneziaService {
     ssh.dispose();
 
     return added;
+  }
+
+  public async migrateXrayKeyToAnotherServer(
+    keyId: string,
+    code: string,
+  ): Promise<string | null> {
+    const keyEntity = await this.em.findOne(UserKeyEntity, {
+      where: {
+        id: keyId,
+        protocol: 'xray',
+        status: 'active',
+      },
+      relations: ['server'],
+    });
+    if (!keyEntity || !keyEntity.server) return null;
+
+    const oldServer = keyEntity.server;
+    const newServer = await this.getServer({
+      code,
+      excludeServerId: oldServer.id,
+    });
+
+    if (!newServer) return null;
+
+    setTimeout(() => {
+      this.removeXrayClientFromServer(oldServer, keyId);
+    }, 60 * 1000);
+
+    const ssh = new NodeSSH();
+    await ssh.connect({
+      host: newServer.host,
+      username: newServer.username,
+      password: newServer.password,
+    });
+
+    const xrayKeys = await this.readXrayKeys(ssh);
+    if (!xrayKeys) {
+      ssh.dispose();
+      return null;
+    }
+
+    const newKey = this.exportVpnKey(
+      keyId,
+      newServer,
+      xrayKeys.publicKey,
+      xrayKeys.shortId,
+    );
+
+    const added = await this.addXrayClient(ssh, newServer, keyId);
+    ssh.dispose();
+
+    if (!added) return null;
+
+    await this.em.update(
+      UserKeyEntity,
+      {
+        id: keyId,
+      },
+      {
+        serverId: newServer.id,
+        key: newKey,
+      },
+    );
+
+    return newKey;
   }
 
   private async addXrayClient(
@@ -168,6 +210,60 @@ export class AmneziaService {
     return true;
   }
 
+  private async removeXrayClientFromServer(
+    server: ServerEntity,
+    clientId: string,
+  ): Promise<boolean> {
+    const ssh = new NodeSSH();
+    await ssh.connect({
+      host: server.host,
+      username: server.username,
+      password: server.password,
+    });
+
+    const removeResult = await ssh.execCommand(
+      `docker exec amnezia-xray xray api rmu --server=127.0.0.1:10085 -tag="vless-in" "${clientId}"`,
+    );
+    if (removeResult.stderr) {
+      console.error(
+        '[AmneziaService] removeXrayClientFromServer rmu error:',
+        removeResult,
+      );
+      ssh.dispose();
+      return false;
+    }
+
+    ssh.dispose();
+    return true;
+  }
+
+  private async readXrayKeys(
+    ssh: NodeSSH,
+  ): Promise<{ publicKey: string; shortId: string } | null> {
+    const [pubKeyResult, shortIdResult] = await Promise.all([
+      ssh.execCommand(
+        'docker exec amnezia-xray cat /opt/amnezia/xray/xray_public.key',
+      ),
+      ssh.execCommand(
+        'docker exec amnezia-xray cat /opt/amnezia/xray/xray_short_id.key',
+      ),
+    ]);
+
+    if (pubKeyResult.stderr || shortIdResult.stderr) {
+      console.error(
+        '[AmneziaService] readXrayKeys error:',
+        pubKeyResult,
+        shortIdResult,
+      );
+      return null;
+    }
+
+    return {
+      publicKey: pubKeyResult.stdout.trim(),
+      shortId: shortIdResult.stdout.trim(),
+    };
+  }
+
   private exportVpnKey(
     uuid: string,
     server: ServerEntity,
@@ -197,20 +293,38 @@ export class AmneziaService {
     return 'vpn://' + base64url;
   }
 
-  private async getServer() {
-    const server = await this.em
+  private async getServer(options?: {
+    code?: string;
+    excludeServerId?: string;
+  }) {
+    let qb = this.em
       .createQueryBuilder(ServerEntity, 'servers')
       .select('servers.id')
       .where("servers.status = 'active'")
       .addSelect('COUNT(keys.id)', 'count')
       .leftJoin('servers.keys', 'keys')
       .groupBy('servers.id')
-      .orderBy('count', 'ASC')
-      .getOne();
+      .orderBy('count', 'ASC');
 
-    return this.em.findOne(ServerEntity, {
-      where: { id: server?.id },
-    });
+    if (options?.code) {
+      qb = qb.andWhere('servers.code = :code', {
+        code: options.code,
+      });
+    }
+
+    if (options?.excludeServerId) {
+      qb = qb.andWhere('servers.id <> :excludeId', {
+        excludeId: options.excludeServerId,
+      });
+    }
+
+    const server = await qb.getOne();
+
+    return server
+      ? this.em.findOne(ServerEntity, {
+          where: { id: server.id },
+        })
+      : null;
   }
 
   public async checkAlmostExpiredKeys() {

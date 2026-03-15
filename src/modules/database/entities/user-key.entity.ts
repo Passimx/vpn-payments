@@ -23,13 +23,13 @@ export class UserKeyEntity {
   @Column({ name: 'user_id', type: 'uuid' })
   readonly userId: string;
 
-  @Column({ name: 'server_id', type: 'uuid', nullable: true })
+  @Column({ name: 'server_id', type: 'uuid' })
   readonly serverId: string | null;
 
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
 
-  @Column({ name: 'expires_at', nullable: true, type: 'timestamp' })
+  @Column({ name: 'expires_at', type: 'timestamp' })
   readonly expiresAt: Date;
 
   @Column({

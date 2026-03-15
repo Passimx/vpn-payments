@@ -47,20 +47,14 @@ export class KeyPurchaseService {
     await qr.startTransaction();
 
     try {
-      const user = await qr.manager.findOne(UserEntity, {
+      const user = await qr.manager.findOneOrFail(UserEntity, {
         where: { id: userId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!user) {
-        return { ok: false, error: 'Пользователь не найден' };
-      }
 
-      const tariff = await qr.manager.findOne(TariffEntity, {
+      const tariff = await qr.manager.findOneOrFail(TariffEntity, {
         where: { id: tariffId, active: true },
       });
-      if (!tariff) {
-        return { ok: false, error: 'Тариф не найден' };
-      }
 
       let finalPrice = Number(tariff.price);
       let appliedPromo: PromoCodeEntity | null = null;
@@ -351,8 +345,9 @@ export class KeyPurchaseService {
         }
       }
 
-      const base = vpnKey.expiresAt ? new Date(vpnKey.expiresAt) : new Date();
-      const expiresAt = new Date(base);
+      const base = new Date(vpnKey.expiresAt);
+      const expiresAt = Date.now() < base.getTime() ? base : new Date();
+
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
       await qr.manager

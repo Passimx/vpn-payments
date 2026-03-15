@@ -18,25 +18,10 @@ export class UserEntity {
   })
   readonly balance: number;
 
-  @Column({
-    name: 'telegram_id',
-    type: 'bigint',
-    nullable: true,
-    transformer: {
-      to: (value: number) => value,
-      from: (value: string) => Number(value),
-    },
-  })
-  readonly telegramId?: number;
+  @Column({ name: 'telegram_id', type: 'bigint' })
+  readonly telegramId: number;
 
-  @Column({
-    name: 'chat_id',
-    type: 'bigint',
-    transformer: {
-      to: (value: number) => value,
-      from: (value: string) => Number(value),
-    },
-  })
+  @Column({ name: 'chat_id', type: 'bigint' })
   readonly chatId?: number;
 
   @Column({ name: 'user_name', type: 'varchar', nullable: true })
@@ -46,8 +31,7 @@ export class UserEntity {
     name: 'language_code',
     type: 'varchar',
     length: 2 ** 4,
-    default: 'ru',
-    nullable: true,
+    default: 'en',
   })
   readonly languageCode?: string;
 
