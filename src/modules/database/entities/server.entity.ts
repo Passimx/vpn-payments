@@ -21,8 +21,11 @@ export class ServerEntity {
   @Column({ type: 'varchar' })
   readonly xRayServername: string;
 
-  @Column({ type: 'varchar', length: 2 ** 4 })
-  readonly status: 'active' | 'inactive';
+  @Column({ name: 'can_default_create_key', type: 'boolean', default: false })
+  readonly canDefaultCreateKey: boolean;
+
+  @Column({ name: 'can_create_key', type: 'boolean', default: false })
+  readonly canCreateKey: boolean;
 
   @Column({ name: 'code', type: 'varchar' })
   readonly code: string;

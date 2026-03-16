@@ -944,7 +944,7 @@ export class TelegramService {
     if (!user) return;
 
     const servers = await this.em.find(ServerEntity, {
-      where: { status: 'active' },
+      where: { canDefaultCreateKey: true },
     });
 
     const kb = Markup.inlineKeyboard([
