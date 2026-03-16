@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager } from 'typeorm';
+import { EntityManager, Not } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -943,8 +943,12 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
 
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { id: keyId },
+    });
+
     const servers = await this.em.find(ServerEntity, {
-      where: { canCreateKey: true },
+      where: { canCreateKey: true, id: Not(key.serverId) },
     });
 
     const kb = Markup.inlineKeyboard([

@@ -142,7 +142,6 @@ export class KeyPurchaseService {
           key: vpnUri,
           protocol: 'hysteria',
           userId: user.id,
-          serverId: null,
           tariffId: tariff.id,
           expiresAt,
           status: 'active',

@@ -24,7 +24,7 @@ export class UserKeyEntity {
   readonly userId: string;
 
   @Column({ name: 'server_id', type: 'uuid' })
-  readonly serverId: string | null;
+  readonly serverId: string;
 
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
