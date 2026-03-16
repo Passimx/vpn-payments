@@ -21,10 +21,10 @@ export class ServerEntity {
   @Column({ type: 'varchar' })
   readonly xRayServername: string;
 
-  @Column({ type: 'varchar', length: 2 ** 4, default: 'active' })
+  @Column({ type: 'varchar', length: 2 ** 4 })
   readonly status: 'active' | 'inactive';
 
-  @Column({ name: 'code', type: 'varchar', default: 'ru' })
+  @Column({ name: 'code', type: 'varchar' })
   readonly code: string;
 
   @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.server)
