@@ -33,7 +33,7 @@ export const Envs = {
       endpointUrl: String(process.env.TON_ENDPOINT_URL),
       endpointApiKey: String(process.env.TON_ENDPOINT_TON_APIKEY),
     },
-    allowance: 0.5,
+    allowance: 0.3,
   },
   blitz: {
     apiUrl: String(process.env.BLITZ_API_URL),

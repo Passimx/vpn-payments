@@ -113,9 +113,8 @@ export class AmneziaService {
     if (!keyEntity || !keyEntity.server) return null;
 
     const oldServer = keyEntity.server;
-    const newServer = await this.getServer({
-      code,
-      excludeServerId: oldServer.id,
+    const newServer = await this.em.findOne(ServerEntity, {
+      where: { code, canCreateKey: true },
     });
 
     if (!newServer) return null;
@@ -299,32 +298,16 @@ export class AmneziaService {
     return 'vpn://' + base64url;
   }
 
-  private async getServer(options?: {
-    code?: string;
-    excludeServerId?: string;
-  }) {
-    let qb = this.em
+  private async getServer() {
+    const server = await this.em
       .createQueryBuilder(ServerEntity, 'servers')
       .select('servers.id')
       .where('servers.canDefaultCreateKey IS TRUE')
       .addSelect('COUNT(keys.id)', 'count')
       .leftJoin('servers.keys', 'keys', "keys.status = 'active'")
       .groupBy('servers.id')
-      .orderBy('count', 'ASC');
-
-    if (options?.code) {
-      qb = qb.andWhere('servers.code = :code', {
-        code: options.code,
-      });
-    }
-
-    if (options?.excludeServerId) {
-      qb = qb.andWhere('servers.id <> :excludeId', {
-        excludeId: options.excludeServerId,
-      });
-    }
-
-    const server = await qb.getOne();
+      .orderBy('count', 'ASC')
+      .getOne();
 
     return server
       ? this.em.findOne(ServerEntity, {
