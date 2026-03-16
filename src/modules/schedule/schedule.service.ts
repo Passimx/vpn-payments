@@ -32,9 +32,8 @@ export class ScheduleService {
     await this.telegramService.replyUsersWithoutKeys();
   }
 
-  @Cron('* * * * *')
-  // @Cron('0 18 * * *')
-  async asdf() {
+  @Cron('30 * * * *')
+  async sendMessageEveryOne() {
     await this.telegramService.sendMessageEveryOne(
       'message_new_feature_change_countries',
     );

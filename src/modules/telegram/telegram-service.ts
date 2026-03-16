@@ -1365,9 +1365,7 @@ export class TelegramService {
       'select_server.mp4',
     );
 
-    const users = await this.em.find(UserEntity, {
-      where: { userName: 'ramzini22' },
-    });
+    const users = await this.em.find(UserEntity);
 
     for (const user of users) {
       try {
