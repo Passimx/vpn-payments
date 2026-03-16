@@ -90,4 +90,6 @@ export default {
   lv_flag: '🇱🇻',
   de_name: 'Германия',
   de_flag: '🇩🇪',
+  hk_name: 'Гонконг',
+  hk_flag: '🇭🇰',
 };

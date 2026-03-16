@@ -88,4 +88,6 @@ export default {
   lv_flag: '🇱🇻',
   de_name: '德国',
   de_flag: '🇩🇪',
+  hk_name: '香港',
+  hk_flag: '🇭🇰',
 };
