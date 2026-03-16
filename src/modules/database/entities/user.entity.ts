@@ -29,7 +29,7 @@ export class UserEntity {
   readonly telegramId: number;
 
   @Column({ name: 'chat_id', type: 'bigint' })
-  readonly chatId?: number;
+  readonly chatId: number;
 
   @Column({ name: 'user_name', type: 'varchar', nullable: true })
   readonly userName?: string;

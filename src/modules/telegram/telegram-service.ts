@@ -19,10 +19,10 @@ export class TelegramService {
   private bot: Telegraf;
 
   private amountMap = new Map<number, number>();
-  private addKeyVideoId: string | undefined = Envs.telegram.addKeyVideoId;
-  private addBalanceVideoId: string | undefined =
-    Envs.telegram.addBalanceVideoId;
-  private welcomeVideoId: string | undefined = Envs.telegram.welcomeVideoId;
+  private addKeyVideoId = Envs.telegram.addKeyVideoId;
+  private addBalanceVideoId = Envs.telegram.addBalanceVideoId;
+  private welcomeVideoId = Envs.telegram.welcomeVideoId;
+  private changeVideoId = Envs.telegram.changeVideoId;
   private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
     number,
@@ -1355,16 +1355,52 @@ export class TelegramService {
     );
   }
 
-  // public async send8March() {
-  //   const users = await this.em
-  //     .createQueryBuilder(UserEntity, 'users')
-  //     .leftJoin('users.keys', 'keys')
-  //     .groupBy('users.id')
-  //     .having('COUNT(keys.id) = 0')
-  //     .getMany();
-  //
-  //   await Promise.all(users.map(async (user) => this.send8MarchMessage(user)));
-  // }
+  public async sendMessageEveryOne(key: string) {
+    const filePath = path.join(
+      __dirname,
+      '../',
+      '../',
+      'public',
+      'media',
+      'select_server.mp4',
+    );
+
+    const users = await this.em.find(UserEntity, {
+      where: { userName: 'ramzini22' },
+    });
+
+    for (const user of users) {
+      try {
+        const videoMessage = await this.bot.telegram.sendVideo(
+          user.chatId,
+          this.changeVideoId ?? Input.fromLocalFile(filePath),
+          {
+            caption: this.t(user.languageCode, key),
+            supports_streaming: true,
+            disable_notification: true,
+            parse_mode: 'HTML',
+          },
+        );
+
+        await this.bot.telegram.sendMessage(
+          user.chatId,
+          `${this.t(user.languageCode, 'select_action')}:`,
+          {
+            ...this.menu(user.languageCode),
+          },
+        );
+
+        if (!this.changeVideoId) {
+          console.log(`Set changeVideoId = '${videoMessage.video.file_id}'`);
+          this.changeVideoId = videoMessage.video.file_id;
+        }
+
+        await new Promise((r) => setTimeout(r, 100));
+      } catch (e) {
+        console.log('send error', e);
+      }
+    }
+  }
 
   private getPayloadForAddBalance = async (user: UserEntity) => {
     const amount = this.amountMap.get(user.telegramId);

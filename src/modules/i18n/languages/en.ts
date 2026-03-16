@@ -1,6 +1,13 @@
 export default {
   description:
-    'Welcome to PassimX VPN:\nAdvantages of the bot:\n\n🔑 Fast VPN key delivery\n\n🏎️ Stable and unlimited data transfer speed\n\n🚌 Even distribution of users across servers\n\n💰 Payments with Russian bank cards and cryptocurrency\n\n💨 Servers do not keep logs of connections or user activity\n\n🫂 Live support will resolve all your questions',
+    'Welcome to PassimX VPN:\nAdvantages of the bot:\n\n' +
+    '🔑 Fast VPN key delivery\n\n' +
+    '🏎️ Stable and unlimited data transfer speed\n\n' +
+    '🚌 Even distribution of users across servers\n\n' +
+    '🌍 Ability to choose a country\n' +
+    '💰 Payments with Russian bank cards and cryptocurrency\n\n' +
+    '💨 Servers do not keep logs of connections or user activity\n\n' +
+    '🫂 Live support will resolve all your questions',
   short_description:
     '🔐 Reliable traffic encryption\n🏎️ Stable connection speed',
   menu: 'Menu',
@@ -83,6 +90,17 @@ export default {
     '<b>Let’s connect your first device</b>\nUse the trial period to get unrestricted internet access\n\nIt will only take a couple of minutes\n\n<b>Having trouble connecting?</b>\nIf you have any questions, you can contact support',
   message_8_march:
     '<b>🌹Congratulations to all wonderful women on International Women’s Day!</b>\n\nMay this day be filled with smiles, warmth, inspiration, and pleasant surprises. You make the world brighter, kinder, and more beautiful 💐\n\nIn honor of this day, we are launching a holiday promo code — <b>one month of free VPN usage</b>\n\nThis is a great opportunity to connect now or extend your subscription on favorable terms!\n\n🎁 Promo code: <b>MARCH8</b>\n\nHow to use:\n1. Open the bot\n2. Click “🌐️ Menu”\n3. Click “🛒 Buy key”\n4. Click “30 days - 59 RUB”\n5. Click “🎟 Promo code”\n6. Send the message “MARCH8”\n6. Click “✅ Buy”\n\nHappy Spring Holiday! 🌷\nMay the internet be free and your mood be great! 💐',
+  message_new_feature_change_countries:
+    '⚡️ New feature: <b>Change VPN country</b>\n\n' +
+    'You can now reissue your key and choose another country in just a couple of clicks прямо in the bot.\n\n' +
+    'Available countries:\n' +
+    '🇷🇺 <b>Russia</b>\n' +
+    '🇱🇻 <b>Latvia</b>\n' +
+    '🇩🇪 <b>Germany</b>\n' +
+    '🇭🇰 <b>Hong Kong</b>\n\n' +
+    'Changing the country may help you <b>access services and apps that are unavailable in your region</b>, and sometimes even <b>improve connection speed</b>.\n\n' +
+    "<b>Important: when changing the server, don't forget to replace the key in the app!</b>\n\n" +
+    'Give it a try — it only takes a few seconds 🚀',
 
   ru_name: 'Russia',
   ru_flag: '🇷🇺',
