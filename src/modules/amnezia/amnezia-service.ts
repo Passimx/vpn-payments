@@ -308,7 +308,7 @@ export class AmneziaService {
       .select('servers.id')
       .where('servers.canDefaultCreateKey IS TRUE')
       .addSelect('COUNT(keys.id)', 'count')
-      .leftJoin('servers.keys', 'keys')
+      .leftJoin('servers.keys', 'keys', "keys.status = 'active'")
       .groupBy('servers.id')
       .orderBy('count', 'ASC');
 
