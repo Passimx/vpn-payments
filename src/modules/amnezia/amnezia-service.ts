@@ -120,10 +120,6 @@ export class AmneziaService {
 
     if (!newServer) return null;
 
-    setTimeout(() => {
-      this.removeXrayClientFromServer(oldServer, keyId);
-    }, 60 * 1000);
-
     const ssh = new NodeSSH();
     await ssh.connect({
       host: newServer.host,
@@ -159,6 +155,18 @@ export class AmneziaService {
         key: newKey,
       },
     );
+
+    const checkAndDeleteKey = async () => {
+      const userKey = await this.em.findOne(UserKeyEntity, {
+        where: { id: keyId, serverId: oldServer.id },
+      });
+
+      if (!userKey) await this.removeXrayClientFromServer(oldServer, keyId);
+    };
+
+    setTimeout(() => {
+      checkAndDeleteKey();
+    }, 60 * 1000);
 
     return newKey;
   }
