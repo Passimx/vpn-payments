@@ -298,7 +298,7 @@ export class AmneziaService {
     let qb = this.em
       .createQueryBuilder(ServerEntity, 'servers')
       .select('servers.id')
-      .where('servers.canCreateKey IS TRUE')
+      .where('servers.canDefaultCreateKey IS TRUE')
       .addSelect('COUNT(keys.id)', 'count')
       .leftJoin('servers.keys', 'keys')
       .groupBy('servers.id')
