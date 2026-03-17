@@ -29,17 +29,21 @@ export class ScheduleService {
     await this.amneziaService.checkAlmostExpiredKeys();
   }
 
-  @Cron('0 18 * * *')
+  @Cron('0 18 * * *', {
+    timeZone: 'Europe/Moscow',
+  })
   public async replyUsersWithoutKeys() {
     await this.telegramService.replyUsersWithoutKeys();
   }
 
-  @Cron('0 0 * * *')
+  @Cron('59 23 * * *')
   public async saveAnalytics() {
     await this.analyticsService.saveAnalytics();
   }
 
-  @Cron('0 */6 * * *')
+  @Cron('0 8 * * *', {
+    timeZone: 'Europe/Moscow',
+  })
   public async sendAnalytics() {
     await this.analyticsService.sendAnalytics();
   }
