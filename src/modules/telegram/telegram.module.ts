@@ -5,6 +5,7 @@ import { YookassaModule } from '../yookassa/yookassa.module';
 import { AmneziaModule } from '../amnezia/amnezia.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { I18nModule } from '../i18n/i18n.module';
+import { AnalyticsService } from './analytics.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { I18nModule } from '../i18n/i18n.module';
     AmneziaModule,
     YookassaModule,
   ],
-  providers: [TelegramService],
-  exports: [TelegramService],
+  providers: [TelegramService, AnalyticsService],
+  exports: [TelegramService, AnalyticsService],
 })
 export class TelegramModule {}

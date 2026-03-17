@@ -16,7 +16,7 @@ import { ServerEntity } from '../database/entities/server.entity';
 
 @Injectable()
 export class TelegramService {
-  private bot: Telegraf;
+  public bot: Telegraf;
 
   private amountMap = new Map<number, number>();
   private addKeyVideoId = Envs.telegram.addKeyVideoId;
@@ -1293,33 +1293,35 @@ export class TelegramService {
       this.welcomeVideoId = videoMessage.video.file_id;
     }
 
-    await this.bot.telegram.sendMessage(
-      user.chatId,
-      this.t(user.languageCode, 'message_try_first_key'),
-      {
-        parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback(
-              `⬅️ ${this.t(user.languageCode, 'to_the_tariffs')}`,
-              'BTN_9',
-            ),
-          ],
-          [
-            Markup.button.callback(
-              `📖 ${this.t(user.languageCode, 'instruction')}`,
-              'ON_INSTRUCTION',
-            ),
-          ],
-          [
-            Markup.button.url(
-              `👩‍💻 ${this.t(user.languageCode, 'support')}`,
-              'https://t.me/passimx',
-            ),
-          ],
-        ]),
-      },
-    );
+    await this.bot.telegram
+      .sendMessage(
+        user.chatId,
+        this.t(user.languageCode, 'message_try_first_key'),
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                `⬅️ ${this.t(user.languageCode, 'to_the_tariffs')}`,
+                'BTN_9',
+              ),
+            ],
+            [
+              Markup.button.callback(
+                `📖 ${this.t(user.languageCode, 'instruction')}`,
+                'ON_INSTRUCTION',
+              ),
+            ],
+            [
+              Markup.button.url(
+                `👩‍💻 ${this.t(user.languageCode, 'support')}`,
+                'https://t.me/passimx',
+              ),
+            ],
+          ]),
+        },
+      )
+      .then(console.log);
   }
 
   public async sendAlmostExpiredKey(user: UserEntity) {
