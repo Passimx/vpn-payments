@@ -22,15 +22,21 @@ export class AnalyticsService {
         this.em.createQueryBuilder(UserEntity, 'users').getCount(),
         this.em
           .createQueryBuilder(UserEntity, 'users')
-          .where('users."created_at"::DATE = CURRENT_DATE')
+          .where(
+            `users."created_at"::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
+          )
           .getCount(),
         this.em
           .createQueryBuilder(UserEntity, 'users')
-          .innerJoin('users.keys', 'keys', 'keys.expiresAt > CURRENT_DATE')
+          .innerJoin(
+            'users.keys',
+            'keys',
+            `keys.expiresAt > DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
+          )
           .getCount(),
         this.em
           .createQueryBuilder(UserKeyEntity, 'keys')
-          .where('keys.expiresAt > CURRENT_DATE')
+          .where(`keys.expiresAt > DATE(NOW() AT TIME ZONE 'Europe/Moscow')`)
           .getCount(),
       ]);
 
@@ -38,14 +44,16 @@ export class AnalyticsService {
       (await this.em
         .createQueryBuilder(PaymentsEntity, 'payments')
         .select('COALESCE(SUM(payments.amount), 0)', 'sum')
-        .where('payments."created_at"::DATE = CURRENT_DATE')
+        .where(
+          `payments."created_at"::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
+        )
         .getRawOne<{ sum: string }>())!.sum,
     );
 
     await this.em.upsert(
       AnalyticEntity,
       {
-        createdAt: () => 'CURRENT_DATE',
+        createdAt: () => "DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
         allUsersCount,
         activeUsersCount,
         newUsersCount,
@@ -62,7 +70,9 @@ export class AnalyticsService {
     const analytics = await this.em
       .createQueryBuilder(AnalyticEntity, 'analytics')
       .orderBy('analytics.createdAt', 'ASC')
-      .where("analytics.createdAt > CURRENT_DATE - interval '1 month'")
+      .where(
+        `analytics.createdAt > DATE(NOW() AT TIME ZONE 'Europe/Moscow') - interval '1 month'`,
+      )
       .getMany();
 
     const chartJSNodeCanvas = new ChartJSNodeCanvas({
@@ -74,18 +84,22 @@ export class AnalyticsService {
     const usersChart = await chartJSNodeCanvas.renderToBuffer({
       type: 'line',
       data: {
-        labels: analytics.map(({ createdAt }) =>
-          createdAt.toLocaleDateString('en-GB', {
+        labels: analytics.map(({ createdAt }) => {
+          const date = new Date(createdAt);
+
+          return new Intl.DateTimeFormat('ru-RU', {
             day: '2-digit',
             month: '2-digit',
-          }),
-        ),
+            timeZone: 'Europe/Moscow',
+          }).format(date);
+        }),
         datasets: [
           {
             label: 'Рост активных пользователей',
-            data: analytics.map(
-              (a) => (a.activeUsersCount / a.allUsersCount) * 100,
-            ),
+            data: analytics.map((a) => {
+              if (a.allUsersCount === 0) return 0;
+              return (a.activeUsersCount / a.allUsersCount) * 100;
+            }),
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59,130,246,0.15)',
             tension: 0.3,
@@ -149,12 +163,15 @@ export class AnalyticsService {
     const paymentsChart = await chartJSNodeCanvas.renderToBuffer({
       type: 'line',
       data: {
-        labels: analytics.map((a) =>
-          a.createdAt.toLocaleDateString('en-GB', {
+        labels: analytics.map((a) => {
+          const date = new Date(a.createdAt);
+
+          return new Intl.DateTimeFormat('ru-RU', {
             day: '2-digit',
             month: '2-digit',
-          }),
-        ),
+            timeZone: 'Europe/Moscow',
+          }).format(date);
+        }),
         datasets: [
           {
             label: 'Оплата в день',
