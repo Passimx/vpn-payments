@@ -28,7 +28,6 @@
     "@nestjs/typeorm": "^11.0.0",
     "@ton/core": "^0.63.0",
     "@ton/ton": "^16.2.2",
-    "canvas": "^3.2.1",
     "chartjs-node-canvas": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
