@@ -92,9 +92,13 @@ export class AnalyticsService {
           },
           {
             label: 'Рост новых пользователей',
-            data: analytics.map(
-              (a) => (a.newUsersCount / a.allUsersCount) * 100,
-            ),
+            data: analytics.map((a) => {
+              const base = a.allUsersCount - a.newUsersCount;
+
+              if (base === 0) return 0;
+
+              return (a.newUsersCount / base) * 100;
+            }),
             borderColor: '#10b981',
             backgroundColor: 'rgba(16,185,129,0.15)',
             tension: 0.3,
