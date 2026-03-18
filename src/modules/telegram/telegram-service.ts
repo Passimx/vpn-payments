@@ -94,12 +94,6 @@ export class TelegramService {
         ]);
       }
 
-    if (!userInfo.username.includes('test'))
-      await this.bot.telegram.setMyCommands(
-        [{ command: 'stats', description: 'Показать статистику' }],
-        { language_code: 'ru', scope: { type: 'chat', chat_id: -4882279317 } },
-      );
-
     void this.bot.launch();
   }
 
