@@ -1,16 +1,5 @@
 FROM node:20.10.0-alpine as base
 
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    python3 \
-    make \
-    g++ \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
-
 FROM base as build
 WORKDIR /app
 COPY . ./
