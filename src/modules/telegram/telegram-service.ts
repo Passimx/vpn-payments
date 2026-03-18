@@ -48,11 +48,6 @@ export class TelegramService {
       console.error('Telegraf error:', err);
     });
 
-    await this.bot.telegram.setMyCommands(
-      [{ command: 'stats', description: 'Показать статистику' }],
-      { language_code: 'ru', scope: { type: 'chat', chat_id: -4882279317 } },
-    );
-
     this.bot.command('stats', this.analyticsService.sendAnalytics);
     this.bot.start(this.onStart);
     this.bot.action('BTN_1', this.onBtn1);
@@ -98,6 +93,12 @@ export class TelegramService {
           ),
         ]);
       }
+
+    if (!userInfo.username.includes('test'))
+      await this.bot.telegram.setMyCommands(
+        [{ command: 'stats', description: 'Показать статистику' }],
+        { language_code: 'ru', scope: { type: 'chat', chat_id: -4882279317 } },
+      );
 
     void this.bot.launch();
   }
