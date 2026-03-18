@@ -36,16 +36,9 @@ export class ScheduleService {
     await this.telegramService.replyUsersWithoutKeys();
   }
 
-  @Cron('59 23 * * *')
+  @Cron('* * * * *')
   public async saveAnalytics() {
     await this.analyticsService.saveAnalytics();
-  }
-
-  @Cron('0 8 * * *', {
-    timeZone: 'Europe/Moscow',
-  })
-  public async sendAnalytics() {
-    await this.analyticsService.sendAnalytics();
   }
 
   // @Cron('30 * * * *')

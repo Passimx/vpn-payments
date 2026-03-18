@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { PaymentsEntity } from '../database/entities/balance-debit.entity';
@@ -6,11 +6,13 @@ import { AnalyticEntity } from '../database/entities/analytic.entity';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { TelegramService } from './telegram-service';
+import { Context } from 'telegraf';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
     private readonly em: EntityManager,
+    @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
   ) {}
 
@@ -40,17 +42,23 @@ export class AnalyticsService {
         .getRawOne<{ sum: string }>())!.sum,
     );
 
-    await this.em.insert(AnalyticEntity, {
-      createdAt: 'NOW()',
-      allUsersCount,
-      activeUsersCount,
-      newUsersCount,
-      paymentsSum,
-      activeKeysCount,
-    });
+    await this.em.upsert(
+      AnalyticEntity,
+      {
+        createdAt: () => 'CURRENT_DATE',
+        allUsersCount,
+        activeUsersCount,
+        newUsersCount,
+        paymentsSum,
+        activeKeysCount,
+      },
+      { conflictPaths: ['createdAt'] },
+    );
   }
 
-  public async sendAnalytics() {
+  public sendAnalytics = async (ctx: Context) => {
+    if (ctx.from?.id !== 904644377 && ctx.from?.id !== 871909427) return;
+
     const analytics = await this.em
       .createQueryBuilder(AnalyticEntity, 'analytics')
       .orderBy('analytics.createdAt', 'ASC')
@@ -192,10 +200,8 @@ export class AnalyticsService {
       },
     });
 
-    const chatId = '-4882279317';
-
     await this.telegramService.bot.telegram.sendPhoto(
-      chatId,
+      ctx.chat!.id,
       {
         source: usersChart,
       },
@@ -203,11 +209,11 @@ export class AnalyticsService {
     );
 
     await this.telegramService.bot.telegram.sendPhoto(
-      chatId,
+      ctx.chat!.id,
       {
         source: paymentsChart,
       },
       { caption: '📊 Статистика оплаты' },
     );
-  }
+  };
 }

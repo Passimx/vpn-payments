@@ -13,6 +13,7 @@ import path from 'node:path';
 import { I18nService } from '../i18n/i18n.service';
 import { AmneziaService } from '../amnezia/amnezia-service';
 import { ServerEntity } from '../database/entities/server.entity';
+import { AnalyticsService } from './analytics.service';
 
 @Injectable()
 export class TelegramService {
@@ -34,6 +35,8 @@ export class TelegramService {
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly transactionsService: TransactionsService,
     private readonly yookassaBalanceService: YookassaBalanceService,
+    @Inject(forwardRef(() => AnalyticsService))
+    private readonly analyticsService: AnalyticsService,
     private readonly i18nService: I18nService,
     @Inject(forwardRef(() => AmneziaService))
     private readonly amneziaService: AmneziaService,
@@ -45,6 +48,12 @@ export class TelegramService {
       console.error('Telegraf error:', err);
     });
 
+    await this.bot.telegram.setMyCommands(
+      [{ command: 'stats', description: 'Показать статистику' }],
+      { language_code: 'ru', scope: { type: 'chat', chat_id: -4882279317 } },
+    );
+
+    this.bot.command('stats', this.analyticsService.sendAnalytics);
     this.bot.start(this.onStart);
     this.bot.action('BTN_1', this.onBtn1);
     this.bot.action('BTN_2', this.onBtn2);
