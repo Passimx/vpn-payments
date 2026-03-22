@@ -23,7 +23,7 @@ export class AnalyticsService {
         this.em
           .createQueryBuilder(UserEntity, 'users')
           .where(
-            `users."created_at"::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
+            `(users."created_at" AT TIME ZONE 'Europe/Moscow')::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
           )
           .getCount(),
         this.em

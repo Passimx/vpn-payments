@@ -18,6 +18,8 @@ export const Envs = {
     addBalanceVideoId: process.env.TELEGRAM_ADD_BALANCE_VIDEO_ID,
     welcomeVideoId: process.env.TELEGRAM_WELCOME_VIDEO_ID,
     changeVideoId: process.env.TELEGRAM_CHANGE_VIDEO_ID,
+    archiverApiKey: String(process.env.TELEGRAM_ARCHIVER_APIKEY),
+    archiverEndpoint: String(process.env.TELEGRAM_ARCHIVER_ENDPOINT),
   },
   crypto: {
     ethereum: {

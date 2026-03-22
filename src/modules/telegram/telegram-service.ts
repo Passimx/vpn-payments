@@ -14,6 +14,7 @@ import { I18nService } from '../i18n/i18n.service';
 import { AmneziaService } from '../amnezia/amnezia-service';
 import { ServerEntity } from '../database/entities/server.entity';
 import { AnalyticsService } from './analytics.service';
+import { Archiver } from '@passimx/archiver';
 
 @Injectable()
 export class TelegramService {
@@ -47,6 +48,12 @@ export class TelegramService {
     this.bot.catch((err) => {
       console.error('Telegraf error:', err);
     });
+
+    const archiver = new Archiver({
+      apiKey: Envs.telegram.archiverApiKey,
+      endpoint: Envs.telegram.archiverEndpoint,
+    });
+    archiver.listen(this.bot);
 
     this.bot.command('stats', this.analyticsService.sendAnalytics);
     this.bot.start(this.onStart);

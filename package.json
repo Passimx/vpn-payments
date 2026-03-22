@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.1",
     "@nestjs/typeorm": "^11.0.0",
+    "@passimx/archiver": "^1.0.1",
     "@ton/core": "^0.63.0",
     "@ton/ton": "^16.2.2",
     "chartjs-node-canvas": "^5.0.0",
