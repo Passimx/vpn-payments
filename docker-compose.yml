@@ -30,7 +30,7 @@ services:
       PG_PORT: ${PG_PORT}
       PORT: ${PORT:-2000}
     ports:
-      - "${PORT:-2000}:${PORT:-2000}"
+      - ${PORT:-2000}:${PORT:-2000}
     depends_on:
       - postgres
     networks:
