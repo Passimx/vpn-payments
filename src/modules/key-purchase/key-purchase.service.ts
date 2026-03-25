@@ -85,10 +85,7 @@ export class KeyPurchaseService {
       let vpnUri: string;
 
       if (protocol === 'xray') {
-        const amKey = await this.amneziaService.createXrayKey(
-          user.id,
-          tariff.id,
-        );
+        const amKey = await this.amneziaService.createXrayKey(user, tariff.id);
         if (!amKey) {
           return {
             ok: false,

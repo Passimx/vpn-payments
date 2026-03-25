@@ -8,16 +8,19 @@ import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { NodeSSH } from 'node-ssh';
 import { TelegramService } from '../telegram/telegram-service';
 import { UserEntity } from '../database/entities/user.entity';
+import { I18nService } from '../i18n/i18n.service';
+import { Context } from 'telegraf';
 
 @Injectable()
 export class AmneziaService {
   constructor(
-    private readonly em: EntityManager,
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
+    private readonly i18nService: I18nService,
+    private readonly em: EntityManager,
   ) {}
 
-  public async createXrayKey(userId: string, tariffId: string) {
+  public async createXrayKey(user: UserEntity, tariffId: string) {
     try {
       const server = await this.getServer();
       if (!server) return;
@@ -41,11 +44,12 @@ export class AmneziaService {
         server,
         xrayKeys.publicKey,
         xrayKeys.shortId,
+        user.languageCode,
       );
 
       const userKeyEntity = {
         id: uuid,
-        userId,
+        userId: user.id,
         serverId: server.id,
         key,
         protocol: 'xray',
@@ -108,7 +112,7 @@ export class AmneziaService {
         protocol: 'xray',
         status: 'active',
       },
-      relations: ['server'],
+      relations: ['server', 'user'],
     });
     if (!keyEntity || !keyEntity.server) return null;
 
@@ -137,6 +141,7 @@ export class AmneziaService {
       newServer,
       xrayKeys.publicKey,
       xrayKeys.shortId,
+      keyEntity.user.languageCode,
     );
 
     const added = await this.addXrayClient(ssh, newServer, keyId);
@@ -274,14 +279,28 @@ export class AmneziaService {
     server: ServerEntity,
     xrayPublicKey: string,
     xrayShortId: string,
+    language_code?: string,
   ) {
-    let key = fs.readFileSync('key.config', { encoding: 'utf8' });
-    key = key.replace('UUID', uuid);
-    key = key.replaceAll('HOST_NAME', server.host);
-    key = key.replaceAll('PORT', server.xRayPort);
-    key = key.replaceAll('SERVER_NAME', server.xRayServername);
-    key = key.replaceAll('PUBLIC_KEY', xrayPublicKey);
-    key = key.replaceAll('SHORT_ID', xrayShortId);
+    const config = fs.readFileSync('key.config', { encoding: 'utf8' });
+    const key = config
+      .replaceAll(
+        'DESCRIPTION',
+        `${this.t(language_code, `${server.code}_flag`)} ${this.t(language_code, `${server.code}_name`)} (${new Date().toLocaleDateString(
+          'ru-RU',
+          {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          },
+        )})`,
+      )
+      .replaceAll('UUID', uuid)
+      .replaceAll('HOST_NAME', server.host)
+      .replaceAll('HOST_NAME', server.host)
+      .replaceAll('PORT', server.xRayPort)
+      .replaceAll('SERVER_NAME', server.xRayServername)
+      .replaceAll('PUBLIC_KEY', xrayPublicKey)
+      .replaceAll('SHORT_ID', xrayShortId);
 
     const jsonBuffer = Buffer.from(key);
     const compressed = zlib.deflateSync(jsonBuffer);
@@ -384,5 +403,12 @@ export class AmneziaService {
     }
 
     return successCount;
+  }
+
+  private t(ctx: Context | string | undefined, key: string) {
+    return this.i18nService.t(
+      typeof ctx === 'string' ? ctx : ctx?.from?.language_code,
+      key,
+    );
   }
 }
