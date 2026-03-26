@@ -111,4 +111,6 @@ export default {
   de_flag: '🇩🇪',
   hk_name: 'Гонконг',
   hk_flag: '🇭🇰',
+  nl_name: 'Нидерланды',
+  nl_flag: '🇳🇱',
 };

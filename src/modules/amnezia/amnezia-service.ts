@@ -1,6 +1,4 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import fs from 'node:fs';
-import zlib from 'node:zlib';
 import { EntityManager, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { ServerEntity } from '../database/entities/server.entity';
 
@@ -281,40 +279,29 @@ export class AmneziaService {
     xrayShortId: string,
     language_code?: string,
   ) {
-    const config = fs.readFileSync('key.config', { encoding: 'utf8' });
-    const key = config
-      .replaceAll(
-        'DESCRIPTION',
-        `${this.t(language_code, `${server.code}_flag`)} ${this.t(language_code, `${server.code}_name`)} (${new Date().toLocaleDateString(
-          'ru-RU',
-          {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          },
-        )})`,
-      )
-      .replaceAll('UUID', uuid)
-      .replaceAll('HOST_NAME', server.host)
-      .replaceAll('HOST_NAME', server.host)
-      .replaceAll('PORT', server.xRayPort)
-      .replaceAll('SERVER_NAME', server.xRayServername)
-      .replaceAll('PUBLIC_KEY', xrayPublicKey)
-      .replaceAll('SHORT_ID', xrayShortId);
+    const sni = server.xRayServername;
+    const params = new URLSearchParams({
+      encryption: 'none',
+      security: 'reality',
+      sni,
+      fp: 'chrome',
+      pbk: xrayPublicKey,
+      sid: xrayShortId,
+      type: 'tcp',
+      headerType: 'none',
+      flow: 'xtls-rprx-vision',
+    });
 
-    const jsonBuffer = Buffer.from(key);
-    const compressed = zlib.deflateSync(jsonBuffer);
-    const sizeBuffer = Buffer.alloc(4);
+    const label = `${this.t(language_code, `${server.code}_flag`)} ${this.t(
+      language_code,
+      `${server.code}_name`,
+    )} (${new Date().toLocaleDateString('ru-RU', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })})`;
 
-    sizeBuffer.writeUInt32BE(jsonBuffer.length, 0);
-    const finalBuffer = Buffer.concat([sizeBuffer, compressed]);
-    const base64url = finalBuffer
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    return 'vpn://' + base64url;
+    return `vless://${uuid}@${server.host}:${server.xRayPort}?${params.toString()}#${encodeURIComponent(label)}`;
   }
 
   private async getServer() {

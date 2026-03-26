@@ -110,4 +110,6 @@ export default {
   de_flag: '🇩🇪',
   hk_name: 'Hong Kong',
   hk_flag: '🇭🇰',
+  nl_name: 'Netherlands',
+  nl_flag: '🇳🇱',
 };

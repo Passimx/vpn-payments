@@ -107,4 +107,6 @@ export default {
   de_flag: '🇩🇪',
   hk_name: '香港',
   hk_flag: '🇭🇰',
+  nl_name: '荷兰',
+  nl_flag: '🇳🇱',
 };
