@@ -30,6 +30,9 @@ export class TelegramService {
     number,
     { id: string; promoCode: string; isRenew: boolean }
   >();
+  // Продление: выбранный ключ и тариф
+  private pendingRenewKeyId = new Map<number, string>();
+  private pendingRenewTariffId = new Map<number, string>();
 
   constructor(
     private readonly em: EntityManager,
@@ -356,6 +359,10 @@ export class TelegramService {
   onBtn5 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
     const telegramId = ctx?.from?.id;
+    if (telegramId) {
+      this.pendingRenewKeyId.delete(telegramId);
+      this.pendingRenewTariffId.delete(telegramId);
+    }
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId },
     });
@@ -463,6 +470,47 @@ export class TelegramService {
     const telegramId = ctx?.from?.id;
     if (!telegramId) return null;
     return this.em.findOne(UserEntity, { where: { telegramId } });
+  }
+
+  // Общий список тарифов (покупка и продление)
+  private async showActiveTariffsList(
+    ctx: Context,
+    user: UserEntity,
+    backButtonRow: ReturnType<typeof Markup.button.callback>[],
+    omitTariffId?: string,
+  ): Promise<void> {
+    const tariffs = await this.em.find(TariffEntity, {
+      where: { active: true },
+      order: { price: 'ASC' },
+    });
+    const list =
+      omitTariffId && omitTariffId.length
+        ? tariffs.filter((t) => t.id !== omitTariffId)
+        : tariffs;
+    if (!list.length) {
+      await ctx
+        .editMessageText(
+          `${this.t(ctx, 'active_tariffs_not_found')}.`,
+          Markup.inlineKeyboard([backButtonRow]),
+        )
+        .catch(() => {});
+      return;
+    }
+    const tariffButtons = list.map((t) => [
+      Markup.button.callback(
+        `${t.name} — ${t.price} ${this.t(ctx, 'rub')}`,
+        `T:${t.id}`,
+      ),
+    ]);
+    await ctx
+      .editMessageText(
+        `${this.t(ctx, 'balance')}: ${user.balance} ${this.t(ctx, 'rub')}\n<b>${this.t(ctx, 'select_tariff')}:</b>`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([...tariffButtons, backButtonRow]),
+        },
+      )
+      .catch(() => {});
   }
 
   private async showTariffScreen(
@@ -673,50 +721,28 @@ export class TelegramService {
     if (!user) return;
 
     ctx.answerCbQuery().catch(() => {});
-    const tariffs = await this.em.find(TariffEntity, {
-      where: { active: true },
-      order: { price: 'ASC' },
-    });
-
-    if (!tariffs.length) {
-      await ctx
-        .editMessageText(
-          `${this.t(ctx, 'active_tariffs_not_found')}.`,
-          Markup.inlineKeyboard([
-            [this.backToProfileButton(ctx.from?.language_code)],
-          ]),
-        )
-        .catch(() => {});
-      return;
+    if (telegramId) {
+      this.pendingRenewKeyId.delete(telegramId);
+      this.pendingRenewTariffId.delete(telegramId);
     }
-
-    const tariffButtons = tariffs.map((t) => [
-      Markup.button.callback(
-        `${t.name} — ${t.price} ${this.t(ctx, 'rub')}`,
-        `T:${t.id}`,
-      ),
+    await this.showActiveTariffsList(ctx, user, [
+      this.backToProfileButton(ctx.from?.language_code),
     ]);
-
-    await ctx
-      .editMessageText(
-        `${this.t(ctx, 'balance')}: ${user.balance} ${this.t(ctx, 'rub')}\n<b>${this.t(ctx, 'select_tariff')}:</b>`,
-        {
-          parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([
-            ...tariffButtons,
-            [this.backToProfileButton(ctx.from?.language_code)],
-          ]),
-        },
-      )
-      .catch(() => {});
   };
 
   onTariffSelect = async (ctx: Context) => {
     ctx.answerCbQuery().catch(() => {});
     const telegramId = ctx?.from?.id;
+    const renewKeyId = telegramId
+      ? this.pendingRenewKeyId.get(telegramId)
+      : undefined;
     if (telegramId) {
       this.waitingForPromo.delete(telegramId);
       this.pendingPromo.delete(telegramId);
+      if (!renewKeyId) {
+        this.pendingRenewKeyId.delete(telegramId);
+        this.pendingRenewTariffId.delete(telegramId);
+      }
     }
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const tariffId = callbackData.replace('T:', '');
@@ -728,6 +754,16 @@ export class TelegramService {
       await ctx
         .answerCbQuery(`${this.t(ctx, 'tariff_not_found')}.`)
         .catch(() => {});
+      return;
+    }
+
+    if (renewKeyId && telegramId) {
+      this.pendingRenewTariffId.set(telegramId, tariff.id);
+      await this.showTariffScreen(ctx, tariff, {
+        buyCallback: `BUY_KEY:${renewKeyId}`,
+        promoCallback: `PROMO_KEY:${renewKeyId}`,
+        backCallback: `RENEW:${renewKeyId}`,
+      });
       return;
     }
 
@@ -838,9 +874,29 @@ export class TelegramService {
       if (telegramId && promo?.id === id && promo?.isRenew)
         this.pendingPromo.delete(telegramId);
 
+      let renewTariffId =
+        telegramId && this.pendingRenewTariffId.get(telegramId);
+      if (!renewTariffId) {
+        const vk = await this.em.findOne(UserKeyEntity, {
+          where: { id, userId: user.id },
+        });
+        renewTariffId = vk?.tariffId;
+      }
+      if (!renewTariffId) {
+        await ctx
+          .editMessageText(`❌ ${this.t(ctx, 'tariff_not_found')}`, {
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5')],
+            ]),
+          })
+          .catch(() => {});
+        return;
+      }
+
       const result = await this.keyPurchaseService.renewKey(
         user.id,
         id,
+        renewTariffId,
         promoCode,
       );
       if (!result.ok) {
@@ -858,6 +914,11 @@ export class TelegramService {
           })
           .catch(() => {});
         return;
+      }
+
+      if (telegramId) {
+        this.pendingRenewKeyId.delete(telegramId);
+        this.pendingRenewTariffId.delete(telegramId);
       }
 
       await ctx
@@ -915,6 +976,7 @@ export class TelegramService {
     ctx.answerCbQuery().catch(() => {});
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const keyId = data.replace('RENEW:', '');
+    const telegramId = ctx?.from?.id;
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
 
@@ -927,11 +989,17 @@ export class TelegramService {
       return;
     }
 
-    await this.showTariffScreen(ctx, vpnKey.tariff, {
-      buyCallback: `BUY_KEY:${keyId}`,
-      promoCallback: `PROMO_KEY:${keyId}`,
-      backCallback: 'BTN_5',
-    });
+    if (telegramId) {
+      this.pendingRenewKeyId.set(telegramId, keyId);
+      this.pendingRenewTariffId.delete(telegramId);
+    }
+
+    await this.showActiveTariffsList(
+      ctx,
+      user,
+      [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5')],
+      Envs.telegram.trialTariffId || undefined,
+    );
   };
 
   onRenewPromo = async (ctx: Context) => {
@@ -1061,14 +1129,12 @@ export class TelegramService {
 
     const buttons: ReturnType<typeof Markup.button.callback>[][] = [];
 
-    if (vpnKey.tariff?.id !== Envs.telegram.trialTariffId) {
-      buttons.push([
-        Markup.button.callback(
-          `🔄 ${this.t(ctx, 'extend_key')}`,
-          `RENEW:${vpnKey.id}`,
-        ),
-      ]);
-    }
+    buttons.push([
+      Markup.button.callback(
+        `🔄 ${this.t(ctx, 'extend_key')}`,
+        `RENEW:${vpnKey.id}`,
+      ),
+    ]);
 
     if (vpnKey.protocol === 'xray' && vpnKey.status === 'active') {
       buttons.push([
@@ -1101,15 +1167,20 @@ export class TelegramService {
 
     let tariffId: string;
     if (isRenew) {
-      const vpnKey = await this.em.findOne(UserKeyEntity, {
-        where: { id, userId: user.id },
-        relations: ['tariff'],
-      });
-      if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
-        await ctx.reply(`❌ ${this.t(ctx, 'key_not_found')}`).catch(() => {});
-        return false;
+      const pendingT = this.pendingRenewTariffId.get(telegramId);
+      if (pendingT) {
+        tariffId = pendingT;
+      } else {
+        const vpnKey = await this.em.findOne(UserKeyEntity, {
+          where: { id, userId: user.id },
+          relations: ['tariff'],
+        });
+        if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
+          await ctx.reply(`❌ ${this.t(ctx, 'key_not_found')}`).catch(() => {});
+          return false;
+        }
+        tariffId = vpnKey.tariff.id;
       }
-      tariffId = vpnKey.tariff.id;
     } else {
       tariffId = id;
     }
@@ -1342,14 +1413,12 @@ export class TelegramService {
       user.chatId,
       `${this.t(user.languageCode, 'key_almost_expired')}: ${user.balance}`,
       Markup.inlineKeyboard([
-        ...user.keys
-          .filter((key) => key.tariff?.id !== Envs.telegram.trialTariffId)
-          .map((key, index) => [
-            Markup.button.callback(
-              `🔄 ${this.t(user.languageCode, 'extend_key')} ${index + 1}`,
-              `RENEW:${key.id}`,
-            ),
-          ]),
+        ...user.keys.map((key, index) => [
+          Markup.button.callback(
+            `🔄 ${this.t(user.languageCode, 'extend_key')} ${index + 1}`,
+            `RENEW:${key.id}`,
+          ),
+        ]),
         [this.backToProfileButton(user.languageCode)],
       ]),
     );

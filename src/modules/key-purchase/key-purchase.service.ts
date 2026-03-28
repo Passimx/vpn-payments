@@ -252,6 +252,7 @@ export class KeyPurchaseService {
   async renewKey(
     userId: string,
     keyId: string,
+    tariffId: string,
     promoCode?: string,
   ): Promise<RenewKeyResult> {
     const qr = this.dataSource.createQueryRunner();
@@ -279,13 +280,23 @@ export class KeyPurchaseService {
         return { ok: false, error: 'Тариф для ключа не найден' };
       }
 
-      const tariff = vpnKey.tariff;
-      if (tariff.id === Envs.telegram.trialTariffId) {
+      const tariff = await qr.manager.findOne(TariffEntity, {
+        where: { id: tariffId, active: true },
+      });
+      if (!tariff) {
+        return { ok: false, error: 'Тариф не найден' };
+      }
+
+      if (
+        Envs.telegram.trialTariffId &&
+        tariff.id === Envs.telegram.trialTariffId
+      ) {
         return {
           ok: false,
-          error: 'Пробный ключ нельзя продлевать. Оформите платный тариф.',
+          error: 'Пробный тариф недоступен для продления.',
         };
       }
+
       let finalPrice = Number(tariff.price);
       let appliedPromo: PromoCodeEntity | null = null;
 
@@ -352,6 +363,7 @@ export class KeyPurchaseService {
         .set({
           expiresAt,
           status: 'active' as const,
+          tariffId: tariff.id,
         })
         .where('id = :id', { id: vpnKey.id })
         .execute();
