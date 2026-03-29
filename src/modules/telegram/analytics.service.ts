@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
-import { PaymentsEntity } from '../database/entities/balance-debit.entity';
+import { PaymentsEntity } from '../database/entities/payment.entity';
 import { AnalyticEntity } from '../database/entities/analytic.entity';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { UserKeyEntity } from '../database/entities/user-key.entity';

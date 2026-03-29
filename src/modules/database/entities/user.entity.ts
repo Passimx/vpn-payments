@@ -42,7 +42,7 @@ export class UserEntity {
   })
   readonly languageCode?: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
 
   @OneToMany(() => UserKeyEntity, (userKey) => userKey.user)
