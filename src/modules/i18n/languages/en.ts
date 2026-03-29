@@ -4,7 +4,7 @@ export default {
     '🔑 Fast VPN key delivery\n\n' +
     '🏎️ Stable and unlimited data transfer speed\n\n' +
     '🚌 Even distribution of users across servers\n\n' +
-    '🌍 Ability to choose a country\n' +
+    '🌍 Ability to choose a country\n\n' +
     '💰 Payments with Russian bank cards and cryptocurrency\n\n' +
     '💨 Servers do not keep logs of connections or user activity\n\n' +
     '🫂 Live support will resolve all your questions',
@@ -112,4 +112,10 @@ export default {
   hk_flag: '🇭🇰',
   nl_name: 'Netherlands',
   nl_flag: '🇳🇱',
+
+  tariff_3: 'Trial (3 days)',
+  tariff_30: '30 days',
+  tariff_60: '60 days',
+  tariff_90: '90 days',
+  tariff_365: '365 days',
 };

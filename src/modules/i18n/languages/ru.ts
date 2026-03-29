@@ -113,4 +113,10 @@ export default {
   hk_flag: '🇭🇰',
   nl_name: 'Нидерланды',
   nl_flag: '🇳🇱',
+
+  tariff_3: 'Пробный (3 дня)',
+  tariff_30: '30 дней',
+  tariff_60: '60 дней',
+  tariff_90: '90 дней',
+  tariff_365: '365 дней',
 };

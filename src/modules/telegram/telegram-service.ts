@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager, Not } from 'typeorm';
+import { EntityManager, MoreThanOrEqual, Not } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -380,6 +380,7 @@ export class TelegramService {
         .editMessageText(`${this.t(ctx, 'no_active_keys')}.`, {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
+            [Markup.button.callback(`🛒 ${this.t(ctx, 'buy_key')}`, 'BTN_9')],
             [this.backToProfileButton(ctx.from?.language_code)],
           ]),
         })
@@ -477,16 +478,18 @@ export class TelegramService {
     ctx: Context,
     user: UserEntity,
     backButtonRow: ReturnType<typeof Markup.button.callback>[],
-    omitTariffId?: string,
   ): Promise<void> {
-    const tariffs = await this.em.find(TariffEntity, {
-      where: { active: true },
+    const userKey = await this.em.exists(UserKeyEntity, {
+      where: { userId: user.id },
+    });
+
+    const list = await this.em.find(TariffEntity, {
+      where: userKey
+        ? { active: true, price: MoreThanOrEqual(1) } // если есть хотя бы один ключ → показываем только платные
+        : { active: true }, // иначе платные и бесплатные период
       order: { price: 'ASC' },
     });
-    const list =
-      omitTariffId && omitTariffId.length
-        ? tariffs.filter((t) => t.id !== omitTariffId)
-        : tariffs;
+
     if (!list.length) {
       await ctx
         .editMessageText(
@@ -498,7 +501,7 @@ export class TelegramService {
     }
     const tariffButtons = list.map((t) => [
       Markup.button.callback(
-        `${t.name} — ${t.price} ${this.t(ctx, 'rub')}`,
+        `${this.t(ctx, `tariff_${t.expirationDays}`)} — ${t.price} ${this.t(ctx, 'rub')}`,
         `T:${t.id}`,
       ),
     ]);
@@ -522,13 +525,9 @@ export class TelegramService {
       backCallback: string;
     },
   ): Promise<void> {
-    const trafficText =
-      tariff.isUnlimited || tariff.trafficGb === 0
-        ? this.t(ctx, 'unlimited')
-        : `${tariff.trafficGb} GB`;
     const text =
-      `📦 <b>${tariff.name}</b>\n\n` +
-      `📊 ${this.t(ctx, 'traffic')}: ${trafficText}\n` +
+      `📦 <b>${this.t(ctx, `tariff_${tariff.expirationDays}`)}</b>\n\n` +
+      `📊 ${this.t(ctx, 'traffic')}: ${this.t(ctx, 'unlimited')}\n` +
       `📅 ${this.t(ctx, 'term')}: ${tariff.expirationDays} ${this.t(ctx, 'days')}\n` +
       `💰 ${this.t(ctx, 'price')}: ${tariff.price} ${this.t(ctx, 'rub')}\n`;
 
@@ -932,12 +931,7 @@ export class TelegramService {
         .catch(() => {});
     } else {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
-      const promoCode =
-        id === Envs.telegram.trialTariffId
-          ? 'TRIAL'
-          : promo?.id === id && !promo?.isRenew
-            ? promo.promoCode
-            : undefined;
+      const promoCode = promo?.promoCode;
       if (telegramId && promo?.id === id && !promo?.isRenew)
         this.pendingPromo.delete(telegramId);
 
@@ -994,12 +988,9 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
 
-    await this.showActiveTariffsList(
-      ctx,
-      user,
-      [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5')],
-      Envs.telegram.trialTariffId || undefined,
-    );
+    await this.showActiveTariffsList(ctx, user, [
+      Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5'),
+    ]);
   };
 
   onRenewPromo = async (ctx: Context) => {

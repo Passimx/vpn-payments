@@ -14,6 +14,7 @@ export class I18nService {
   };
 
   t(lang: string = 'en', key: string): string {
+    if (['uk', 'uz', 'kz'].includes(lang)) key = 'ru'; // uz, uk, kz -> ru
     const normalized = lang?.toLowerCase().split('-')[0]; // zh-hans -> zh
     const locale = this.langs[normalized] ?? this.langs.en;
     return locale[key] ?? key;

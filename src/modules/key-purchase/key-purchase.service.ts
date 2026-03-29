@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import { DataSource } from 'typeorm';
-import { Envs } from '../../common/env/envs';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { PaymentsEntity } from '../database/entities/payment.entity';
@@ -10,23 +9,9 @@ import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { BlitzService } from '../blitz/blitz.service';
 import { AmneziaService } from '../amnezia/amnezia-service';
-
-export type PurchaseResult =
-  | { ok: true; uri: string; keyId: string }
-  | { ok: false; error: string };
-
-export type RenewKeyResult =
-  | { ok: true; keyId: string }
-  | { ok: false; error: string };
-
-export type PriceWithPromoResult =
-  | {
-      ok: true;
-      originalPrice: number;
-      finalPrice: number;
-      appliedPromo: PromoCodeEntity;
-    }
-  | { ok: false; error: string };
+import { PurchaseResult } from './types/purchase-result.type';
+import { RenewKeyResult } from './types/renew-key-result.type';
+import { PriceWithPromoResult } from './types/price-with-promo-result.type';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -112,7 +97,6 @@ export class KeyPurchaseService {
         const createResult = await this.blitzService.createUserKey({
           username,
           expirationDays: tariff.expirationDays,
-          isUnlimited: tariff.isUnlimited || tariff.trafficGb === 0,
           note: user.id,
         });
 
@@ -285,16 +269,6 @@ export class KeyPurchaseService {
       });
       if (!tariff) {
         return { ok: false, error: 'Тариф не найден' };
-      }
-
-      if (
-        Envs.telegram.trialTariffId &&
-        tariff.id === Envs.telegram.trialTariffId
-      ) {
-        return {
-          ok: false,
-          error: 'Пробный тариф недоступен для продления.',
-        };
       }
 
       let finalPrice = Number(tariff.price);
