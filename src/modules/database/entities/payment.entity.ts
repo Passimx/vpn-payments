@@ -27,7 +27,7 @@ export class PaymentsEntity {
   @Column({ name: 'vpn_key_id', type: 'varchar' })
   readonly vpnKeyId: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })

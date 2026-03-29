@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 import { Envs } from '../../common/env/envs';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
-import { PaymentsEntity } from '../database/entities/balance-debit.entity';
+import { PaymentsEntity } from '../database/entities/payment.entity';
 import { PromoCodeEntity } from '../database/entities/promo-code.entity';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
