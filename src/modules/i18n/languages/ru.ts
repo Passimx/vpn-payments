@@ -69,7 +69,8 @@ export default {
   how_to_put_money: 'Как пополнить баланс',
   how_to_connect_key: 'Как подключить ключ',
   video_instruction: 'Видео инструкция',
-  key_almost_expired: 'Срок действия ключа подходит к концу.\nБаланс',
+  key_almost_expired:
+    'Срок действия ключа подходит к концу.\nНе забудьте продлить его заранее, чтобы не потерять подключение к VPN.',
   app_links: 'Ссылки на приложение',
   no_active_keys: 'У вас нет активных ключей',
   amount: 'Сумма',
@@ -113,4 +114,10 @@ export default {
   hk_flag: '🇭🇰',
   nl_name: 'Нидерланды',
   nl_flag: '🇳🇱',
+
+  tariff_3: 'Пробный (3 дня)',
+  tariff_30: '30 дней',
+  tariff_60: '60 дней',
+  tariff_90: '90 дней',
+  tariff_365: '365 дней',
 };

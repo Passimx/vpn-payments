@@ -47,14 +47,12 @@ export class BlitzService {
   async createUserKey(params: {
     username: string;
     expirationDays: number;
-    isUnlimited: boolean;
     note?: string;
   }): Promise<{ success: boolean; error?: string }> {
     try {
       const body = {
         username: params.username,
         expiration_days: params.expirationDays,
-        unlimited: params.isUnlimited,
         note: params.note ?? null,
       };
 

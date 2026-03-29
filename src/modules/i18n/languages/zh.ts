@@ -4,7 +4,7 @@ export default {
     '🔑 快速获取 VPN 密钥\n\n' +
     '🏎️ 稳定且不限速的网络连接\n\n' +
     '🚌 用户在服务器之间智能分配\n\n' +
-    '🌍 可选择国家\n' +
+    '🌍 可选择国家\n\n' +
     '💰 支持俄罗斯银行卡和加密货币支付\n\n' +
     '💨 服务器不会记录连接日志或用户活动\n\n' +
     '🫂 在线客服随时为您解答问题',
@@ -65,7 +65,7 @@ export default {
   how_to_put_money: '如何充值',
   how_to_connect_key: '如何连接密钥',
   video_instruction: '视频教程',
-  key_almost_expired: '密钥即将过期。\n余额',
+  key_almost_expired: '密钥即将到期。\n请提前续费，以免失去 VPN 连接。',
   app_links: '应用下载',
   no_active_keys: '您没有有效的密钥',
   amount: '金额',
@@ -109,4 +109,10 @@ export default {
   hk_flag: '🇭🇰',
   nl_name: '荷兰',
   nl_flag: '🇳🇱',
+
+  tariff_3: '试用（3天）',
+  tariff_30: '30天',
+  tariff_60: '60天',
+  tariff_90: '90天',
+  tariff_365: '365天',
 };
