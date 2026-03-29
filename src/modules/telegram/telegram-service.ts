@@ -372,7 +372,6 @@ export class TelegramService {
       where: { userId: user.id },
       relations: ['tariff', 'server'],
       order: { createdAt: 'DESC' },
-      take: 10,
     });
 
     if (!keys.length) {
@@ -387,23 +386,7 @@ export class TelegramService {
         .catch(console.log);
     }
 
-    const keyRows = keys.map(({ id, expiresAt, status, server }, index) => {
-      const expires = new Date(expiresAt).toLocaleDateString('ru-RU', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-
-      const labelParts = [
-        `${index + 1}) [${this.t(ctx, `${server.code}_name`)}]`,
-        this.t(ctx, status),
-        `${this.t(ctx, 'until')}: ${expires}`,
-      ];
-
-      return [
-        Markup.button.callback(labelParts.join(' • '), `KEY_DETAILS:${id}`),
-      ];
-    });
+    const keyRows = this.prepareKeysToButtons(ctx, keys);
 
     await ctx
       .editMessageText(`<b>🔑 ${this.t(ctx, 'my_keys')}</b>\n\n`, {
@@ -1312,7 +1295,6 @@ export class TelegramService {
   }
 
   public async send8MarchMessage(user: UserEntity) {
-    if (!user.chatId) return;
     const filePath = path.join(
       __dirname,
       '../',
@@ -1343,8 +1325,6 @@ export class TelegramService {
   }
 
   public async sendRequestToBuyKey(user: UserEntity) {
-    if (!user.chatId) return;
-
     const filePath = path.join(
       __dirname,
       '../',
@@ -1398,18 +1378,13 @@ export class TelegramService {
   }
 
   public async sendAlmostExpiredKey(user: UserEntity) {
-    if (!user.chatId) return;
+    const keys = this.prepareKeysToButtons(user.languageCode, user.keys);
 
     await this.bot.telegram.sendMessage(
       user.chatId,
-      `${this.t(user.languageCode, 'key_almost_expired')}: ${user.balance}`,
+      this.t(user.languageCode, 'key_almost_expired'),
       Markup.inlineKeyboard([
-        ...user.keys.map((key, index) => [
-          Markup.button.callback(
-            `🔄 ${this.t(user.languageCode, 'extend_key')} ${index + 1}`,
-            `RENEW:${key.id}`,
-          ),
-        ]),
+        ...keys,
         [this.backToProfileButton(user.languageCode)],
       ]),
     );
@@ -1423,9 +1398,10 @@ export class TelegramService {
       .having('COUNT(keys.id) = 0')
       .getMany();
 
-    await Promise.all(
-      users.map(async (user) => this.sendRequestToBuyKey(user)),
-    );
+    for (const user of users) {
+      await this.sendRequestToBuyKey(user);
+      await new Promise((r) => setTimeout(r, 100));
+    }
   }
 
   public async sendMessageEveryOne(key: string) {
@@ -1503,4 +1479,27 @@ export class TelegramService {
 
     return { text, extra };
   };
+
+  private prepareKeysToButtons(
+    ctx: Context | string | undefined,
+    keys: UserKeyEntity[],
+  ) {
+    return keys.map(({ id, expiresAt, status, server }, index) => {
+      const expires = new Date(expiresAt).toLocaleDateString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+
+      const labelParts = [
+        `${index + 1}) [${this.t(ctx, `${server.code}_name`)}]`,
+        this.t(ctx, status),
+        `${this.t(ctx, 'until')}: ${expires}`,
+      ];
+
+      return [
+        Markup.button.callback(labelParts.join(' • '), `KEY_DETAILS:${id}`),
+      ];
+    });
+  }
 }

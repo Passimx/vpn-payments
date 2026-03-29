@@ -68,7 +68,8 @@ export default {
   how_to_put_money: 'How to top up balance',
   how_to_connect_key: 'How to connect a key',
   video_instruction: 'Video instruction',
-  key_almost_expired: 'The key is about to expire.\nBalance',
+  key_almost_expired:
+    "The key is about to expire.\nDon't forget to renew it in advance to avoid losing your VPN connection.",
   app_links: 'App links',
   no_active_keys: 'You have no active keys',
   amount: 'Amount',

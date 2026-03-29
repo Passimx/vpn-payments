@@ -65,7 +65,7 @@ export default {
   how_to_put_money: '如何充值',
   how_to_connect_key: '如何连接密钥',
   video_instruction: '视频教程',
-  key_almost_expired: '密钥即将过期。\n余额',
+  key_almost_expired: '密钥即将到期。\n请提前续费，以免失去 VPN 连接。',
   app_links: '应用下载',
   no_active_keys: '您没有有效的密钥',
   amount: '金额',

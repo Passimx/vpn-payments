@@ -330,15 +330,15 @@ export class AmneziaService {
         keys: {
           status: 'active',
           expiresAt: LessThanOrEqual(nowPlusOneDay),
-          tariff: { expirationDays: MoreThanOrEqual(30) },
         },
       },
-      relations: ['keys', 'keys.tariff'],
+      relations: ['keys', 'keys.server'],
     });
 
-    await Promise.all(
-      users.map((user) => this.telegramService.sendAlmostExpiredKey(user)),
-    );
+    for (const user of users) {
+      await this.telegramService.sendAlmostExpiredKey(user);
+      await new Promise((r) => setTimeout(r, 100));
+    }
   }
 
   public async checkExpiredKeys() {
