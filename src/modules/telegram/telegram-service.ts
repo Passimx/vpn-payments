@@ -425,12 +425,12 @@ export class TelegramService {
           ...Markup.inlineKeyboard([
             [
               Markup.button.callback(
-                `50 ${this.t(ctx, 'rub')}`,
-                `BUTTON_MONEY:50`,
-              ),
-              Markup.button.callback(
                 `100 ${this.t(ctx, 'rub')}`,
                 `BUTTON_MONEY:100`,
+              ),
+              Markup.button.callback(
+                `200 ${this.t(ctx, 'rub')}`,
+                `BUTTON_MONEY:200`,
               ),
             ],
             [
@@ -439,8 +439,8 @@ export class TelegramService {
                 `BUTTON_MONEY:300`,
               ),
               Markup.button.callback(
-                `500 ${this.t(ctx, 'rub')}`,
-                `BUTTON_MONEY:500`,
+                `1000 ${this.t(ctx, 'rub')}`,
+                `BUTTON_MONEY:1000`,
               ),
             ],
             [this.backToProfileButton(ctx.from?.language_code)],
