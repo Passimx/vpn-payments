@@ -109,6 +109,8 @@ export default {
   hk_flag: '🇭🇰',
   nl_name: '荷兰',
   nl_flag: '🇳🇱',
+  se_name: '瑞典',
+  se_flag: '🇸🇪',
 
   tariff_3: '试用（3天）',
   tariff_30: '30天',

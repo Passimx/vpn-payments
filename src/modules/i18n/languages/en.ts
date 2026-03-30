@@ -113,6 +113,8 @@ export default {
   hk_flag: '🇭🇰',
   nl_name: 'Netherlands',
   nl_flag: '🇳🇱',
+  se_name: 'Sweden',
+  se_flag: '🇸🇪',
 
   tariff_3: 'Trial (3 days)',
   tariff_30: '30 days',
