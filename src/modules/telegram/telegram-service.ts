@@ -462,18 +462,8 @@ export class TelegramService {
     user: UserEntity,
     backButtonRow: ReturnType<typeof Markup.button.callback>[],
   ): Promise<void> {
-    const userKey = await this.em.exists(UserKeyEntity, {
-      where: { userId: user.id },
-    });
-
-    const list = await this.em.find(TariffEntity, {
-      where: userKey
-        ? { active: true, price: MoreThanOrEqual(1) } // если есть хотя бы один ключ → показываем только платные
-        : { active: true }, // иначе платные и бесплатные период
-      order: { price: 'ASC' },
-    });
-
-    if (!list.length) {
+    const tariffButtons = await this.tariffsButtons(user);
+    if (!tariffButtons.length) {
       await ctx
         .editMessageText(
           `${this.t(ctx, 'active_tariffs_not_found')}.`,
@@ -482,12 +472,7 @@ export class TelegramService {
         .catch(() => {});
       return;
     }
-    const tariffButtons = list.map((t) => [
-      Markup.button.callback(
-        `${this.t(ctx, `tariff_${t.expirationDays}`)} — ${t.price} ${this.t(ctx, 'rub')}`,
-        `T:${t.id}`,
-      ),
-    ]);
+
     await ctx
       .editMessageText(
         `${this.t(ctx, 'balance')}: ${user.balance} ${this.t(ctx, 'rub')}\n<b>${this.t(ctx, 'select_tariff')}:</b>`,
@@ -1287,11 +1272,41 @@ export class TelegramService {
       `${this.t(user.languageCode, 'improve_balance')} <b>${Math.ceil(balance)} ${this.t(user.languageCode, 'rub')}</b>`,
       { parse_mode: 'HTML' },
     );
-    await this.bot.telegram.sendMessage(
-      user.chatId,
-      `${this.t(user.languageCode, 'select_action')}:`,
-      this.menu(user.languageCode),
-    );
+
+    const userKeyExists = await this.em.exists(UserKeyEntity, {
+      where: { userId },
+    });
+
+    if (userKeyExists) {
+      await this.bot.telegram
+        .sendMessage(
+          user.chatId,
+          `${this.t(user.languageCode, 'select_action')}:`,
+          this.menu(user.languageCode),
+        )
+        .catch(() => {});
+
+      return;
+    }
+
+    const tariffButtons = await this.tariffsButtons(user);
+    await this.bot.telegram
+      .sendMessage(
+        user.chatId,
+        `${this.t(user.languageCode, 'balance')}: ${user.balance} ${this.t(user.languageCode, 'rub')}\n<b>${this.t(user.languageCode, 'select_tariff')}:</b>`,
+        {
+          ...Markup.inlineKeyboard([
+            ...tariffButtons,
+            [
+              Markup.button.callback(
+                `🌐️ ${this.t(user.languageCode, 'menu')}`,
+                'BTN_1',
+              ),
+            ],
+          ]),
+        },
+      )
+      .catch(() => {});
   }
 
   public async send8MarchMessage(user: UserEntity) {
@@ -1479,6 +1494,26 @@ export class TelegramService {
 
     return { text, extra };
   };
+
+  private async tariffsButtons(user: UserEntity) {
+    const userKey = await this.em.exists(UserKeyEntity, {
+      where: { userId: user.id },
+    });
+
+    const list = await this.em.find(TariffEntity, {
+      where: userKey
+        ? { active: true, price: MoreThanOrEqual(1) } // если есть хотя бы один ключ → показываем только платные
+        : { active: true }, // иначе платные и бесплатные период
+      order: { price: 'ASC' },
+    });
+
+    return list.map((t) => [
+      Markup.button.callback(
+        `${this.t(user.languageCode, `tariff_${t.expirationDays}`)} — ${t.price} ${this.t(user.languageCode, 'rub')}`,
+        `T:${t.id}`,
+      ),
+    ]);
+  }
 
   private prepareKeysToButtons(
     ctx: Context | string | undefined,
