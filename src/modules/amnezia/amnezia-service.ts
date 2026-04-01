@@ -3,11 +3,11 @@ import { EntityManager, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { ServerEntity } from '../database/entities/server.entity';
 
 import { UserKeyEntity } from '../database/entities/user-key.entity';
-import { NodeSSH } from 'node-ssh';
 import { TelegramService } from '../telegram/telegram-service';
 import { UserEntity } from '../database/entities/user.entity';
 import { I18nService } from '../i18n/i18n.service';
 import { Context } from 'telegraf';
+import { ServerDataType } from './types/server-data.type';
 
 @Injectable()
 export class AmneziaService {
@@ -23,29 +23,13 @@ export class AmneziaService {
       const server = await this.getServer();
       if (!server) return;
 
-      const ssh = new NodeSSH();
-      await ssh.connect({
-        host: server.host,
-        username: server.username,
-        password: server.password,
-      });
-
       const uuid = crypto.randomUUID();
-      const xrayKeys = await this.readXrayKeys(ssh);
-      if (!xrayKeys) {
-        ssh.dispose();
-        return;
-      }
+      console.log(uuid);
+      const key = await this.createKey(uuid, user, server);
+      console.log(key);
+      if (!key) return;
 
-      const key = this.exportVpnKey(
-        uuid,
-        server,
-        xrayKeys.publicKey,
-        xrayKeys.shortId,
-        user.languageCode,
-      );
-
-      const userKeyEntity = {
+      return {
         id: uuid,
         userId: user.id,
         serverId: server.id,
@@ -53,14 +37,8 @@ export class AmneziaService {
         protocol: 'xray',
         tariffId,
         expiresAt: new Date(),
+        status: 'active',
       } as UserKeyEntity;
-
-      const added = await this.addXrayClient(ssh, server, uuid);
-      if (!added) return;
-
-      ssh.dispose();
-
-      return userKeyEntity;
     } catch (error) {
       console.error(error);
       return undefined;
@@ -71,7 +49,7 @@ export class AmneziaService {
     const keyId = keyEntity.id;
     const server = keyEntity.server;
 
-    const removed = await this.removeXrayClientFromServer(server, keyId);
+    const removed = await this.removeKey(server, keyId);
     if (!removed) return;
 
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
@@ -82,22 +60,13 @@ export class AmneziaService {
   public async reactivateXrayKey(keyId: string): Promise<boolean> {
     const keyEntity = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['server'],
+      relations: ['server', 'user'],
     });
     if (!keyEntity || !keyEntity.server) return false;
     const server = keyEntity.server;
 
-    const ssh = new NodeSSH();
-    await ssh.connect({
-      host: server.host,
-      username: server.username,
-      password: server.password,
-    });
-
-    const added = await this.addXrayClient(ssh, server, keyId);
-    ssh.dispose();
-
-    return added;
+    const key = await this.createKey(keyId, keyEntity.user, server);
+    return !!key;
   }
 
   public async migrateXrayKeyToAnotherServer(
@@ -121,31 +90,8 @@ export class AmneziaService {
 
     if (!newServer) return null;
 
-    const ssh = new NodeSSH();
-    await ssh.connect({
-      host: newServer.host,
-      username: newServer.username,
-      password: newServer.password,
-    });
-
-    const xrayKeys = await this.readXrayKeys(ssh);
-    if (!xrayKeys) {
-      ssh.dispose();
-      return null;
-    }
-
-    const newKey = this.exportVpnKey(
-      keyId,
-      newServer,
-      xrayKeys.publicKey,
-      xrayKeys.shortId,
-      keyEntity.user.languageCode,
-    );
-
-    const added = await this.addXrayClient(ssh, newServer, keyId);
-    ssh.dispose();
-
-    if (!added) return null;
+    const key = await this.createKey(keyId, keyEntity.user, newServer);
+    if (!key) return null;
 
     await this.em.update(
       UserKeyEntity,
@@ -154,7 +100,7 @@ export class AmneziaService {
       },
       {
         serverId: newServer.id,
-        key: newKey,
+        key,
       },
     );
 
@@ -163,145 +109,14 @@ export class AmneziaService {
         where: { id: keyId, serverId: oldServer.id },
       });
 
-      if (!userKey) await this.removeXrayClientFromServer(oldServer, keyId);
+      if (!userKey) await this.removeKey(oldServer, keyId);
     };
 
     setTimeout(() => {
       checkAndDeleteKey();
     }, 60 * 1000);
 
-    return newKey;
-  }
-
-  private async addXrayClient(
-    ssh: NodeSSH,
-    server: ServerEntity,
-    clientId: string,
-  ): Promise<boolean> {
-    const userConfig = {
-      inbounds: [
-        {
-          tag: 'vless-in',
-          port: server.xRayPort,
-          protocol: 'vless',
-          settings: {
-            clients: [
-              {
-                id: clientId,
-                email: clientId,
-                flow: 'xtls-rprx-vision',
-              },
-            ],
-            decryption: 'none',
-          },
-        },
-      ],
-    };
-
-    const userConfigString = JSON.stringify(userConfig, null, 2).replace(
-      /'/g,
-      "'\\''",
-    );
-
-    const addResult = await ssh.execCommand(`
-      echo '${userConfigString}' | \
-      docker exec -i amnezia-xray sh -c 'cat > /opt/amnezia/xray/user-${clientId}.json' && \
-      docker exec amnezia-xray xray api adu --server=127.0.0.1:10085 /opt/amnezia/xray/user-${clientId}.json && \
-      docker exec amnezia-xray rm -f /opt/amnezia/xray/user-${clientId}.json
-    `);
-
-    if (addResult.stderr) {
-      console.error('[AmneziaService] addXrayClient adu error:', addResult);
-      return false;
-    }
-
-    return true;
-  }
-
-  private async removeXrayClientFromServer(
-    server: ServerEntity,
-    clientId: string,
-  ): Promise<boolean> {
-    const ssh = new NodeSSH();
-    await ssh.connect({
-      host: server.host,
-      username: server.username,
-      password: server.password,
-    });
-
-    const removeResult = await ssh.execCommand(
-      `docker exec amnezia-xray xray api rmu --server=127.0.0.1:10085 -tag="vless-in" "${clientId}"`,
-    );
-    if (removeResult.stderr) {
-      console.error(
-        '[AmneziaService] removeXrayClientFromServer rmu error:',
-        removeResult,
-      );
-      ssh.dispose();
-      return false;
-    }
-
-    ssh.dispose();
-    return true;
-  }
-
-  private async readXrayKeys(
-    ssh: NodeSSH,
-  ): Promise<{ publicKey: string; shortId: string } | null> {
-    const [pubKeyResult, shortIdResult] = await Promise.all([
-      ssh.execCommand(
-        'docker exec amnezia-xray cat /opt/amnezia/xray/xray_public.key',
-      ),
-      ssh.execCommand(
-        'docker exec amnezia-xray cat /opt/amnezia/xray/xray_short_id.key',
-      ),
-    ]);
-
-    if (pubKeyResult.stderr || shortIdResult.stderr) {
-      console.error(
-        '[AmneziaService] readXrayKeys error:',
-        pubKeyResult,
-        shortIdResult,
-      );
-      return null;
-    }
-
-    return {
-      publicKey: pubKeyResult.stdout.trim(),
-      shortId: shortIdResult.stdout.trim(),
-    };
-  }
-
-  private exportVpnKey(
-    uuid: string,
-    server: ServerEntity,
-    xrayPublicKey: string,
-    xrayShortId: string,
-    language_code?: string,
-  ) {
-    const sni = server.xRayServername;
-    const params = new URLSearchParams({
-      encryption: 'none',
-      security: 'reality',
-      sni,
-      fp: 'chrome',
-      pbk: xrayPublicKey,
-      sid: xrayShortId,
-      type: 'tcp',
-      headerType: 'none',
-      flow: 'xtls-rprx-vision',
-    });
-
-    const label = `${this.t(language_code, `${server.code}_flag`)} ${this.t(
-      language_code,
-      `${server.code}_name`,
-    )} (${new Date().toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })})`;
-
-    return `vless://${uuid}@${server.host}:${server.xRayPort}?${params.toString()}#${encodeURIComponent(label)}`;
+    return key;
   }
 
   private async getServer() {
@@ -390,6 +205,41 @@ export class AmneziaService {
     }
 
     return successCount;
+  }
+
+  private async removeKey(server: ServerEntity, id: string): Promise<boolean> {
+    console.log(id);
+    const res = await fetch(`http://${server.host}:440/remove-user`, {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const payload = (await res.json()) as ServerDataType;
+    return !!payload.id;
+  }
+
+  private async createKey(
+    id: string,
+    user: UserEntity,
+    server: ServerEntity,
+  ): Promise<string | null> {
+    const keyName = `${this.t(user.languageCode, `${server.code}_flag`)} ${this.t(user.languageCode, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
+
+    const res = await fetch(`http://${server.host}:440/add-user`, {
+      method: 'POST',
+      body: JSON.stringify({
+        id,
+        host: server.host,
+        keyName: keyName,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (![200, 201].includes(res.status)) return null;
+    const payload = (await res.json()) as ServerDataType;
+    if (!payload.link) return null;
+    return payload.link;
   }
 
   private t(ctx: Context | string | undefined, key: string) {

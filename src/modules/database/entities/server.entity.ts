@@ -9,18 +9,6 @@ export class ServerEntity {
   @Column({ type: 'varchar' })
   readonly host: string;
 
-  @Column({ type: 'varchar' })
-  readonly username: string;
-
-  @Column({ type: 'varchar' })
-  readonly password: string;
-
-  @Column({ type: 'int' })
-  readonly xRayPort: string;
-
-  @Column({ type: 'varchar' })
-  readonly xRayServername: string;
-
   @Column({ name: 'can_default_create_key', type: 'boolean', default: false })
   readonly canDefaultCreateKey: boolean;
 

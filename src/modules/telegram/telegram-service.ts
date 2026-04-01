@@ -1074,15 +1074,13 @@ export class TelegramService {
       });
 
     const lines = [
-      `🔑 <b>${this.t(ctx, 'my_keys')}</b>`,
-      '',
-      `Протокол: <b>${vpnKey.protocol}</b>`,
-      `${this.t(ctx, 'status')}: ${this.t(ctx, vpnKey.status)}`,
-      created ? `${this.t(ctx, 'start_date')}: ${created}` : '',
-      expires ? `${this.t(ctx, 'until')}: ${expires}` : '',
-      `${this.t(ctx, 'country')}: ${this.t(ctx, `${vpnKey.server.code}_name`)}`,
-      '',
-      `${this.t(ctx, 'key')}:`,
+      `🔑 <b>${this.t(ctx, 'my_keys')}</b>\n`,
+      `<b>ID:</b> ${vpnKey.id}`,
+      `<b>${this.t(ctx, 'status')}:</b> ${this.t(ctx, vpnKey.status)}`,
+      created ? `<b>${this.t(ctx, 'start_date')}:</b> ${created}` : '',
+      expires ? `<b>${this.t(ctx, 'until')}:</b> ${expires}` : '',
+      `<b>${this.t(ctx, 'country')}:</b> ${this.t(ctx, `${vpnKey.server.code}_name`)}`,
+      `<b>${this.t(ctx, 'key')}:</b> `,
       `<code>${vpnKey.key}</code>`,
     ].filter(Boolean);
 

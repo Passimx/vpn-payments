@@ -81,16 +81,7 @@ export class KeyPurchaseService {
         createdKeyId = amKey.id;
         vpnUri = amKey.key;
 
-        await qr.manager.insert(UserKeyEntity, {
-          id: createdKeyId,
-          key: vpnUri,
-          protocol: 'xray',
-          userId: user.id,
-          serverId: amKey.serverId,
-          tariffId: tariff.id,
-          expiresAt,
-          status: 'active',
-        });
+        await qr.manager.insert(UserKeyEntity, amKey);
       } else {
         const username = crypto.randomUUID().replace(/-/g, '');
 
