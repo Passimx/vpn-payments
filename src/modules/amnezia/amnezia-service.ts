@@ -8,6 +8,7 @@ import { UserEntity } from '../database/entities/user.entity';
 import { I18nService } from '../i18n/i18n.service';
 import { Context } from 'telegraf';
 import { ServerDataType } from './types/server-data.type';
+import { TariffEntity } from '../database/entities/tariff.entity';
 
 @Injectable()
 export class AmneziaService {
@@ -22,12 +23,16 @@ export class AmneziaService {
     try {
       const server = await this.getServer();
       if (!server) return;
+      const tariff = await this.em.findOneOrFail(TariffEntity, {
+        where: { id: tariffId },
+      });
 
       const uuid = crypto.randomUUID();
-      console.log(uuid);
       const key = await this.createKey(uuid, user, server);
-      console.log(key);
       if (!key) return;
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
       return {
         id: uuid,
@@ -36,7 +41,8 @@ export class AmneziaService {
         key,
         protocol: 'xray',
         tariffId,
-        expiresAt: new Date(),
+        createdAt: new Date(),
+        expiresAt,
         status: 'active',
       } as UserKeyEntity;
     } catch (error) {
