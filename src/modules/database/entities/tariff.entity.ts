@@ -19,6 +19,6 @@ export class TariffEntity {
   @Column({ name: 'active', type: 'boolean', default: true })
   readonly active: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
 }

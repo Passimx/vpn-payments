@@ -39,6 +39,6 @@ export class PromoCodeEntity {
   @JoinColumn({ name: 'user_id' })
   readonly user: UserEntity | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
 }

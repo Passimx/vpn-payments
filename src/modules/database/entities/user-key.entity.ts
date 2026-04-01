@@ -29,7 +29,7 @@ export class UserKeyEntity {
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
 
-  @Column({ name: 'expires_at', type: 'timestamp' })
+  @Column({ name: 'expires_at', type: 'timestamptz' })
   readonly expiresAt: Date;
 
   @Column({
@@ -40,7 +40,7 @@ export class UserKeyEntity {
   })
   readonly status: 'active' | 'expired';
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })

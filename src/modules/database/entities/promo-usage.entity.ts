@@ -22,7 +22,7 @@ export class PromoUsageEntity {
   @Column({ name: 'promo_code_id', type: 'varchar' })
   readonly promoCodeId: string;
 
-  @CreateDateColumn({ name: 'used_at' })
+  @CreateDateColumn({ name: 'used_at', type: 'timestamptz' })
   readonly usedAt: Date;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
