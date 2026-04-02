@@ -62,7 +62,6 @@ export class AmneziaService {
     return true;
   }
 
-  // повторно включает Xray-ключ на сервере (для продления), без изменения URI
   public async reactivateXrayKey(keyId: string): Promise<boolean> {
     const keyEntity = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId },
@@ -177,6 +176,7 @@ export class AmneziaService {
     for (const key of expiredKeys) {
       try {
         await this.deleteXrayKey(key);
+        await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
         console.error(
           '[AmneziaService] checkExpiredKeys error for key',
@@ -214,7 +214,6 @@ export class AmneziaService {
   }
 
   private async removeKey(server: ServerEntity, id: string): Promise<boolean> {
-    console.log(id);
     const res = await fetch(`http://${server.host}:440/remove-user`, {
       method: 'POST',
       body: JSON.stringify({ id }),
