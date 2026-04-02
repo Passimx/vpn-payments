@@ -170,12 +170,13 @@ export class AmneziaService {
         status: 'active',
         expiresAt: LessThanOrEqual(now),
       },
-      relations: ['server'],
+      relations: ['server', 'user'],
     });
 
     for (const key of expiredKeys) {
       try {
         await this.deleteXrayKey(key);
+        await this.telegramService.sendMessageKeyExpired(key);
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
         console.error(

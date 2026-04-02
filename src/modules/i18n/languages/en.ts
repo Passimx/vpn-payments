@@ -70,6 +70,8 @@ export default {
   video_instruction: 'Video instruction',
   key_almost_expired:
     "The key is about to expire.\nDon't forget to renew it in advance to avoid losing your VPN connection.",
+  key_expired:
+    'The key has expired.\nTo activate it, press the button and extend its validity.',
   app_links: 'App links',
   no_active_keys: 'You have no active keys',
   amount: 'Amount',

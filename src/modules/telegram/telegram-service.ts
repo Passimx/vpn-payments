@@ -1434,6 +1434,29 @@ export class TelegramService {
     }
   }
 
+  public async sendMessageKeyExpired(key: UserKeyEntity) {
+    const user = key.user;
+
+    const buttons = this.prepareKeysToButtons(user.languageCode, [key]);
+    await this.bot.telegram.sendMessage(
+      user.chatId,
+      `${this.t(user.languageCode, 'key_expired')}\n` +
+        `${this.t(user.languageCode, 'select_action')}:`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          ...buttons,
+          [
+            Markup.button.callback(
+              `⬅️ ${this.t(user.languageCode, 'back')}`,
+              'BTN_2',
+            ),
+          ],
+        ]),
+      },
+    );
+  }
+
   public async sendMessageEveryOne(key: string) {
     const filePath = path.join(
       __dirname,
