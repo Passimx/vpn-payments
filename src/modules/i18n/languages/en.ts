@@ -117,6 +117,8 @@ export default {
   nl_flag: '🇳🇱',
   se_name: 'Sweden',
   se_flag: '🇸🇪',
+  kz_name: 'Kazakhstan',
+  kz_flag: '🇰🇿',
 
   tariff_3: 'Trial (3 days)',
   tariff_30: '30 days',

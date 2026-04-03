@@ -112,6 +112,8 @@ export default {
   nl_flag: '🇳🇱',
   se_name: '瑞典',
   se_flag: '🇸🇪',
+  kz_name: '哈萨克斯坦',
+  kz_flag: '🇰🇿',
 
   tariff_3: '试用（3天）',
   tariff_30: '30天',

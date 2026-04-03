@@ -14,7 +14,7 @@ import { resolve } from 'path';
       username: Envs.database.username,
       password: Envs.database.password,
       synchronize: true,
-      logging: false,
+      // logging: true,
       entities: [resolve(__dirname + '/../**/*.entity{.ts,.js}')],
     }),
   ],
