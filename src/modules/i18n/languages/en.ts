@@ -8,8 +8,7 @@ export default {
     '💰 Payments with Russian bank cards and cryptocurrency\n\n' +
     '💨 Servers do not keep logs of connections or user activity\n\n' +
     '🫂 Live support will resolve all your questions',
-  short_description:
-    '🔐 Reliable traffic encryption\n🏎️ Stable connection speed',
+  short_description: '🏎️Stable connection speed\n📞Support: @passimx',
   menu: 'Menu',
   instruction: 'Instruction',
   support: 'Support',
@@ -89,6 +88,8 @@ export default {
   change_server: 'Change server country',
   error_try_again_later: 'Server is temporarily unavailable',
 
+  message_wechat:
+    '💳 <b>Payment via WeChat</b>\nScan the QR code, add me on WeChat, and message me — I’ll help you complete your VPN payment.',
   message_try_first_key:
     '<b>Let’s connect your first device</b>\nUse the trial period to get unrestricted internet access\n\nIt will only take a couple of minutes\n\n<b>Having trouble connecting?</b>\nIf you have any questions, you can contact support',
   message_8_march:

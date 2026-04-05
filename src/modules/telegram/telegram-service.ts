@@ -65,13 +65,7 @@ export class TelegramService {
     this.bot.action('BTN_5', this.onBtn5);
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
-    this.bot.action('BTN_10', this.onBtn10);
     this.bot.action('BTN_11', this.onBtn11);
-    this.bot.action('BTN_13', this.onBtn13);
-    this.bot.action('BTN_14', this.onBtn14);
-    this.bot.action('BTN_15', this.onBtn15);
-    this.bot.action('BTN_16', this.onBtn16);
-    this.bot.action('BTN_17', this.onBtn17);
     this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
     this.bot.action(/^MIGRATE_SERVER_COUNTRY:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
@@ -79,6 +73,7 @@ export class TelegramService {
     this.bot.action('ADD_BALANCE', this.onAddBalance);
     this.bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
     this.bot.action('ON_ADD_KEY_INSTRUCTION', this.onAddKeyInstruction);
+    this.bot.action('ON_WECHAT', this.onWechat);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
@@ -173,13 +168,15 @@ export class TelegramService {
         disable_notification: true,
       })
       .catch(console.error);
-    await ctx.reply(
-      `${this.t(ctx, 'welcome')} <b>${this.t(ctx, 'instruction')}</b>\n\n${this.t(ctx, 'select_action')}:`,
-      {
-        parse_mode: 'HTML',
-        ...this.menu(ctx),
-      },
-    );
+    await ctx
+      .reply(
+        `${this.t(ctx, 'welcome')} <b>${this.t(ctx, 'instruction')}</b>\n\n${this.t(ctx, 'select_action')}:`,
+        {
+          parse_mode: 'HTML',
+          ...this.menu(ctx),
+        },
+      )
+      .catch(console.error);
 
     if (!videoMessage) return;
     if (!this.welcomeVideoId) {
@@ -202,6 +199,32 @@ export class TelegramService {
         languageCode: ctx?.from?.language_code,
       });
     }
+  };
+
+  onWechat = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(console.error);
+
+    const filePath = path.join(
+      __dirname,
+      '../',
+      '../',
+      'public',
+      'media',
+      'wechat.jpeg',
+    );
+
+    await ctx
+      .sendPhoto(Input.fromLocalFile(filePath), {
+        caption: this.t(ctx, 'message_wechat'),
+        parse_mode: 'HTML',
+        disable_notification: true,
+      })
+      .catch(console.error);
+    await ctx
+      .sendMessage(`${this.t(ctx, 'select_action')}:`, {
+        ...this.menu(ctx),
+      })
+      .catch(console.error);
   };
 
   onBtn1 = async (ctx: Context) => {
@@ -241,6 +264,7 @@ export class TelegramService {
   };
 
   onAddKeyInstruction = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(console.error);
     const filePath = path.join(
       __dirname,
       '../',
@@ -273,6 +297,7 @@ export class TelegramService {
   };
 
   onAddBalanceInstruction = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(console.error);
     const filePath = path.join(
       __dirname,
       '../',
@@ -304,7 +329,7 @@ export class TelegramService {
   };
 
   onInstruction = async (ctx: Context) => {
-    await ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(console.error);
     await ctx
       .editMessageText(`${this.t(ctx, 'select_action')}:`, {
         parse_mode: 'HTML',
@@ -653,30 +678,6 @@ export class TelegramService {
       .catch(console.error);
   };
 
-  onBtn10 = (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
-  };
-
-  onBtn13 = (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
-  };
-
-  onBtn14 = (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
-  };
-
-  onBtn15 = (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
-  };
-
-  onBtn16 = (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
-  };
-
-  onBtn17 = (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
-  };
-
   onBtn9 = async (ctx: Context) => {
     const telegramId = ctx?.from?.id;
     const user = await this.em.findOne(UserEntity, {
@@ -973,7 +974,6 @@ export class TelegramService {
 
   onMigrateServer = async (ctx: Context) => {
     ctx.answerCbQuery().catch(console.error);
-
     const keyId = (
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).replace('MIGRATE_SERVER:', '');
@@ -1517,21 +1517,24 @@ export class TelegramService {
     const text: string =
       `${this.t(user.languageCode, 'deposit_amount')}: ${amount} ${this.t(user.languageCode, 'rub')}\n` +
       `${this.t(user.languageCode, 'select_payment_method')}:`;
+
+    const buttons = [
+      [
+        ...(result.ok
+          ? [Markup.button.url('💳 YooKassa', result.paymentUrl)]
+          : []),
+        Markup.button.callback(`✳️ WeChat`, 'ON_WECHAT'),
+      ],
+      [
+        Markup.button.callback(
+          `💎 ${this.t(user.languageCode, 'ton')} (+${Envs.crypto.allowance * 100}%)`,
+          'BTN_8',
+        ),
+      ],
+    ];
+
     const extra = Markup.inlineKeyboard([
-      result.ok
-        ? [
-            Markup.button.callback(
-              `💎 ${this.t(user.languageCode, 'ton')} (+${Envs.crypto.allowance * 100}%)`,
-              'BTN_8',
-            ),
-            Markup.button.url('💳 YooKassa', result.paymentUrl),
-          ]
-        : [
-            Markup.button.callback(
-              `💎 ${this.t(user.languageCode, 'ton')} (+${Envs.crypto.allowance * 100}%)`,
-              'BTN_8',
-            ),
-          ],
+      ...buttons,
       [this.backToSetAmountButton(user.languageCode)],
     ]);
 

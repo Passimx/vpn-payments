@@ -8,7 +8,7 @@ export default {
     '💰 支持俄罗斯银行卡和加密货币支付\n\n' +
     '💨 服务器不会记录连接日志或用户活动\n\n' +
     '🫂 在线客服随时为您解答问题',
-  short_description: '🔐 可靠的流量加密\n🏎️ 稳定的连接速度',
+  short_description: '🏎️稳定的连接速度\n📞客服: @passimx',
   menu: '项目',
   instruction: '使用说明',
   support: '客服',
@@ -84,6 +84,8 @@ export default {
   change_server: '更换服务器国家',
   error_try_again_later: '服务器暂时不可用',
 
+  message_wechat:
+    '💳 <b>通过 WeChat 支付</b>\n请扫描二维码添加我，然后发消息给我，我会协助您完成VPN付款。',
   message_try_first_key:
     '<b>让我们连接您的第一个设备</b>\n使用试用即可获得无阻碍的互联网访问\n\n只需几分钟即可完成\n\n<b>连接时遇到问题？</b>\n如有任何问题，请联系客服',
   message_8_march:
