@@ -13,9 +13,8 @@ RUN apt-get update && apt-get install -y \
 FROM base as build
 WORKDIR /app
 COPY . ./
-RUN npm ci --ignore-scripts
+RUN npm ci
 RUN npm run build
-RUN npm prune --omit=dev
 
 FROM base
 WORKDIR /app
