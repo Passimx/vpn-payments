@@ -7,6 +7,7 @@ import { UserEntity } from '../database/entities/user.entity';
 import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
 import { TelegramService } from '../telegram/telegram-service';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class TonService {
@@ -33,7 +34,7 @@ export class TonService {
         limit: 500,
       })
       .catch(() => {
-        console.log('Error while getting ton transactions.');
+        logger.error('Error while getting ton transactions.');
       });
 
     if (!transactions || !transactions.length) return;
@@ -65,7 +66,7 @@ export class TonService {
             createdAt: transaction.now * 1e3,
           } as unknown as TransactionEntity;
         } catch (error) {
-          console.log(error);
+          logger.error(error);
           return undefined as unknown as TransactionEntity;
         }
       }),

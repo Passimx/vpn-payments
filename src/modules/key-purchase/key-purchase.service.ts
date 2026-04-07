@@ -8,7 +8,7 @@ import { PromoCodeEntity } from '../database/entities/promo-code.entity';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { BlitzService } from '../blitz/blitz.service';
-import { AmneziaService } from '../amnezia/amnezia-service';
+import { XrayService } from '../xray/xray-service';
 import { PurchaseResult } from './types/purchase-result.type';
 import { RenewKeyResult } from './types/renew-key-result.type';
 import { PriceWithPromoResult } from './types/price-with-promo-result.type';
@@ -18,7 +18,7 @@ export class KeyPurchaseService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly blitzService: BlitzService,
-    private readonly amneziaService: AmneziaService,
+    private readonly amneziaService: XrayService,
   ) {}
 
   async purchase(

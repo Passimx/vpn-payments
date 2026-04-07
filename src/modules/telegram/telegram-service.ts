@@ -11,10 +11,11 @@ import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import path from 'node:path';
 import { I18nService } from '../i18n/i18n.service';
-import { AmneziaService } from '../amnezia/amnezia-service';
+import { XrayService } from '../xray/xray-service';
 import { ServerEntity } from '../database/entities/server.entity';
 import { AnalyticsService } from './analytics.service';
 import { Archiver } from '@passimx/archiver';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class TelegramService {
@@ -42,13 +43,13 @@ export class TelegramService {
     @Inject(forwardRef(() => AnalyticsService))
     private readonly analyticsService: AnalyticsService,
     private readonly i18nService: I18nService,
-    @Inject(forwardRef(() => AmneziaService))
-    private readonly amneziaService: AmneziaService,
+    @Inject(forwardRef(() => XrayService))
+    private readonly amneziaService: XrayService,
   ) {}
 
   async onModuleInit() {
     this.bot = new Telegraf(Envs.telegram.botToken);
-    this.bot.catch(console.error);
+    this.bot.catch(logger.error);
 
     const archiver = new Archiver({
       apiKey: Envs.telegram.archiverApiKey,
@@ -167,7 +168,7 @@ export class TelegramService {
       .replyWithVideo(this.welcomeVideoId ?? Input.fromLocalFile(filePath), {
         disable_notification: true,
       })
-      .catch(console.error);
+      .catch(logger.error);
     await ctx
       .reply(
         `${this.t(ctx, 'welcome')} <b>${this.t(ctx, 'instruction')}</b>\n\n${this.t(ctx, 'select_action')}:`,
@@ -176,11 +177,11 @@ export class TelegramService {
           ...this.menu(ctx),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
 
     if (!videoMessage) return;
     if (!this.welcomeVideoId) {
-      console.log(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
+      logger.info(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
       this.welcomeVideoId = videoMessage.video.file_id;
     }
 
@@ -202,7 +203,7 @@ export class TelegramService {
   };
 
   onWechat = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
 
     const filePath = path.join(
       __dirname,
@@ -219,16 +220,16 @@ export class TelegramService {
         parse_mode: 'HTML',
         disable_notification: true,
       })
-      .catch(console.error);
+      .catch(logger.error);
     await ctx
       .sendMessage(`${this.t(ctx, 'select_action')}:`, {
         ...this.menu(ctx),
       })
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onBtn1 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const telegramId = ctx?.from?.id;
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId },
@@ -253,18 +254,18 @@ export class TelegramService {
           [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_2')],
         ]),
       )
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onBtn2 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     await ctx
       .editMessageText(`${this.t(ctx, 'select_action')}:`, this.menu(ctx))
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onAddKeyInstruction = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const filePath = path.join(
       __dirname,
       '../',
@@ -283,21 +284,21 @@ export class TelegramService {
         supports_streaming: true,
         disable_notification: true,
       })
-      .catch(console.error);
+      .catch(logger.error);
 
     if (!videoMessage) return;
     if (!this.addKeyVideoId) {
-      console.log(`Set addKeyVideoId = '${videoMessage.video.file_id}'`);
+      logger.info(`Set addKeyVideoId = '${videoMessage.video.file_id}'`);
       this.addKeyVideoId = videoMessage.video.file_id;
     }
 
     await ctx
       .reply(`${this.t(ctx, 'select_action')}:`, this.menu(ctx))
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onAddBalanceInstruction = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const filePath = path.join(
       __dirname,
       '../',
@@ -315,21 +316,21 @@ export class TelegramService {
         supports_streaming: true,
         disable_notification: true,
       })
-      .catch(console.error);
+      .catch(logger.error);
 
     if (!videoMessage) return;
     if (!this.addBalanceVideoId) {
-      console.log(`Set addBalanceVideoId = '${videoMessage.video.file_id}'`);
+      logger.info(`Set addBalanceVideoId = '${videoMessage.video.file_id}'`);
       this.addBalanceVideoId = videoMessage.video.file_id;
     }
 
     await ctx
       .reply(`${this.t(ctx, 'select_action')}:`, this.menu(ctx))
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onInstruction = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     await ctx
       .editMessageText(`${this.t(ctx, 'select_action')}:`, {
         parse_mode: 'HTML',
@@ -350,11 +351,11 @@ export class TelegramService {
           [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_2')],
         ]),
       })
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onBtn4 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const instructionText = `📲 <b>${this.t(ctx, 'app_links')}:</b>`;
     await ctx
       .editMessageText(instructionText, {
@@ -376,11 +377,11 @@ export class TelegramService {
           ],
         ]),
       })
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onBtn5 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const telegramId = ctx?.from?.id;
     if (telegramId) {
       this.pendingRenewKeyId.delete(telegramId);
@@ -406,7 +407,7 @@ export class TelegramService {
             [this.backToProfileButton(ctx.from?.language_code)],
           ]),
         })
-        .catch(console.log);
+        .catch(logger.error);
     }
 
     const keyRows = this.prepareKeysToButtons(ctx, keys);
@@ -419,14 +420,14 @@ export class TelegramService {
           [this.backToProfileButton(ctx.from?.language_code)],
         ]),
       })
-      .catch(console.log);
+      .catch(logger.error);
     return;
   };
 
   onSetButtonMoney = async (ctx: Context) => {
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const amount = Number(callbackData.replace(/^(BUTTON_MONEY):/, ''));
     this.amountMap.set(ctx.from!.id, amount);
@@ -436,7 +437,7 @@ export class TelegramService {
   };
 
   onBalance = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
     this.amountMap.set(ctx.from!.id, 0);
@@ -470,7 +471,7 @@ export class TelegramService {
           ]),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   private async getUserByCtx(ctx: Context): Promise<UserEntity | null> {
@@ -492,7 +493,7 @@ export class TelegramService {
           `${this.t(ctx, 'active_tariffs_not_found')}.`,
           Markup.inlineKeyboard([backButtonRow]),
         )
-        .catch(console.error);
+        .catch(logger.error);
       return;
     }
 
@@ -504,7 +505,7 @@ export class TelegramService {
           ...Markup.inlineKeyboard([...tariffButtons, backButtonRow]),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   private async showTariffScreen(
@@ -544,7 +545,7 @@ export class TelegramService {
           ],
         ]),
       })
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   private async askPromoCode(
@@ -557,11 +558,11 @@ export class TelegramService {
           [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, backCallback)],
         ]),
       })
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   onBtn8 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
@@ -616,11 +617,11 @@ export class TelegramService {
           ]),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onBtn11 = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
     if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
@@ -675,7 +676,7 @@ export class TelegramService {
           ]),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onBtn9 = async (ctx: Context) => {
@@ -686,7 +687,7 @@ export class TelegramService {
 
     if (!user) return;
 
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     if (telegramId) {
       this.pendingRenewKeyId.delete(telegramId);
       this.pendingRenewTariffId.delete(telegramId);
@@ -697,7 +698,7 @@ export class TelegramService {
   };
 
   onTariffSelect = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const telegramId = ctx?.from?.id;
     const renewKeyId = telegramId
       ? this.pendingRenewKeyId.get(telegramId)
@@ -719,7 +720,7 @@ export class TelegramService {
     if (!tariff) {
       await ctx
         .answerCbQuery(`${this.t(ctx, 'tariff_not_found')}.`)
-        .catch(console.error);
+        .catch(logger.error);
       return;
     }
 
@@ -741,7 +742,7 @@ export class TelegramService {
   };
 
   onPromoClick = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const tariffId = data.replace('PROMO:', '');
     const telegramId = ctx?.from?.id;
@@ -782,7 +783,7 @@ export class TelegramService {
           ],
         ] as unknown as Parameters<typeof Markup.inlineKeyboard>[0]),
       })
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   onBuyTariff = async (ctx: Context) => {
@@ -804,7 +805,7 @@ export class TelegramService {
             [Markup.button.callback(`⬅️ ${this.tctx.from?.language_code, 'back}`, `T:${tariffId}`)],
           ]),
         })
-              .catch(console.error);
+              .catch(logger.error);
       return;
     }
     */
@@ -827,11 +828,11 @@ export class TelegramService {
     if (!user) {
       await ctx
         .answerCbQuery(`${this.t(ctx, 'click_start')} /start`)
-        .catch(console.error);
+        .catch(logger.error);
       return;
     }
 
-    await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(console.error);
+    await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(logger.error);
 
     if (isRenew) {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
@@ -855,7 +856,7 @@ export class TelegramService {
               [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5')],
             ]),
           })
-          .catch(console.error);
+          .catch(logger.error);
         return;
       }
 
@@ -878,7 +879,7 @@ export class TelegramService {
               [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_5')],
             ]),
           })
-          .catch(console.error);
+          .catch(logger.error);
         return;
       }
 
@@ -895,7 +896,7 @@ export class TelegramService {
             [this.backToProfileButton(ctx.from?.language_code)],
           ]),
         })
-        .catch(console.error);
+        .catch(logger.error);
     } else {
       const promo = telegramId ? this.pendingPromo.get(telegramId) : undefined;
       const promoCode = promo?.promoCode;
@@ -921,7 +922,7 @@ export class TelegramService {
               [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_9')],
             ]),
           })
-          .catch(console.error);
+          .catch(logger.error);
         return;
       }
 
@@ -934,7 +935,7 @@ export class TelegramService {
   };
 
   onRenewKey = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const keyId = data.replace('RENEW:', '');
     const telegramId = ctx?.from?.id;
@@ -946,9 +947,7 @@ export class TelegramService {
       relations: ['tariff'],
     });
     if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
-      await ctx
-        .answerCbQuery(this.t(ctx, 'key_not_found'))
-        .catch(console.error);
+      await ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(logger.error);
       return;
     }
 
@@ -963,7 +962,7 @@ export class TelegramService {
   };
 
   onRenewPromo = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const keyId = data.replace('PROMO_KEY:', '');
     const telegramId = ctx?.from?.id;
@@ -973,7 +972,7 @@ export class TelegramService {
   };
 
   onMigrateServer = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const keyId = (
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).replace('MIGRATE_SERVER:', '');
@@ -1001,7 +1000,7 @@ export class TelegramService {
 
     await ctx
       .editMessageText(`${this.t(ctx, 'select_country')}:`, kb)
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   onMigrateServerCountry = async (ctx: Context) => {
@@ -1009,7 +1008,7 @@ export class TelegramService {
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).split(':');
     const user = await this.getUserByCtx(ctx);
-    if (!user) return ctx.answerCbQuery().catch(console.error);
+    if (!user) return ctx.answerCbQuery().catch(logger.error);
     const vpnKey = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId: user.id, protocol: 'xray', status: 'active' },
       relations: ['server'],
@@ -1018,9 +1017,9 @@ export class TelegramService {
     if (!vpnKey?.server) {
       return ctx
         .answerCbQuery(this.t(ctx, 'key_not_found'))
-        .catch(console.error);
+        .catch(logger.error);
     }
-    await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(console.error);
+    await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(logger.error);
     const newUri = await this.amneziaService.migrateXrayKeyToAnotherServer(
       vpnKey.id,
       code,
@@ -1033,7 +1032,7 @@ export class TelegramService {
             [this.backToProfileButton(ctx.from?.language_code)],
           ]),
         })
-        .catch(console.error);
+        .catch(logger.error);
     }
 
     await this.showKeyCreatedScreen(
@@ -1044,7 +1043,7 @@ export class TelegramService {
   };
 
   onKeyDetails = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(console.error);
+    ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const keyId = data.replace('KEY_DETAILS:', '');
 
@@ -1056,9 +1055,7 @@ export class TelegramService {
       relations: ['tariff', 'server'],
     });
     if (!vpnKey) {
-      await ctx
-        .answerCbQuery(this.t(ctx, 'key_not_found'))
-        .catch(console.error);
+      await ctx.answerCbQuery(this.t(ctx, 'key_not_found')).catch(logger.error);
       return;
     }
 
@@ -1113,7 +1110,7 @@ export class TelegramService {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard(buttons),
       })
-      .catch(console.error);
+      .catch(logger.error);
   };
 
   private async handlePromoCode(
@@ -1139,7 +1136,7 @@ export class TelegramService {
         if (!vpnKey || !vpnKey.tariffId || !vpnKey.tariff) {
           await ctx
             .reply(`❌ ${this.t(ctx, 'key_not_found')}`)
-            .catch(console.error);
+            .catch(logger.error);
 
           return false;
         }
@@ -1162,7 +1159,7 @@ export class TelegramService {
             [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, backCallback)],
           ]),
         })
-        .catch(console.error);
+        .catch(logger.error);
 
       return false;
     }
@@ -1189,7 +1186,7 @@ export class TelegramService {
             ]),
           },
         )
-        .catch(console.error);
+        .catch(logger.error);
     } else {
       this.pendingPromo.set(telegramId, {
         id: tariffId,
@@ -1212,7 +1209,7 @@ export class TelegramService {
             ]),
           },
         )
-        .catch(console.error);
+        .catch(logger.error);
     }
     return true;
   }
@@ -1259,14 +1256,14 @@ export class TelegramService {
     if (isNaN(amount) || amount <= 0) {
       await ctx
         .reply(`❌ ${this.t(ctx, 'enter_correct_number')}`)
-        .catch(console.error);
+        .catch(logger.error);
       return;
     }
     this.amountMap.set(telegramId, amount);
 
     const payload = await this.getPayloadForAddBalance(user);
     if (!payload) return;
-    await ctx.reply(payload.text, payload.extra).catch(console.error);
+    await ctx.reply(payload.text, payload.extra).catch(logger.error);
   };
 
   public async sendMessageAddBalance(userId: string, balance: number) {
@@ -1279,7 +1276,7 @@ export class TelegramService {
         `${this.t(user.languageCode, 'improve_balance')} <b>${Math.ceil(balance)} ${this.t(user.languageCode, 'rub')}</b>`,
         { parse_mode: 'HTML' },
       )
-      .catch(console.error);
+      .catch(logger.error);
 
     const userKeyExists = await this.em.exists(UserKeyEntity, {
       where: { userId },
@@ -1292,7 +1289,7 @@ export class TelegramService {
           `${this.t(user.languageCode, 'select_action')}:`,
           this.menu(user.languageCode),
         )
-        .catch(console.error);
+        .catch(logger.error);
 
       return;
     }
@@ -1314,7 +1311,7 @@ export class TelegramService {
           ]),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   public async send8MarchMessage(user: UserEntity) {
@@ -1332,12 +1329,12 @@ export class TelegramService {
         caption: this.t(user.languageCode, 'message_8_march'),
         parse_mode: 'HTML',
       })
-      .catch(console.error);
+      .catch(logger.error);
     await this.bot.telegram
       .sendMessage(user.chatId, '<b>MARCH8</b>', {
         parse_mode: 'HTML',
       })
-      .catch(console.error);
+      .catch(logger.error);
     await this.bot.telegram
       .sendMessage(
         user.chatId,
@@ -1346,7 +1343,7 @@ export class TelegramService {
           ...this.menu(user.languageCode),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   public async sendRequestToBuyKey(user: UserEntity) {
@@ -1367,10 +1364,10 @@ export class TelegramService {
           disable_notification: true,
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
     if (!videoMessage) return;
     if (!this.welcomeVideoId) {
-      console.log(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
+      logger.info(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
       this.welcomeVideoId = videoMessage.video.file_id;
     }
 
@@ -1402,7 +1399,7 @@ export class TelegramService {
           ]),
         },
       )
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   public async sendAlmostExpiredKey(user: UserEntity) {
@@ -1417,7 +1414,7 @@ export class TelegramService {
           [this.backToProfileButton(user.languageCode)],
         ]),
       )
-      .catch(console.error);
+      .catch(logger.error);
   }
 
   public async replyUsersWithoutKeys() {
@@ -1434,7 +1431,11 @@ export class TelegramService {
     }
   }
 
-  public async sendMessageKeyExpired(key: UserKeyEntity) {
+  public async sendMessageKeyExpired(keyId: string) {
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['users'],
+    });
     const user = key.user;
 
     const buttons = this.prepareKeysToButtons(user.languageCode, [key]);
@@ -1482,7 +1483,7 @@ export class TelegramService {
               parse_mode: 'HTML',
             },
           )
-          .catch(console.error);
+          .catch(logger.error);
 
         await this.bot.telegram
           .sendMessage(
@@ -1492,17 +1493,17 @@ export class TelegramService {
               ...this.menu(user.languageCode),
             },
           )
-          .catch(console.error);
+          .catch(logger.error);
 
         if (!videoMessage) return;
         if (!this.changeVideoId) {
-          console.log(`Set changeVideoId = '${videoMessage.video.file_id}'`);
+          logger.info(`Set changeVideoId = '${videoMessage.video.file_id}'`);
           this.changeVideoId = videoMessage.video.file_id;
         }
 
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
-        console.log('send error', e);
+        logger.error(e);
       }
     }
   }

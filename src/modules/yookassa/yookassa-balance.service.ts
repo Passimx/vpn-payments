@@ -5,6 +5,7 @@ import { Envs } from '../../common/env/envs';
 import { UserEntity } from '../database/entities/user.entity';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { TelegramService } from '../telegram/telegram-service';
+import { logger } from '../../common/logger/logger';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -123,7 +124,7 @@ export class YookassaBalanceService {
         paymentUrl,
       };
     } catch (error) {
-      console.log('[YooKassa] createBalancePaymentLink exception', error);
+      logger.error('[YooKassa] createBalancePaymentLink exception', error);
       return {
         ok: false,
         error:

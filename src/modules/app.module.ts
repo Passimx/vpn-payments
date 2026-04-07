@@ -6,11 +6,11 @@ import { TonModule } from './ton/ton.module';
 import { TariffsModule } from './tariffs/tariffs.module';
 import { BlitzModule } from './blitz/blitz.module';
 import { KeyPurchaseModule } from './key-purchase/key-purchase.module';
-import { AmneziaModule } from './amnezia/amnezia.module';
+import { XrayModule } from './xray/xray.module';
 
 @Module({
   imports: [
-    AmneziaModule,
+    XrayModule,
     ScheduleModule,
     DatabaseModule,
     TelegramModule,

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TelegramService } from './telegram-service';
 import { KeyPurchaseModule } from '../key-purchase/key-purchase.module';
 import { YookassaModule } from '../yookassa/yookassa.module';
-import { AmneziaModule } from '../amnezia/amnezia.module';
+import { XrayModule } from '../xray/xray.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { I18nModule } from '../i18n/i18n.module';
 import { AnalyticsService } from './analytics.service';
@@ -12,7 +12,7 @@ import { AnalyticsService } from './analytics.service';
     I18nModule,
     TransactionsModule,
     KeyPurchaseModule,
-    AmneziaModule,
+    XrayModule,
     YookassaModule,
   ],
   providers: [TelegramService, AnalyticsService],

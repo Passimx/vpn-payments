@@ -7,6 +7,10 @@ import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { TelegramService } from './telegram-service';
 import { Context } from 'telegraf';
+import { ServerEntity } from '../database/entities/server.entity';
+import { XrayService } from '../xray/xray-service';
+import { TrafficEntity } from '../database/entities/ traffic.entity';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class AnalyticsService {
@@ -14,6 +18,7 @@ export class AnalyticsService {
     private readonly em: EntityManager,
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
+    private readonly amneziaService: XrayService,
   ) {}
 
   public async saveAnalytics() {
@@ -221,20 +226,69 @@ export class AnalyticsService {
       },
     });
 
-    await this.telegramService.bot.telegram.sendPhoto(
-      ctx.chat!.id,
-      {
-        source: usersChart,
-      },
-      { caption: 'Конверсия (%) пользователей' },
-    );
+    await this.telegramService.bot.telegram
+      .sendPhoto(
+        ctx.chat!.id,
+        {
+          source: usersChart,
+        },
+        { caption: 'Конверсия (%) пользователей' },
+      )
+      .catch(logger.error);
 
-    await this.telegramService.bot.telegram.sendPhoto(
-      ctx.chat!.id,
-      {
-        source: paymentsChart,
-      },
-      { caption: '📊 Статистика оплаты' },
-    );
+    await this.telegramService.bot.telegram
+      .sendPhoto(
+        ctx.chat!.id,
+        {
+          source: paymentsChart,
+        },
+        { caption: '📊 Статистика оплаты' },
+      )
+      .catch(logger.error);
   };
+
+  public async saveTraffic() {
+    const servers = await this.em.find(ServerEntity, {
+      where: { canCreateKey: true },
+    });
+
+    for (const server of servers) {
+      const stats = await this.amneziaService.getStats(server);
+      if (!stats?.length) continue;
+
+      for (const stat of stats) {
+        const oldTraffic = await this.em
+          .createQueryBuilder(TrafficEntity, 'traffics')
+          .where({
+            keyId: stat.id,
+            serverId: server.id,
+          })
+          .andWhere(
+            "traffics.createdAt = DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
+          )
+          .getOne();
+
+        if (oldTraffic)
+          await this.em
+            .createQueryBuilder()
+            .update(TrafficEntity)
+            .set({
+              upLink: () => `up_link + ${stat.uplink}`,
+              downLink: () => `down_link + ${stat.downlink}`,
+            })
+            .where('key_id = :keyId', { keyId: stat.id })
+            .andWhere('server_id = :serverId', { serverId: server.id })
+            .andWhere("created_at = DATE(NOW() AT TIME ZONE 'Europe/Moscow')")
+            .execute();
+        else
+          await this.em.insert(TrafficEntity, {
+            keyId: stat.id,
+            serverId: server.id,
+            upLink: stat.uplink,
+            downLink: stat.downlink,
+            createdAt: () => "DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
+          });
+      }
+    }
+  }
 }

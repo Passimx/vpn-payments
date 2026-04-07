@@ -1,9 +1,9 @@
 import { Controller, Post, Query } from '@nestjs/common';
-import { AmneziaService } from './amnezia-service';
+import { XrayService } from './xray-service';
 
-@Controller('amnezia')
-export class AmneziaController {
-  constructor(private readonly amneziaService: AmneziaService) {}
+@Controller('xray')
+export class XrayController {
+  constructor(private readonly amneziaService: XrayService) {}
 
   @Post('backup-keys')
   async syncXrayKeys(@Query('serverId') serverId?: string) {

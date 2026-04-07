@@ -7,11 +7,12 @@ import { TelegramService } from '../telegram/telegram-service';
 import { UserEntity } from '../database/entities/user.entity';
 import { I18nService } from '../i18n/i18n.service';
 import { Context } from 'telegraf';
-import { ServerDataType } from './types/server-data.type';
 import { TariffEntity } from '../database/entities/tariff.entity';
+import { KeyTrafficType, TrafficType } from './types/user-traffic.type';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
-export class AmneziaService {
+export class XrayService {
   constructor(
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
@@ -176,11 +177,11 @@ export class AmneziaService {
     for (const key of expiredKeys) {
       try {
         await this.deleteXrayKey(key);
-        await this.telegramService.sendMessageKeyExpired(key);
+        await this.telegramService.sendMessageKeyExpired(key.id);
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
         console.error(
-          '[AmneziaService] checkExpiredKeys error for key',
+          '[XrayService] checkExpiredKeys error for key',
           key.id,
           e,
         );
@@ -214,15 +215,53 @@ export class AmneziaService {
     return successCount;
   }
 
-  private async removeKey(server: ServerEntity, id: string): Promise<boolean> {
-    const res = await fetch(`http://${server.host}:440/remove-user`, {
-      method: 'POST',
-      body: JSON.stringify({ id }),
-      headers: { 'Content-Type': 'application/json' },
-    });
+  public async getStats(
+    server: ServerEntity,
+  ): Promise<KeyTrafficType[] | null> {
+    const commands = [
+      'xray api statsquery --server=127.0.0.1:10085 -reset=true',
+    ];
 
-    const payload = (await res.json()) as ServerDataType;
-    return !!payload.id;
+    const payload = await this.runCommands(server, commands);
+    if (!payload) return null;
+
+    const traffic = JSON.parse(payload[0]) as TrafficType;
+    const statsMap = {};
+    for (const item of traffic.stat || []) {
+      const match = item.name.match(
+        /^user>>>(.*?)>>>traffic>>>(uplink|downlink)$/,
+      );
+
+      if (!match) continue;
+
+      const [, id, type] = match;
+      const value = Number(item.value || 0);
+
+      if (!statsMap[id]) {
+        statsMap[id] = {
+          id,
+          uplink: 0,
+          downlink: 0,
+        };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      statsMap[id][type] = value;
+    }
+
+    return Object.values(statsMap);
+  }
+
+  private async removeKey(server: ServerEntity, id: string): Promise<boolean> {
+    const commands = [
+      `xray api rmu --server=127.0.0.1:10085 --tag=vless-in "${id}"`,
+      `xray api stats --server=127.0.0.1:10085 --name "user>>>${id}>>>traffic>>>downlink" -reset=true`,
+      `xray api stats --server=127.0.0.1:10085 --name "user>>>${id}>>>traffic>>>uplink" --reset=true`,
+      `rm -R /xray/data/users/${id}.json`,
+    ];
+
+    const payload = await this.runCommands(server, commands);
+    return !!payload;
   }
 
   private async createKey(
@@ -230,22 +269,44 @@ export class AmneziaService {
     user: UserEntity,
     server: ServerEntity,
   ): Promise<string | null> {
+    const dataCommands = [
+      'cat /xray/data/public.key',
+      'cat /xray/data/server.name',
+      'cat /xray/data/server.port',
+      'cat /xray/data/short_id.key',
+    ];
+
+    const data = await this.runCommands(server, dataCommands);
+    if (!data) return null;
+    const [publicKey, sni, port, shortId] = data.map((v) => v.trim());
+
+    const commands = [
+      `mkdir -p /xray/data/users`,
+      `echo '{"inbounds":[{"tag":"vless-in","port":${port},"protocol":"vless","settings":{"clients":[{"id":"${id}","email":"${id}","flow":"xtls-rprx-vision","level":0}],"decryption":"none"}}]}' > /xray/data/users/${id}.json`,
+      `xray api adu --server=127.0.0.1:10085 /xray/data/users/${id}.json`,
+    ];
+    const result = await this.runCommands(server, commands);
+    if (!result) return null;
     const keyName = `${this.t(user.languageCode, `${server.code}_flag`)} ${this.t(user.languageCode, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
+    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=chrome&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+  }
 
-    const res = await fetch(`http://${server.host}:440/add-user`, {
+  private async runCommands(
+    server: ServerEntity,
+    commands: string[],
+  ): Promise<string[] | null> {
+    const res = await fetch(`http://${server.host}:440/commands`, {
       method: 'POST',
-      body: JSON.stringify({
-        id,
-        host: server.host,
-        keyName: keyName,
-      }),
+      body: JSON.stringify({ commands }),
       headers: { 'Content-Type': 'application/json' },
-    });
+    }).catch(logger.error);
 
-    if (![200, 201].includes(res.status)) return null;
-    const payload = (await res.json()) as ServerDataType;
-    if (!payload.link) return null;
-    return payload.link;
+    if (!res) return null;
+    if (![200, 201].includes(res.status)) {
+      logger.error(await res.json());
+      return null;
+    }
+    return (await res.json()) as string[];
   }
 
   private t(ctx: Context | string | undefined, key: string) {
