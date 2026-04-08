@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { UserKeyEntity } from './user-key.entity';
+import { ServerEntity } from './server.entity';
 
 @Entity({ name: 'traffics' })
 export class TrafficEntity {
@@ -25,4 +26,8 @@ export class TrafficEntity {
   @ManyToOne(() => UserKeyEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'key_id' })
   readonly key: UserKeyEntity;
+
+  @ManyToOne(() => ServerEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'server_id' })
+  readonly server: ServerEntity;
 }
