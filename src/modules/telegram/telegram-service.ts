@@ -1434,7 +1434,7 @@ export class TelegramService {
   public async sendMessageKeyExpired(keyId: string) {
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['users'],
+      relations: ['user'],
     });
     const user = key.user;
 
