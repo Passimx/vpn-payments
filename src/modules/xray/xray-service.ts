@@ -176,7 +176,8 @@ export class XrayService {
 
     for (const key of expiredKeys) {
       try {
-        await this.deleteXrayKey(key);
+        const removed = await this.deleteXrayKey(key);
+        if (!removed) continue;
         await this.telegramService.sendMessageKeyExpired(key.id);
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
