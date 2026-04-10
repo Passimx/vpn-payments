@@ -1,7 +1,7 @@
 {
   "name": "passimx_vpn",
   "description": "telegram bot to manage vpn keys",
-  "version": "1.17.40",
+  "version": "1.17.41",
   "author": "passimx",
   "private": false,
   "license": "MIT LICENSE",
