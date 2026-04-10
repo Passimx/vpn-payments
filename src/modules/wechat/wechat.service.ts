@@ -121,6 +121,7 @@ export class WechatService {
         paymentId: result.out_trade_no,
         place: 'wechat',
         currency: 'cny',
+        completed: false,
       },
     });
 
