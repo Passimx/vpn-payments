@@ -256,7 +256,6 @@ export class XrayService {
   private async removeKey(server: ServerEntity, id: string): Promise<boolean> {
     const commands = [
       `xray api rmu --server=127.0.0.1:10085 --tag=vless-in "${id}"`,
-      `xray api stats --server=127.0.0.1:10085 --name "user>>>${id}>>>traffic>>>downlink" -reset=true`,
       `rm -R /xray/data/users/${id}.json`,
     ];
 
