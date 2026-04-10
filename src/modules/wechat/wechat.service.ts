@@ -143,7 +143,6 @@ export class WechatService {
         currency: 'cny',
       },
       {
-        id: BigInt(result.transaction_id),
         completed: true,
       },
     );
