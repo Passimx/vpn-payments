@@ -325,7 +325,7 @@ export class KeyPurchaseService {
         .update(UserKeyEntity)
         .set({
           expiresAt,
-          status: 'active' as const,
+          status: 'active',
           tariffId: tariff.id,
         })
         .where('id = :id', { id: vpnKey.id })

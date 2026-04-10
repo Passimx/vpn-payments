@@ -165,8 +165,8 @@ export class YookassaBalanceService {
 
     await this.em.update(
       TransactionEntity,
-      { id: balancePayment.id },
-      { completed: true as const },
+      { id: balancePayment.id, place: 'yookassa', currency: 'rub' },
+      { completed: true },
     );
   }
 }

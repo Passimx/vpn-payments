@@ -105,7 +105,7 @@ export class TonService {
 
         await this.em.update(
           TransactionEntity,
-          { id: transaction.id },
+          { id: transaction.id, place: 'ton' },
           { completed: true },
         );
 

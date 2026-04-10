@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import WxPay from 'wechatpay-node-v3';
 import * as fs from 'node:fs';
 import path from 'node:path';
@@ -11,12 +11,21 @@ import * as QRCode from 'qrcode';
 import { InvoiceCreateType } from './types/invoice-create.type';
 import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
+import { WechatTransactionType } from './types/wechat-transaction.type';
+import { TelegramService } from '../telegram/telegram-service';
+import { UserEntity } from '../database/entities/user.entity';
+import { TransactionsService } from '../transactions/transactions.service';
 
 @Injectable()
 export class WechatService {
   private wxPay: WxPay;
 
-  constructor(private readonly em: EntityManager) {
+  constructor(
+    @Inject(forwardRef(() => TelegramService))
+    private readonly telegramService: TelegramService,
+    private readonly transactionsService: TransactionsService,
+    private readonly em: EntityManager,
+  ) {
     this.initWxPay();
   }
 
@@ -94,9 +103,54 @@ export class WechatService {
     return canvas.toBuffer();
   }
 
-  public invoiceCallback(data: InvoiceCallbackType) {
-    logger.info(data);
-    return data;
+  public async invoiceCallback(data: InvoiceCallbackType) {
+    if (!data.resource) return logger.error(data);
+
+    const { ciphertext, associated_data, nonce } = data.resource;
+    const result = this.wxPay.decipher_gcm<WechatTransactionType>(
+      ciphertext,
+      associated_data,
+      nonce,
+    );
+
+    const price = await this.transactionsService.getCurrencyPrice();
+    if (!price) return;
+
+    const transaction = await this.em.findOneOrFail(TransactionEntity, {
+      where: {
+        paymentId: result.out_trade_no,
+        place: 'wechat',
+        currency: 'cny',
+      },
+    });
+
+    const addBalance = (transaction.amount / price.usd.cny) * price.usd.rub;
+
+    await this.em
+      .createQueryBuilder()
+      .update(UserEntity)
+      .set({
+        balance: () => `balance + ${addBalance}`,
+      })
+      .where('id = :id', { id: transaction.userId })
+      .execute();
+
+    await this.em.update(
+      TransactionEntity,
+      {
+        paymentId: result.out_trade_no,
+        place: 'wechat',
+        currency: 'cny',
+      },
+      {
+        id: BigInt(result.transaction_id),
+        completed: true,
+      },
+    );
+    await this.telegramService.sendMessageAddBalance(
+      transaction.userId,
+      addBalance,
+    );
   }
 
   private initWxPay() {

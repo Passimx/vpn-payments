@@ -26,7 +26,7 @@ services:
     restart: always
     env_file: .env
     volumes:
-      - ./data/keys:/app/keys:ro
+      - ./data/keys:/app/data/keys
     environment:
       PG_HOST: postgres
       PG_PORT: ${PG_PORT}
