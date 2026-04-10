@@ -110,7 +110,7 @@ export class YookassaBalanceService {
         userId: user.id,
         paymentId,
         amount,
-        currency: 'РУБ',
+        currency: 'rub',
         type: 'Credit',
         place: 'yookassa',
         completed: false,
@@ -136,7 +136,7 @@ export class YookassaBalanceService {
     paymentId: string,
   ): Promise<TransactionEntity | null> {
     return await this.em.findOne(TransactionEntity, {
-      where: { paymentId },
+      where: { paymentId, completed: false, place: 'yookassa' },
       relations: ['user'],
     });
   }
@@ -150,6 +150,12 @@ export class YookassaBalanceService {
     if (!balancePayment) return;
     if (balancePayment.completed) return;
 
+    await this.em.update(
+      TransactionEntity,
+      { id: balancePayment.id },
+      { completed: true },
+    );
+
     const amount = Number(balancePayment.amount);
     await this.em
       .createQueryBuilder()
@@ -161,12 +167,6 @@ export class YookassaBalanceService {
     await this.telegramService.sendMessageAddBalance(
       balancePayment.userId,
       amount,
-    );
-
-    await this.em.update(
-      TransactionEntity,
-      { id: balancePayment.id },
-      { completed: true },
     );
   }
 }
