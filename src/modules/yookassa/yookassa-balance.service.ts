@@ -69,7 +69,7 @@ export class YookassaBalanceService {
           description: `Пополнение баланса user:${userId}`,
           confirmation: {
             type: 'redirect',
-            return_url: 'tg://resolve?domain=passimx_vpn_bot',
+            return_url: 'https://web.telegram.org/a/#7682387428',
           },
           metadata: {
             userId,
@@ -165,8 +165,8 @@ export class YookassaBalanceService {
 
     await this.em.update(
       TransactionEntity,
-      { id: balancePayment.id, place: 'yookassa', currency: 'rub' },
-      { completed: true },
+      { id: balancePayment.id },
+      { completed: true as const },
     );
   }
 }
