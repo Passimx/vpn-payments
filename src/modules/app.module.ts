@@ -7,6 +7,7 @@ import { TariffsModule } from './tariffs/tariffs.module';
 import { BlitzModule } from './blitz/blitz.module';
 import { KeyPurchaseModule } from './key-purchase/key-purchase.module';
 import { XrayModule } from './xray/xray.module';
+import { WechatModule } from './wechat/wechat.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { XrayModule } from './xray/xray.module';
     TariffsModule,
     BlitzModule,
     KeyPurchaseModule,
+    WechatModule,
   ],
 })
 export class AppModule {}

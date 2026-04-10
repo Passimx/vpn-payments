@@ -6,6 +6,7 @@ import { XrayModule } from '../xray/xray.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { I18nModule } from '../i18n/i18n.module';
 import { AnalyticsService } from './analytics.service';
+import { WechatModule } from '../wechat/wechat.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AnalyticsService } from './analytics.service';
     KeyPurchaseModule,
     XrayModule,
     YookassaModule,
+    WechatModule,
   ],
   providers: [TelegramService, AnalyticsService],
   exports: [TelegramService, AnalyticsService],

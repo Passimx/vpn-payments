@@ -16,6 +16,7 @@ import { ServerEntity } from '../database/entities/server.entity';
 import { AnalyticsService } from './analytics.service';
 import { Archiver } from '@passimx/archiver';
 import { logger } from '../../common/logger/logger';
+import { WechatService } from '../wechat/wechat.service';
 
 @Injectable()
 export class TelegramService {
@@ -44,7 +45,8 @@ export class TelegramService {
     private readonly analyticsService: AnalyticsService,
     private readonly i18nService: I18nService,
     @Inject(forwardRef(() => XrayService))
-    private readonly amneziaService: XrayService,
+    private readonly xrayService: XrayService,
+    private readonly wechatService: WechatService,
   ) {}
 
   async onModuleInit() {
@@ -205,17 +207,24 @@ export class TelegramService {
   onWechat = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
 
-    const filePath = path.join(
-      __dirname,
-      '../',
-      '../',
-      'public',
-      'media',
-      'wechat.jpeg',
-    );
+    const telegramId = ctx?.from?.id;
+    const user = await this.em.findOneOrFail(UserEntity, {
+      where: { telegramId },
+    });
+    const amount = this.amountMap.get(user.telegramId);
+    const price = await this.transactionsService.getCurrencyPrice();
+    if (!amount) return;
+    if (!price) return;
+
+    const invoiceQrCode = await this.wechatService.createInvoice({
+      outTradeNo: Date.now().toString(),
+      amount: amount / (price.usd.rub / price.usd.cny),
+      userId: user.id,
+    });
+    if (!invoiceQrCode) return;
 
     await ctx
-      .sendPhoto(Input.fromLocalFile(filePath), {
+      .sendPhoto(Input.fromBuffer(invoiceQrCode), {
         caption: this.t(ctx, 'message_wechat'),
         parse_mode: 'HTML',
         disable_notification: true,
@@ -231,12 +240,11 @@ export class TelegramService {
   onBtn1 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const telegramId = ctx?.from?.id;
-    const user = await this.em.findOne(UserEntity, {
+    const user = await this.em.findOneOrFail(UserEntity, {
       where: { telegramId },
     });
     const lang = ctx.from?.language_code;
 
-    if (!user) return;
     this.amountMap.delete(telegramId!);
 
     await ctx
@@ -387,10 +395,9 @@ export class TelegramService {
       this.pendingRenewKeyId.delete(telegramId);
       this.pendingRenewTariffId.delete(telegramId);
     }
-    const user = await this.em.findOne(UserEntity, {
+    const user = await this.em.findOneOrFail(UserEntity, {
       where: { telegramId },
     });
-    if (!user) return;
 
     const keys = await this.em.find(UserKeyEntity, {
       where: { userId: user.id },
@@ -1020,7 +1027,7 @@ export class TelegramService {
         .catch(logger.error);
     }
     await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(logger.error);
-    const newUri = await this.amneziaService.migrateXrayKeyToAnotherServer(
+    const newUri = await this.xrayService.migrateXrayKeyToAnotherServer(
       vpnKey.id,
       code,
     );

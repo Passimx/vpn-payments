@@ -45,4 +45,10 @@ export const Envs = {
     walletNumber: String(process.env.YOOKASSA_WALLET_NUMBER),
     accessToken: process.env.YOOKASSA_ACCESS_TOKEN,
   },
+  wechat: {
+    key: process.env.WECHAT_KEY,
+    appid: process.env.WECHAT_APPID,
+    mchid: process.env.WECHAT_MCHID,
+    notify_url: process.env.WECHAT_NOTIFY_URL,
+  },
 };

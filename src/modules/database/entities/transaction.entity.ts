@@ -10,7 +10,14 @@ export class TransactionEntity {
   readonly amount: number;
 
   @Column({ name: 'currency', type: 'varchar', default: 2 ** 4 })
-  readonly currency: 'bitcoin' | 'ethereum' | 'solana' | 'ton' | 'usd' | 'rub';
+  readonly currency:
+    | 'bitcoin'
+    | 'ethereum'
+    | 'solana'
+    | 'ton'
+    | 'usd'
+    | 'rub'
+    | 'cny';
 
   @Column({ name: 'message', type: 'text', nullable: true })
   readonly message: string;
@@ -34,7 +41,7 @@ export class TransactionEntity {
   readonly type: 'Credit' | 'Debit';
 
   @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })
-  readonly place: 'ton' | 'yookassa';
+  readonly place: 'ton' | 'yookassa' | 'wechat';
 
   @Column({ name: 'completed', type: 'boolean', default: false })
   readonly completed: boolean;

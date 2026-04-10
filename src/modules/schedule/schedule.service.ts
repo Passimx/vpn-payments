@@ -9,7 +9,7 @@ import { AnalyticsService } from '../telegram/analytics.service';
 export class ScheduleService {
   constructor(
     private readonly tonService: TonService,
-    private readonly amneziaService: XrayService,
+    private readonly xrayService: XrayService,
     private readonly telegramService: TelegramService,
     private readonly analyticsService: AnalyticsService,
   ) {}
@@ -21,12 +21,12 @@ export class ScheduleService {
 
   @Cron('*/30 * * * * *')
   public async checkExpiredKeys() {
-    await this.amneziaService.checkExpiredKeys();
+    await this.xrayService.checkExpiredKeys();
   }
 
   @Cron('0 */12 * * *')
   public async checkAlmostExpiredKeys() {
-    await this.amneziaService.checkAlmostExpiredKeys();
+    await this.xrayService.checkAlmostExpiredKeys();
   }
 
   @Cron('0 18 * * *', {

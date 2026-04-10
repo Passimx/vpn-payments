@@ -18,7 +18,7 @@ export class AnalyticsService {
     private readonly em: EntityManager,
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
-    private readonly amneziaService: XrayService,
+    private readonly xrayService: XrayService,
   ) {}
 
   public async saveAnalytics() {
@@ -253,7 +253,7 @@ export class AnalyticsService {
     });
 
     for (const server of servers) {
-      const stats = await this.amneziaService.getStats(server);
+      const stats = await this.xrayService.getStats(server);
       if (!stats?.length) continue;
 
       for (const stat of stats) {

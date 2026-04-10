@@ -25,6 +25,8 @@ services:
     container_name: passimx-vpn-app
     restart: always
     env_file: .env
+    volumes:
+      - ./data/keys:/app/keys:ro
     environment:
       PG_HOST: postgres
       PG_PORT: ${PG_PORT}

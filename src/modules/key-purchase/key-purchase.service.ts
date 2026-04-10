@@ -18,7 +18,7 @@ export class KeyPurchaseService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly blitzService: BlitzService,
-    private readonly amneziaService: XrayService,
+    private readonly xrayService: XrayService,
   ) {}
 
   async purchase(
@@ -70,7 +70,7 @@ export class KeyPurchaseService {
       let vpnUri: string;
 
       if (protocol === 'xray') {
-        const amKey = await this.amneziaService.createXrayKey(user, tariff.id);
+        const amKey = await this.xrayService.createXrayKey(user, tariff.id);
         if (!amKey) {
           return {
             ok: false,
@@ -306,9 +306,7 @@ export class KeyPurchaseService {
           };
         }
       } else if (vpnKey.protocol === 'xray') {
-        const reactivated = await this.amneziaService.reactivateXrayKey(
-          vpnKey.id,
-        );
+        const reactivated = await this.xrayService.reactivateXrayKey(vpnKey.id);
         if (!reactivated) {
           return {
             ok: false,
