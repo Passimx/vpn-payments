@@ -110,37 +110,37 @@ export class TelegramService {
     this.bot.stop();
   }
 
-  private t(ctx: UserEntity | string, key: string) {
+  private t(payload: UserEntity | string, key: string) {
     let lang = 'en';
 
-    if (typeof ctx === 'string') lang = ctx;
-    else if (ctx.languageCode) lang = ctx.languageCode;
+    if (typeof payload === 'string') lang = payload;
+    else if (payload.languageCode) lang = payload.languageCode;
 
     return this.i18nService.t(lang, key);
   }
 
-  private menu = (ctx: UserEntity) =>
+  private menu = (user: UserEntity) =>
     Markup.inlineKeyboard([
-      [Markup.button.callback(`🌐️ ${this.t(ctx, 'menu')}`, 'BTN_1')],
+      [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
       [
         Markup.button.callback(
-          `📖 ${this.t(ctx, 'instruction')}`,
+          `📖 ${this.t(user, 'instruction')}`,
           'ON_INSTRUCTION',
         ),
         Markup.button.url(
-          `👩‍💻 ${this.t(ctx, 'support')}`,
+          `👩‍💻 ${this.t(user, 'support')}`,
           'https://t.me/passimx',
         ),
       ],
       [
         Markup.button.callback(
-          `🌏 ${this.t(ctx, 'change_language')}`,
+          `🌏 ${this.t(user, 'change_language')}`,
           'ON_LANGUAGE',
         ),
       ],
       [
         Markup.button.url(
-          `📄 ${this.t(ctx, 'user_agreement')}`,
+          `📄 ${this.t(user, 'user_agreement')}`,
           'https://passimx.ru/info/ru/vpn-user-agreement.html',
         ),
       ],
@@ -1614,7 +1614,7 @@ export class TelegramService {
     ]);
   }
 
-  private prepareKeysToButtons(ctx: UserEntity, keys: UserKeyEntity[]) {
+  private prepareKeysToButtons(user: UserEntity, keys: UserKeyEntity[]) {
     return keys.map(({ id, expiresAt, status, server }, index) => {
       const expires = new Date(expiresAt).toLocaleDateString('ru-RU', {
         year: 'numeric',
@@ -1623,9 +1623,9 @@ export class TelegramService {
       });
 
       const labelParts = [
-        `${index + 1}) [${this.t(ctx, `${server.code}_name`)}]`,
-        this.t(ctx, status),
-        `${this.t(ctx, 'until')}: ${expires}`,
+        `${index + 1}) [${this.t(user, `${server.code}_name`)}]`,
+        this.t(user, status),
+        `${this.t(user, 'until')}: ${expires}`,
       ];
 
       return [
