@@ -191,6 +191,7 @@ export class TelegramService {
   };
 
   onYookassa = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
     const amount = this.amountMap.get(user.telegramId);
     if (!amount) return;
