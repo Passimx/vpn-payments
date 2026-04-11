@@ -40,14 +40,6 @@ export class YookassaBalanceService {
         };
       }
 
-      const user = await this.em.findOne(UserEntity, {
-        where: { id: userId },
-      });
-
-      if (!user) {
-        return { ok: false, error: 'Пользователь не найден' };
-      }
-
       const idempotenceKey = randomUUID();
       const authHeader =
         'Basic ' +
@@ -107,7 +99,7 @@ export class YookassaBalanceService {
       const now = Date.now();
       await this.em.save(TransactionEntity, {
         id: BigInt(now),
-        userId: user.id,
+        userId,
         paymentId,
         amount,
         currency: 'rub',

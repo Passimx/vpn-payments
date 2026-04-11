@@ -15,7 +15,6 @@ export default {
   user_agreement: '用户协议',
   back: '返回',
   to_the_tariffs: '查看套餐',
-  ton: 'TON',
   selected: '已选择',
   traffic: '流量',
   term: '期限',
@@ -84,7 +83,13 @@ export default {
   change_server: '更换服务器国家',
   error_try_again_later: '服务器暂时不可用',
 
-  message_wechat: '💳 <b>微信支付</b>\n请使用<b>微信</b>扫描二维码进行支付。',
+  ru_payment: '俄罗斯银行卡',
+  ch_payment: '微信支付',
+  ton_payment: 'TON 支付',
+
+  ru_payment_message: '💳 <b>通过俄罗斯银行支付</b>\n请点击支付链接。',
+  ch_payment_message:
+    '💳 <b>微信支付</b>\n请使用<b>微信</b>扫描二维码进行支付。',
   message_try_first_key:
     '<b>让我们连接您的第一个设备</b>\n使用试用即可获得无阻碍的互联网访问\n\n只需几分钟即可完成\n\n<b>连接时遇到问题？</b>\n如有任何问题，请联系客服',
   message_8_march:
@@ -107,8 +112,8 @@ export default {
   lv_flag: '🇱🇻',
   de_name: '德国',
   de_flag: '🇩🇪',
-  hk_name: '香港',
-  hk_flag: '🇭🇰',
+  ch_name: '中国',
+  ch_flag: '🇨🇳',
   nl_name: '荷兰',
   nl_flag: '🇳🇱',
   se_name: '瑞典',

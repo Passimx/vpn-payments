@@ -77,6 +77,7 @@ export class TelegramService {
     this.bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
     this.bot.action('ON_ADD_KEY_INSTRUCTION', this.onAddKeyInstruction);
     this.bot.action('ON_WECHAT', this.onWechat);
+    this.bot.action('ON_YOOKASSA', this.onYookassa);
     this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
     this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
@@ -186,31 +187,57 @@ export class TelegramService {
       logger.info(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
       this.welcomeVideoId = videoMessage.video.file_id;
     }
+    await this.getUserByCtx(ctx);
+  };
 
-    const telegramId = ctx?.from?.id;
-    const chatId = ctx?.chat?.id;
-    const user = await this.em.findOne(UserEntity, {
-      where: { telegramId },
-    });
-    if (!user) {
-      const id = crypto.randomUUID().replace(/-/g, '');
-      await this.em.insert(UserEntity, {
-        id,
-        telegramId,
-        chatId,
-        userName: ctx?.from?.username,
-        languageCode: ctx?.from?.language_code,
-      });
+  onYookassa = async (ctx: Context) => {
+    const user = await this.getUserByCtx(ctx);
+    const amount = this.amountMap.get(user.telegramId);
+    if (!amount) return;
+    const result = await this.yookassaBalanceService.createBalancePaymentLink(
+      user.id,
+      amount,
+    );
+    if (!result.ok) {
+      await ctx
+        .editMessageText(`❌ ${result.error}`, {
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                `💸 ${this.t(ctx, 'put_money')}`,
+                'BTN_BALANCE',
+              ),
+            ],
+            [Markup.button.callback(`⬅️ ${this.t(ctx, 'back')}`, 'BTN_9')],
+          ]),
+        })
+        .catch(logger.error);
+      return;
     }
+
+    await ctx
+      .editMessageText(
+        `${this.t(ctx, 'ru_payment_message')}\n${this.t(ctx, 'deposit_amount')}: ${amount} ${this.t(ctx, 'rub')}`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.url('💳 YooKassa', result.paymentUrl)],
+            [
+              Markup.button.callback(
+                `⬅️ ${this.t(ctx, 'back')}`,
+                `BUTTON_MONEY:${amount}`,
+              ),
+            ],
+          ]),
+        },
+      )
+      .catch(logger.error);
   };
 
   onWechat = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
 
-    const telegramId = ctx?.from?.id;
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { telegramId },
-    });
+    const user = await this.getUserByCtx(ctx);
     const amount = this.amountMap.get(user.telegramId);
     const price = await this.transactionsService.getCurrencyPrice();
     if (!amount) return;
@@ -225,7 +252,7 @@ export class TelegramService {
 
     await ctx
       .sendPhoto(Input.fromBuffer(invoiceQrCode), {
-        caption: this.t(ctx, 'message_wechat'),
+        caption: this.t(ctx, 'ch_payment_message'),
         parse_mode: 'HTML',
         disable_notification: true,
       })
@@ -240,9 +267,7 @@ export class TelegramService {
   onBtn1 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const telegramId = ctx?.from?.id;
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { telegramId },
-    });
+    const user = await this.getUserByCtx(ctx);
     const lang = ctx.from?.language_code;
 
     this.amountMap.delete(telegramId!);
@@ -395,9 +420,7 @@ export class TelegramService {
       this.pendingRenewKeyId.delete(telegramId);
       this.pendingRenewTariffId.delete(telegramId);
     }
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { telegramId },
-    });
+    const user = await this.getUserByCtx(ctx);
 
     const keys = await this.em.find(UserKeyEntity, {
       where: { userId: user.id },
@@ -433,12 +456,11 @@ export class TelegramService {
 
   onSetButtonMoney = async (ctx: Context) => {
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
     ctx.answerCbQuery().catch(logger.error);
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const amount = Number(callbackData.replace(/^(BUTTON_MONEY):/, ''));
     this.amountMap.set(ctx.from!.id, amount);
-    const payload = await this.getPayloadForAddBalance(user);
+    const payload = this.getPayloadForAddBalance(user);
     if (!payload) return;
     await ctx.editMessageText(payload.text, payload.extra);
   };
@@ -446,8 +468,7 @@ export class TelegramService {
   onBalance = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
-    this.amountMap.set(ctx.from!.id, 0);
+    this.amountMap.set(user.telegramId, 0);
     await ctx
       .editMessageText(
         `💳 <b>${this.t(ctx, 'enter_amount')} (${this.t(ctx, 'rub')})</b>:`,
@@ -481,10 +502,33 @@ export class TelegramService {
       .catch(logger.error);
   };
 
-  private async getUserByCtx(ctx: Context): Promise<UserEntity | null> {
-    const telegramId = ctx?.from?.id;
-    if (!telegramId) return null;
-    return this.em.findOne(UserEntity, { where: { telegramId } });
+  private async getUserByCtx(ctx: Context) {
+    const user = await this.em.findOne(UserEntity, {
+      where: { telegramId: ctx?.from!.id },
+    });
+
+    if (!user) {
+      const id = crypto.randomUUID().replace(/-/g, '');
+      await this.em.insert(UserEntity, {
+        id,
+        telegramId: ctx?.from!.id,
+        chatId: ctx?.chat?.id,
+        userName: ctx?.from!.username,
+        languageCode: ctx?.from!.language_code,
+      });
+    } else
+      await this.em.update(
+        UserEntity,
+        { id: user.id },
+        {
+          userName: ctx?.from!.username,
+          languageCode: ctx?.from!.language_code,
+        },
+      );
+
+    return this.em.findOneOrFail(UserEntity, {
+      where: { telegramId: ctx?.from!.id },
+    });
   }
 
   // Общий список тарифов (покупка и продление)
@@ -571,7 +615,6 @@ export class TelegramService {
   onBtn8 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
     if (amountFromSet === undefined) return;
 
@@ -630,7 +673,6 @@ export class TelegramService {
   onBtn11 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
     const amountFromSet = this.amountMap.get(ctx.from!.id);
     if (amountFromSet === undefined) return;
 
@@ -688,11 +730,7 @@ export class TelegramService {
 
   onBtn9 = async (ctx: Context) => {
     const telegramId = ctx?.from?.id;
-    const user = await this.em.findOne(UserEntity, {
-      where: { telegramId },
-    });
-
-    if (!user) return;
+    const user = await this.getUserByCtx(ctx);
 
     ctx.answerCbQuery().catch(logger.error);
     if (telegramId) {
@@ -832,12 +870,6 @@ export class TelegramService {
     }
     const telegramId = ctx?.from?.id;
     const user = await this.getUserByCtx(ctx);
-    if (!user) {
-      await ctx
-        .answerCbQuery(`${this.t(ctx, 'click_start')} /start`)
-        .catch(logger.error);
-      return;
-    }
 
     await ctx.answerCbQuery(this.t(ctx, 'processing')).catch(logger.error);
 
@@ -947,7 +979,6 @@ export class TelegramService {
     const keyId = data.replace('RENEW:', '');
     const telegramId = ctx?.from?.id;
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
 
     const vpnKey = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId: user.id },
@@ -984,8 +1015,7 @@ export class TelegramService {
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).replace('MIGRATE_SERVER:', '');
 
-    const user = await this.getUserByCtx(ctx);
-    if (!user) return;
+    await this.getUserByCtx(ctx);
 
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { id: keyId },
@@ -1015,7 +1045,6 @@ export class TelegramService {
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).split(':');
     const user = await this.getUserByCtx(ctx);
-    if (!user) return ctx.answerCbQuery().catch(logger.error);
     const vpnKey = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId: user.id, protocol: 'xray', status: 'active' },
       relations: ['server'],
@@ -1055,7 +1084,6 @@ export class TelegramService {
     const keyId = data.replace('KEY_DETAILS:', '');
 
     const user = await this.getUserByCtx(ctx);
-    if (!user) return;
 
     const vpnKey = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId: user.id },
@@ -1128,7 +1156,6 @@ export class TelegramService {
     id: string,
   ): Promise<boolean> {
     const user = await this.getUserByCtx(ctx);
-    if (!user) return false;
 
     let tariffId: string;
     if (isRenew) {
@@ -1222,15 +1249,8 @@ export class TelegramService {
   }
 
   onAddBalance = async (ctx: Context) => {
-    const telegramId = ctx?.from?.id;
-    if (!telegramId) return;
     const user = await this.getUserByCtx(ctx);
-    if (!user) {
-      this.amountMap.delete(telegramId);
-      return;
-    }
-
-    const payload = await this.getPayloadForAddBalance(user);
+    const payload = this.getPayloadForAddBalance(user);
     if (!payload) return;
     await ctx.editMessageText(payload.text, payload.extra);
   };
@@ -1255,10 +1275,6 @@ export class TelegramService {
 
     if (!this.amountMap.has(telegramId)) return;
     const user = await this.getUserByCtx(ctx);
-    if (!user) {
-      this.amountMap.delete(telegramId);
-      return;
-    }
     const amount = parseFloat(text);
     if (isNaN(amount) || amount <= 0) {
       await ctx
@@ -1268,7 +1284,7 @@ export class TelegramService {
     }
     this.amountMap.set(telegramId, amount);
 
-    const payload = await this.getPayloadForAddBalance(user);
+    const payload = this.getPayloadForAddBalance(user);
     if (!payload) return;
     await ctx.reply(payload.text, payload.extra).catch(logger.error);
   };
@@ -1515,27 +1531,27 @@ export class TelegramService {
     }
   }
 
-  private getPayloadForAddBalance = async (user: UserEntity) => {
+  private getPayloadForAddBalance = (user: UserEntity) => {
     const amount = this.amountMap.get(user.telegramId);
     if (!amount) return;
-    const result = await this.yookassaBalanceService.createBalancePaymentLink(
-      user.id,
-      amount,
-    );
     const text: string =
       `${this.t(user.languageCode, 'deposit_amount')}: ${amount} ${this.t(user.languageCode, 'rub')}\n` +
       `${this.t(user.languageCode, 'select_payment_method')}:`;
 
     const buttons = [
       [
-        ...(result.ok
-          ? [Markup.button.url('💳 YooKassa', result.paymentUrl)]
-          : []),
-        Markup.button.callback(`✳️ WeChat`, 'ON_WECHAT'),
+        Markup.button.callback(
+          `${this.t(user.languageCode, 'ru_flag')} ${this.t(user.languageCode, 'ru_payment')}`,
+          'ON_YOOKASSA',
+        ),
+        Markup.button.callback(
+          `${this.t(user.languageCode, 'ch_flag')} ${this.t(user.languageCode, 'ch_payment')}`,
+          'ON_WECHAT',
+        ),
       ],
       [
         Markup.button.callback(
-          `💎 ${this.t(user.languageCode, 'ton')} (+${Envs.crypto.allowance * 100}%)`,
+          `💎 ${this.t(user.languageCode, 'ton_payment')} (+${Envs.crypto.allowance * 100}%)`,
           'BTN_8',
         ),
       ],
