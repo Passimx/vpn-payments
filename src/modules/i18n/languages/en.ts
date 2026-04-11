@@ -10,6 +10,7 @@ export default {
     '🫂 Live support will resolve all your questions',
   short_description: '🏎️Stable connection speed\n📞Support: @passimx',
   menu: 'Menu',
+  change_language: 'Change language',
   instruction: 'Instruction',
   support: 'Support',
   user_agreement: 'User Agreement',
@@ -88,12 +89,12 @@ export default {
   error_try_again_later: 'Server is temporarily unavailable',
 
   ru_payment: 'Russian Bank',
-  ch_payment: 'WeChat',
+  zh_payment: 'WeChat',
   ton_payment: 'TON',
 
   ru_payment_message:
     '💳 <b>Payment via Russian Bank</b>\nPlease click the link to pay.',
-  ch_payment_message:
+  zh_payment_message:
     '💳 <b>Payment via WeChat</b>\nPlease scan the QR code on <b>WeChat</b>.',
   message_try_first_key:
     '<b>Let’s connect your first device</b>\nUse the trial period to get unrestricted internet access\n\nIt will only take a couple of minutes\n\n<b>Having trouble connecting?</b>\nIf you have any questions, you can contact support',
@@ -117,8 +118,8 @@ export default {
   lv_flag: '🇱🇻',
   de_name: 'Germany',
   de_flag: '🇩🇪',
-  ch_name: 'Китай',
-  ch_flag: '🇨🇳',
+  zh_name: 'Китай',
+  zh_flag: '🇨🇳',
   nl_name: 'Netherlands',
   nl_flag: '🇳🇱',
   se_name: 'Sweden',

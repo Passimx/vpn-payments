@@ -11,6 +11,7 @@ export default {
     '🫂 Живая служба поддержки решит все ваши вопросы',
   short_description: '🏎️Стабильная скорость соединения\n📞Поддержка: @passimx',
   menu: 'Меню',
+  change_language: 'Поменять язык',
   instruction: 'Инструкция',
   support: 'Поддержка',
   user_agreement: 'Пользовательское соглашение',
@@ -89,12 +90,12 @@ export default {
   error_try_again_later: 'Сервер пока не доступен',
 
   ru_payment: 'Карта РФ',
-  ch_payment: 'WeChat',
+  zh_payment: 'WeChat',
   ton_payment: 'ТОН',
 
   ru_payment_message:
     '💳 <b>Оплата через Российский банк</b>\nПожалуйста, кликните на ссылку для оплаты.',
-  ch_payment_message:
+  zh_payment_message:
     '💳 <b>Оплата через WeChat</b>\nПожалуйста, отсканируйте QR-код в приложении <b>WeChat</b>.',
   message_try_first_key:
     '<b>Давайте подключим первое устройство</b>\nВоспользуйтесь пробным периодом, чтобы открыть доступ к интернету без ограничений\n\nЭто займет всего пару минут\n\n<b>Появились трудности с подключением?</b>\nПри любых вопросах вы можете обратиться в поддержку',
@@ -118,8 +119,8 @@ export default {
   lv_flag: '🇱🇻',
   de_name: 'Германия',
   de_flag: '🇩🇪',
-  ch_name: 'Китай',
-  ch_flag: '🇨🇳',
+  zh_name: 'Китай',
+  zh_flag: '🇨🇳',
   nl_name: 'Нидерланды',
   nl_flag: '🇳🇱',
   se_name: 'Швеция',

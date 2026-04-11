@@ -10,6 +10,7 @@ export default {
     '🫂 在线客服随时为您解答问题',
   short_description: '🏎️稳定的连接速度\n📞客服: @passimx',
   menu: '项目',
+  change_language: '切换语言',
   instruction: '使用说明',
   support: '客服',
   user_agreement: '用户协议',
@@ -84,11 +85,11 @@ export default {
   error_try_again_later: '服务器暂时不可用',
 
   ru_payment: '俄罗斯银行卡',
-  ch_payment: '微信支付',
+  zh_payment: '微信支付',
   ton_payment: 'TON 支付',
 
   ru_payment_message: '💳 <b>通过俄罗斯银行支付</b>\n请点击支付链接。',
-  ch_payment_message:
+  zh_payment_message:
     '💳 <b>微信支付</b>\n请使用<b>微信</b>扫描二维码进行支付。',
   message_try_first_key:
     '<b>让我们连接您的第一个设备</b>\n使用试用即可获得无阻碍的互联网访问\n\n只需几分钟即可完成\n\n<b>连接时遇到问题？</b>\n如有任何问题，请联系客服',
@@ -112,8 +113,8 @@ export default {
   lv_flag: '🇱🇻',
   de_name: '德国',
   de_flag: '🇩🇪',
-  ch_name: '中国',
-  ch_flag: '🇨🇳',
+  zh_name: '中国',
+  zh_flag: '🇨🇳',
   nl_name: '荷兰',
   nl_flag: '🇳🇱',
   se_name: '瑞典',

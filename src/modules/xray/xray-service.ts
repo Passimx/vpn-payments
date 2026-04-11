@@ -6,7 +6,6 @@ import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { TelegramService } from '../telegram/telegram-service';
 import { UserEntity } from '../database/entities/user.entity';
 import { I18nService } from '../i18n/i18n.service';
-import { Context } from 'telegraf';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { KeyTrafficType, TrafficType } from './types/user-traffic.type';
 import { logger } from '../../common/logger/logger';
@@ -286,7 +285,7 @@ export class XrayService {
     ];
     const result = await this.runCommands(server, commands);
     if (!result) return null;
-    const keyName = `${this.t(user.languageCode, `${server.code}_flag`)} ${this.t(user.languageCode, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
+    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
     return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=chrome&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
   }
 
@@ -308,10 +307,12 @@ export class XrayService {
     return (await res.json()) as string[];
   }
 
-  private t(ctx: Context | string | undefined, key: string) {
-    return this.i18nService.t(
-      typeof ctx === 'string' ? ctx : ctx?.from?.language_code,
-      key,
-    );
+  private t(ctx: UserEntity | string, key: string) {
+    let lang = 'en';
+
+    if (typeof ctx === 'string') lang = ctx;
+    else if (ctx.languageCode) lang = ctx.languageCode;
+
+    return this.i18nService.t(lang, key);
   }
 }
