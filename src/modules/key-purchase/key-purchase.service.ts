@@ -320,14 +320,26 @@ export class KeyPurchaseService {
 
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
+      const countTrafficLimitDelta = tariff.trafficLimit ?? null;
+      const updatePayload: {
+        expiresAt: Date;
+        status: 'active';
+        tariffId: string;
+        countTrafficLimit?: () => string;
+      } = {
+        expiresAt,
+        status: 'active',
+        tariffId: tariff.id,
+      };
+      if (countTrafficLimitDelta != null && countTrafficLimitDelta > 0) {
+        updatePayload.countTrafficLimit = () =>
+          `COALESCE(count_traffic_limit, 0) + ${countTrafficLimitDelta}`;
+      }
+
       await qr.manager
         .createQueryBuilder()
         .update(UserKeyEntity)
-        .set({
-          expiresAt,
-          status: 'active',
-          tariffId: tariff.id,
-        })
+        .set(updatePayload)
         .where('id = :id', { id: vpnKey.id })
         .execute();
 

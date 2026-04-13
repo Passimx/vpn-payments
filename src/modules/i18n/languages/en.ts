@@ -71,6 +71,10 @@ export default {
     "The key is about to expire.\nDon't forget to renew it in advance to avoid losing your VPN connection.",
   key_expired:
     'The key has expired.\nTo activate it, press the button and extend its validity.',
+  key_traffic_limit_exceeded:
+    'Your Premium tariff traffic limit has been reached. The key has been disabled. Buy a new key to continue using the VPN.',
+  mismatched_tariff_for_renew:
+    'Selected tariff is not compatible with this key renewal.',
   app_links: 'App links',
   no_active_keys: 'You have no active keys',
   amount: 'Amount',
@@ -126,6 +130,8 @@ export default {
   se_flag: '🇸🇪',
   kz_name: 'Kazakhstan',
   kz_flag: '🇰🇿',
+  white_name: 'Premium',
+  white_flag: '🌐',
 
   tariff_3: 'Trial (3 days)',
   tariff_30: '30 days',

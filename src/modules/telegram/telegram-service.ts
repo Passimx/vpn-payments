@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager, MoreThanOrEqual, Not } from 'typeorm';
+import { EntityManager, IsNull, MoreThanOrEqual, Not } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -85,6 +85,8 @@ export class TelegramService {
     this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
     this.bot.action(/^BUY_XRAY:[\w-]+$/, this.onBuyTariff);
     this.bot.action(/^BUY_HYST:[\w-]+$/, this.onBuyTariff);
+    this.bot.action('TARIFFS_BASE', this.onTariffsBase);
+    this.bot.action('TARIFFS_PREMIUM', this.onTariffsPremium);
     this.bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
     this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
     this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
@@ -575,8 +577,9 @@ export class TelegramService {
     ctx: Context,
     user: UserEntity,
     backButtonRow: ReturnType<typeof Markup.button.callback>[],
+    kind: 'base' | 'premium' = 'base',
   ): Promise<void> {
-    const tariffButtons = await this.tariffsButtons(user);
+    const tariffButtons = await this.tariffsButtons(user, kind);
     if (!tariffButtons.length) {
       await ctx
         .editMessageText(
@@ -608,9 +611,14 @@ export class TelegramService {
     },
   ): Promise<void> {
     const user = await this.getUserByCtx(ctx);
+    const limitBytes =
+      tariff.trafficLimit === undefined ? null : tariff.trafficLimit;
+    const trafficText = limitBytes
+      ? this.formatTrafficLimit(limitBytes)
+      : this.t(user, 'unlimited');
     const text =
       `📦 <b>${this.t(user, `tariff_${tariff.expirationDays}`)}</b>\n\n` +
-      `📊 ${this.t(user, 'traffic')}: ${this.t(user, 'unlimited')}\n` +
+      `📊 ${this.t(user, 'traffic')}: ${trafficText}\n` +
       `📅 ${this.t(user, 'term')}: ${tariff.expirationDays} ${this.t(user, 'days')}\n` +
       `💰 ${this.t(user, 'price')}: ${tariff.price} ${this.t(user, 'rub')}\n`;
 
@@ -684,7 +692,7 @@ export class TelegramService {
                 `TON (${this.t(user, 'selected')})`,
                 `BTN_8`,
               ),
-              Markup.button.callback('USDT', `BTN_11`),
+              Markup.button.callback('USDT', 'BTN_11'),
             ],
             [
               Markup.button.url(
@@ -778,9 +786,41 @@ export class TelegramService {
       this.pendingRenewKeyId.delete(telegramId);
       this.pendingRenewTariffId.delete(telegramId);
     }
+    await ctx
+      .editMessageText('Выберите тип VPN:', {
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback('Обычный VPN', 'TARIFFS_BASE'),
+            Markup.button.callback(
+              'Premium VPN (обход глушилок)',
+              'TARIFFS_PREMIUM',
+            ),
+          ],
+          [this.backToProfileButton(user)],
+        ]),
+      })
+      .catch(logger.error);
+  };
+
+  onTariffsBase = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return;
     await this.showActiveTariffsList(ctx, user, [
       this.backToProfileButton(user),
     ]);
+  };
+
+  onTariffsPremium = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return;
+    await this.showActiveTariffsList(
+      ctx,
+      user,
+      [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_9')],
+      'premium',
+    );
   };
 
   onTariffSelect = async (ctx: Context) => {
@@ -812,6 +852,21 @@ export class TelegramService {
     }
 
     if (renewKeyId && telegramId) {
+      const renewKey = await this.em.findOne(UserKeyEntity, {
+        where: { id: renewKeyId, userId: user.id },
+        relations: ['tariff'],
+      });
+      if (!renewKey?.tariff) {
+        await ctx.answerCbQuery(this.t(user, 'key_not_found')).catch(logger.error);
+        return;
+      }
+      if ((renewKey.tariff.trafficLimit != null) !== (tariff.trafficLimit != null)) {
+        await ctx
+          .answerCbQuery(this.t(user, 'mismatched_tariff_for_renew'))
+          .catch(logger.error);
+        return;
+      }
+
       this.pendingRenewTariffId.set(telegramId, tariff.id);
       await this.showTariffScreen(ctx, tariff, {
         buyCallback: `BUY_KEY:${renewKeyId}`,
@@ -1039,9 +1094,10 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
 
+    const renewKind = vpnKey.tariff.trafficLimit != null ? 'premium' : 'base';
     await this.showActiveTariffsList(ctx, user, [
       Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_5'),
-    ]);
+    ], renewKind);
   };
 
   onRenewPromo = async (ctx: Context) => {
@@ -1063,10 +1119,14 @@ export class TelegramService {
 
     await this.getUserByCtx(ctx);
 
-    const key = await this.em.findOneOrFail(UserKeyEntity, {
+    const key = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId },
     });
-
+    if (!key) {
+      return ctx
+        .answerCbQuery(this.t(user, 'key_not_found'))
+        .catch(logger.error);
+    }
     const servers = await this.em.find(ServerEntity, {
       where: { canCreateKey: true, id: Not(key.serverId) },
     });
@@ -1158,12 +1218,21 @@ export class TelegramService {
         day: '2-digit',
       });
 
+    const progress = await this.xrayService.getPremiumTrafficProgress(
+      vpnKey.id,
+      vpnKey.countTrafficLimit,
+    );
+    const trafficLine = progress
+      ? `<b>${this.t(user, 'traffic')}:</b> ${progress}`
+      : '';
+
     const lines = [
       `🔑 <b>${this.t(user, 'my_keys')}</b>\n`,
       `<b>ID:</b> ${vpnKey.id}`,
       `<b>${this.t(user, 'status')}:</b> ${this.t(user, vpnKey.status)}`,
       created ? `<b>${this.t(user, 'start_date')}:</b> ${created}` : '',
       expires ? `<b>${this.t(user, 'until')}:</b> ${expires}` : '',
+      trafficLine,
       `<b>${this.t(user, 'country')}:</b> ${this.t(user, `${vpnKey.server.code}_name`)}`,
       `<b>${this.t(user, 'key')}:</b> `,
       `<code>${vpnKey.key}</code>`,
@@ -1376,7 +1445,7 @@ export class TelegramService {
       return;
     }
 
-    const tariffButtons = await this.tariffsButtons(user);
+    const tariffButtons = await this.tariffsButtons(user, 'base');
     await this.bot.telegram
       .sendMessage(
         user.chatId,
@@ -1518,6 +1587,28 @@ export class TelegramService {
     );
   }
 
+  public async sendMessageKeyTrafficLimitExceeded(keyId: string) {
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['user', 'server'],
+    });
+    const user = key.user;
+
+    const buttons = this.prepareKeysToButtons(user, [key]);
+    await this.bot.telegram.sendMessage(
+      user.chatId,
+      `${this.t(user, 'key_traffic_limit_exceeded')}\n` +
+        `${this.t(user, 'select_action')}:`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          ...buttons,
+          [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_2')],
+        ]),
+      },
+    );
+  }
+
   public async sendMessageEveryOne(key: string) {
     const filePath = path.join(
       __dirname,
@@ -1598,24 +1689,48 @@ export class TelegramService {
     return { text, extra };
   };
 
-  private async tariffsButtons(user: UserEntity) {
+  private async tariffsButtons(user: UserEntity, kind: 'base' | 'premium') {
     const userKey = await this.em.exists(UserKeyEntity, {
       where: { userId: user.id },
     });
 
+    const baseWhere = userKey
+      ? { active: true, price: MoreThanOrEqual(1) } // если есть хотя бы один ключ → показываем только платные
+      : { active: true }; // иначе платные и бесплатные период
+
+    const where =
+      kind === 'premium'
+        ? { ...baseWhere, trafficLimit: Not(IsNull()) }
+        : { ...baseWhere, trafficLimit: IsNull() };
+
     const list = await this.em.find(TariffEntity, {
-      where: userKey
-        ? { active: true, price: MoreThanOrEqual(1) } // если есть хотя бы один ключ → показываем только платные
-        : { active: true }, // иначе платные и бесплатные период
+      where,
       order: { price: 'ASC' },
     });
 
     return list.map((t) => [
       Markup.button.callback(
-        `${this.t(user, `tariff_${t.expirationDays}`)} — ${t.price} ${this.t(user, 'rub')}`,
+        `${this.formatTariffLabel(user.languageCode, t)} — ${t.price} ${this.t(user, 'rub')}`,
         `T:${t.id}`,
       ),
     ]);
+  }
+
+  private formatTrafficLimit(limitBytes: string | number): string {
+    const n = Number(limitBytes);
+    if (!Number.isFinite(n) || n <= 0) return this.t('ru', 'unlimited');
+    const gb = n / 1024 / 1024 / 1024;
+    // Округляем до целых, чтобы выглядело как на тарифах (5/10/30 Gb).
+    const gbRounded = Math.round(gb);
+    return `${gbRounded} Gb`;
+  }
+
+  private formatTariffLabel(lang: string | undefined, t: TariffEntity): string {
+    const limitBytes = t.trafficLimit ?? null;
+    if (limitBytes) {
+      return `Premium на ${t.expirationDays} дней (${this.formatTrafficLimit(limitBytes)})`;
+    }
+    return this.t(lang ?? 'ru', `tariff_${t.expirationDays}`);
   }
 
   private prepareKeysToButtons(user: UserEntity, keys: UserKeyEntity[]) {

@@ -67,6 +67,9 @@ export default {
   video_instruction: '视频教程',
   key_almost_expired: '密钥即将到期。\n请提前续费，以免失去 VPN 连接。',
   key_expired: '密钥已过期。\n要激活它，请点击按钮并延长有效期。',
+  key_traffic_limit_exceeded:
+    'Premium 套餐流量已用尽，密钥已停用。请购买新密钥以继续使用 VPN。',
+  mismatched_tariff_for_renew: '所选套餐与当前密钥续期不匹配。',
   app_links: '应用下载',
   no_active_keys: '您没有有效的密钥',
   amount: '金额',
@@ -121,6 +124,8 @@ export default {
   se_flag: '🇸🇪',
   kz_name: '哈萨克斯坦',
   kz_flag: '🇰🇿',
+  white_name: '高级套餐',
+  white_flag: '🌐',
 
   tariff_3: '试用（3天）',
   tariff_30: '30天',
