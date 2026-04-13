@@ -27,6 +27,9 @@ export class ServerEntity {
   @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.server)
   readonly keys: UserKeyEntity[];
 
-  @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.cascadeToServer)
+  @OneToMany(
+    () => UserKeyEntity,
+    (userKeyEntity) => userKeyEntity.cascadeToServer,
+  )
   readonly cascadeTargetForKeys?: UserKeyEntity[];
 }

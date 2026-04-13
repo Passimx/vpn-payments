@@ -39,7 +39,9 @@ export class XrayService {
       let keyOpts = options;
 
       if (tariff.trafficLimit) {
-        server = await this.em.findOne(ServerEntity, { where: { code: 'white' } });
+        server = await this.em.findOne(ServerEntity, {
+          where: { code: 'white' },
+        });
         if (!server) {
           logger.error(`Первый сервер(российский) не был найден`);
           return;
@@ -191,7 +193,9 @@ export class XrayService {
     return key;
   }
 
-  private euCascadeOptsFromServer(eu: ServerEntity): CreateXrayKeyOptions | null {
+  private euCascadeOptsFromServer(
+    eu: ServerEntity,
+  ): CreateXrayKeyOptions | null {
     const tag = eu.forCascadeInboundTag?.trim();
     const port = eu.port;
     if (!tag || port == null || port < 1 || port > 65535) return null;
@@ -276,10 +280,13 @@ export class XrayService {
       .createQueryBuilder(UserKeyEntity, 'k')
       .innerJoinAndSelect('k.server', 'server')
       .leftJoinAndSelect('k.cascadeToServer', 'cascadeToServer')
-      .where('k.protocol = :p AND k.status = :st AND k.countTrafficLimit IS NOT NULL', {
-        p: 'xray',
-        st: 'active',
-      })
+      .where(
+        'k.protocol = :p AND k.status = :st AND k.countTrafficLimit IS NOT NULL',
+        {
+          p: 'xray',
+          st: 'active',
+        },
+      )
       .getMany();
 
     for (const key of keys) {
@@ -300,12 +307,15 @@ export class XrayService {
         await this.telegramService.sendMessageKeyTrafficLimitExceeded(key.id);
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
-        logger.error('Ошибка отправки сообщения об исчерпании трафика премиум ключа', key.id, e);
+        logger.error(
+          'Ошибка отправки сообщения об исчерпании трафика премиум ключа',
+          key.id,
+          e,
+        );
       }
     }
   }
 
-  
   // Статистика потребления Premium-трафика в формате `1,55 Gb / 5,00 Gb`.
   public async getPremiumTrafficProgress(
     keyId: string,
@@ -397,7 +407,9 @@ export class XrayService {
     const validRaw = VALID_INBOUND_TAG_RE.test(raw);
 
     if (cascadeId && !validRaw)
-      logger.error(`ключ ${key.id}: каскад, forCascadeInboundTag пустой или невалиден ${raw}, с vless-in`);
+      logger.error(
+        `ключ ${key.id}: каскад, forCascadeInboundTag пустой или невалиден ${raw}, с vless-in`,
+      );
 
     return cascadeId && validRaw ? raw : 'vless-in';
   }

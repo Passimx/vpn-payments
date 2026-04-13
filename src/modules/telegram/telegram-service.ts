@@ -857,10 +857,15 @@ export class TelegramService {
         relations: ['tariff'],
       });
       if (!renewKey?.tariff) {
-        await ctx.answerCbQuery(this.t(user, 'key_not_found')).catch(logger.error);
+        await ctx
+          .answerCbQuery(this.t(user, 'key_not_found'))
+          .catch(logger.error);
         return;
       }
-      if ((renewKey.tariff.trafficLimit != null) !== (tariff.trafficLimit != null)) {
+      if (
+        (renewKey.tariff.trafficLimit != null) !==
+        (tariff.trafficLimit != null)
+      ) {
         await ctx
           .answerCbQuery(this.t(user, 'mismatched_tariff_for_renew'))
           .catch(logger.error);
@@ -1095,9 +1100,12 @@ export class TelegramService {
     }
 
     const renewKind = vpnKey.tariff.trafficLimit != null ? 'premium' : 'base';
-    await this.showActiveTariffsList(ctx, user, [
-      Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_5'),
-    ], renewKind);
+    await this.showActiveTariffsList(
+      ctx,
+      user,
+      [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_5')],
+      renewKind,
+    );
   };
 
   onRenewPromo = async (ctx: Context) => {
