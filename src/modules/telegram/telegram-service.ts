@@ -205,10 +205,12 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
     const amount = this.amountMap.get(user.telegramId);
     if (!amount) return;
+    const processingMessage = await ctx.reply(this.t(user, 'processing'));
     const result = await this.yookassaBalanceService.createBalancePaymentLink(
       user.id,
       amount,
     );
+    await ctx.deleteMessage(processingMessage.message_id);
     if (!result.ok) {
       await ctx
         .editMessageText(`❌ ${result.error}`, {
@@ -254,6 +256,7 @@ export class TelegramService {
     if (!amount) return;
     if (!price) return;
 
+    const processingMessage = await ctx.reply(this.t(user, 'processing'));
     const invoiceQrCode = await this.wechatService.createInvoice({
       outTradeNo: Date.now().toString(),
       amount: amount / (price.usd.rub / price.usd.cny),
@@ -261,6 +264,7 @@ export class TelegramService {
     });
     if (!invoiceQrCode) return;
 
+    await ctx.deleteMessage(processingMessage.message_id);
     await ctx
       .sendPhoto(Input.fromBuffer(invoiceQrCode), {
         caption: this.t(user, 'zh_payment_message'),
