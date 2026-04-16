@@ -133,6 +133,7 @@ export default {
   white_name: 'Premium',
   white_flag: '🌐',
 
+  tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',
   tariff_30: '30 days',
   tariff_60: '60 days',

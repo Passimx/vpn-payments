@@ -43,16 +43,34 @@ export class KeyPurchaseService {
 
       let finalPrice = Number(tariff.price);
       let appliedPromo: PromoCodeEntity | null = null;
+      const autoTrialPromoCode =
+        finalPrice === 0
+          ? tariff.trafficLimit != null
+            ? 'PREMIUM_TRIAL'
+            : 'TRIAL'
+          : undefined;
+      const effectivePromoCode =
+        promoCode ?? autoTrialPromoCode;
 
-      if (promoCode) {
+      if (effectivePromoCode) {
         const priceResult = await this.getPriceWithPromo(
           user.id,
           tariff.id,
-          promoCode,
+          effectivePromoCode,
         );
         if (!priceResult.ok) return priceResult;
         finalPrice = priceResult.finalPrice;
         appliedPromo = priceResult.appliedPromo;
+      }
+
+      // Бесплатные пробные тарифы выдаем только через соответствующий trial-промокод.
+      if (finalPrice === 0 && !appliedPromo) {
+        const requiredPromo =
+          tariff.trafficLimit != null ? 'PREMIUM_TRIAL' : 'TRIAL';
+        return {
+          ok: false,
+          error: `Для этого тарифа используйте промокод ${requiredPromo}`,
+        };
       }
 
       const balance = Number(user.balance);
@@ -193,7 +211,7 @@ export class KeyPurchaseService {
       return {
         ok: false,
         error:
-          promo.code === 'TRIAL'
+          promo.code === 'TRIAL' || promo.code === 'PREMIUM_TRIAL'
             ? 'Пробный период уже использован'
             : 'Этот промокод уже был использован',
       };
@@ -264,16 +282,33 @@ export class KeyPurchaseService {
 
       let finalPrice = Number(tariff.price);
       let appliedPromo: PromoCodeEntity | null = null;
+      const autoTrialPromoCode =
+        finalPrice === 0
+          ? tariff.trafficLimit != null
+            ? 'PREMIUM_TRIAL'
+            : 'TRIAL'
+          : undefined;
+      const effectivePromoCode =
+        promoCode ?? autoTrialPromoCode;
 
-      if (promoCode) {
+      if (effectivePromoCode) {
         const priceResult = await this.getPriceWithPromo(
           user.id,
           tariff.id,
-          promoCode,
+          effectivePromoCode,
         );
         if (!priceResult.ok) return priceResult;
         finalPrice = priceResult.finalPrice;
         appliedPromo = priceResult.appliedPromo;
+      }
+
+      if (finalPrice === 0 && !appliedPromo) {
+        const requiredPromo =
+          tariff.trafficLimit != null ? 'PREMIUM_TRIAL' : 'TRIAL';
+        return {
+          ok: false,
+          error: `Для этого тарифа используйте промокод ${requiredPromo}`,
+        };
       }
 
       const balance = Number(user.balance);
@@ -380,4 +415,5 @@ export class KeyPurchaseService {
       await qr.release();
     }
   }
+
 }

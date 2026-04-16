@@ -134,6 +134,7 @@ export default {
   white_name: 'Премиум',
   white_flag: '🌐',
 
+  tariff_1: 'Пробный (1 день)',
   tariff_3: 'Пробный (3 дня)',
   tariff_30: '30 дней',
   tariff_60: '60 дней',

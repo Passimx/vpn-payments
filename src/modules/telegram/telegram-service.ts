@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager, IsNull, MoreThanOrEqual, Not } from 'typeorm';
+import { EntityManager, IsNull, Not } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -13,6 +13,7 @@ import path from 'node:path';
 import { I18nService } from '../i18n/i18n.service';
 import { XrayService } from '../xray/xray-service';
 import { ServerEntity } from '../database/entities/server.entity';
+import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { AnalyticsService } from './analytics.service';
 import { Archiver } from '@passimx/archiver';
 import { logger } from '../../common/logger/logger';
@@ -1255,7 +1256,11 @@ export class TelegramService {
       ),
     ]);
 
-    if (vpnKey.protocol === 'xray' && vpnKey.status === 'active') {
+    if (
+      vpnKey.protocol === 'xray' &&
+      vpnKey.status === 'active' &&
+      vpnKey.tariff.trafficLimit == null
+    ) {
       buttons.push([
         Markup.button.callback(
           `🌍 ${this.t(user, 'change_server')}`,
@@ -1698,25 +1703,31 @@ export class TelegramService {
   };
 
   private async tariffsButtons(user: UserEntity, kind: 'base' | 'premium') {
-    const userKey = await this.em.exists(UserKeyEntity, {
-      where: { userId: user.id },
-    });
-
-    const baseWhere = userKey
-      ? { active: true, price: MoreThanOrEqual(1) } // если есть хотя бы один ключ → показываем только платные
-      : { active: true }; // иначе платные и бесплатные период
-
     const where =
       kind === 'premium'
-        ? { ...baseWhere, trafficLimit: Not(IsNull()) }
-        : { ...baseWhere, trafficLimit: IsNull() };
+        ? { active: true, trafficLimit: Not(IsNull()) }
+        : { active: true, trafficLimit: IsNull() };
 
     const list = await this.em.find(TariffEntity, {
       where,
       order: { price: 'ASC' },
     });
 
-    return list.map((t) => [
+    const trialPromoCode = kind === 'premium' ? 'PREMIUM_TRIAL' : 'TRIAL';
+    const hasUsedTrialPromo = await this.em
+      .createQueryBuilder(PromoUsageEntity, 'usage')
+      .innerJoin('usage.promoCode', 'promo')
+      .where('usage.userId = :userId', { userId: user.id })
+      .andWhere('promo.code = :trialPromoCode', {
+        trialPromoCode,
+      })
+      .getExists();
+
+    const filteredList = hasUsedTrialPromo
+      ? list.filter((t) => Number(t.price) > 0)
+      : list;
+
+    return filteredList.map((t) => [
       Markup.button.callback(
         `${this.formatTariffLabel(user.languageCode, t)} — ${t.price} ${this.t(user, 'rub')}`,
         `T:${t.id}`,

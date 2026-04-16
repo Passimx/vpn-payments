@@ -127,6 +127,7 @@ export default {
   white_name: '高级套餐',
   white_flag: '🌐',
 
+  tariff_1: '试用（1天）',
   tariff_3: '试用（3天）',
   tariff_30: '30天',
   tariff_60: '60天',
