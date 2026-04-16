@@ -133,6 +133,18 @@ export default {
   white_name: 'Premium',
   white_flag: '🌐',
 
+  select_vpn_type_message:
+    'Choose VPN type:\n\n' +
+    '🚚 Base tariff\n' +
+    'A reliable workhorse: stable access without traffic limits.\n' +
+    'Great for everyday use.\n\n' +
+    '🛡️ Premium tariff\n' +
+    'It works:\n' +
+    '- Under the most severe blockings\n' +
+    '- At factories\n' +
+    '- During allowlists/whitelists\n' +
+    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.',
+
   tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',
   tariff_30: '30 days',

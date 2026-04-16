@@ -127,6 +127,18 @@ export default {
   white_name: '高级套餐',
   white_flag: '🌐',
 
+  select_vpn_type_message:
+    '选择 VPN 类型：\n\n' +
+    '🚚 基础套餐\n' +
+    '稳定可靠：无流量限制的访问。\n' +
+    '适合日常使用。\n\n' +
+    '🛡️ Premium 套餐\n' +
+    '它在这种情况下工作：\n' +
+    '- 最强的封锁环境\n' +
+    '- 工厂/厂区网络\n' +
+    '- 白名单期间\n' +
+    '它有流量限制，所以建议同时购买普通 VPN 套餐。',
+
   tariff_1: '试用（1天）',
   tariff_3: '试用（3天）',
   tariff_30: '30天',

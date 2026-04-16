@@ -788,7 +788,7 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
     await ctx
-      .editMessageText('Выберите тип VPN:', {
+      .editMessageText(this.t(user, 'select_vpn_type_message'), {
         ...Markup.inlineKeyboard([
           [
             Markup.button.callback('Обычный VPN', 'TARIFFS_BASE'),
