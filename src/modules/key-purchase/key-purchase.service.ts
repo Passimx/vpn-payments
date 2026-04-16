@@ -49,8 +49,7 @@ export class KeyPurchaseService {
             ? 'PREMIUM_TRIAL'
             : 'TRIAL'
           : undefined;
-      const effectivePromoCode =
-        promoCode ?? autoTrialPromoCode;
+      const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 
       if (effectivePromoCode) {
         const priceResult = await this.getPriceWithPromo(
@@ -288,8 +287,7 @@ export class KeyPurchaseService {
             ? 'PREMIUM_TRIAL'
             : 'TRIAL'
           : undefined;
-      const effectivePromoCode =
-        promoCode ?? autoTrialPromoCode;
+      const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 
       if (effectivePromoCode) {
         const priceResult = await this.getPriceWithPromo(
@@ -415,5 +413,4 @@ export class KeyPurchaseService {
       await qr.release();
     }
   }
-
 }
