@@ -26,6 +26,12 @@ export class UserKeyEntity {
   @Column({ name: 'server_id', type: 'uuid' })
   readonly serverId: string;
 
+  @Column({ name: 'cascade_to_server_id', type: 'uuid', nullable: true })
+  readonly cascadeToServerId: string | null;
+
+  @Column({ name: 'count_traffic_limit', type: 'bigint', nullable: true })
+  readonly countTrafficLimit: number | null;
+
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
 
@@ -50,6 +56,13 @@ export class UserKeyEntity {
   @ManyToOne(() => ServerEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'server_id' })
   readonly server: ServerEntity;
+
+  @ManyToOne(() => ServerEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'cascade_to_server_id' })
+  readonly cascadeToServer: ServerEntity | null;
 
   @ManyToOne(() => TariffEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tariff_id' })

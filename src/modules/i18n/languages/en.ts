@@ -71,6 +71,10 @@ export default {
     "The key is about to expire.\nDon't forget to renew it in advance to avoid losing your VPN connection.",
   key_expired:
     'The key has expired.\nTo activate it, press the button and extend its validity.',
+  key_traffic_limit_exceeded:
+    'Your Premium tariff traffic limit has been reached. The key has been disabled. Buy a new key to continue using the VPN.',
+  mismatched_tariff_for_renew:
+    'Selected tariff is not compatible with this key renewal.',
   app_links: 'App links',
   no_active_keys: 'You have no active keys',
   amount: 'Amount',
@@ -126,7 +130,22 @@ export default {
   se_flag: '🇸🇪',
   kz_name: 'Kazakhstan',
   kz_flag: '🇰🇿',
+  white_name: 'Premium',
+  white_flag: '🌐',
 
+  select_vpn_type_message:
+    'Choose VPN type:\n\n' +
+    '🚚 Base tariff\n' +
+    'A reliable workhorse: stable access without traffic limits.\n' +
+    'Great for everyday use.\n\n' +
+    '🛡️ Premium tariff\n' +
+    'It works:\n' +
+    '- Under the most severe blockings\n' +
+    '- At factories\n' +
+    '- During allowlists/whitelists\n' +
+    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.',
+
+  tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',
   tariff_30: '30 days',
   tariff_60: '60 days',

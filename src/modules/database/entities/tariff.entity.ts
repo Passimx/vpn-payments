@@ -16,6 +16,9 @@ export class TariffEntity {
   @Column({ name: 'price', type: 'numeric' })
   readonly price: number;
 
+  @Column({ name: 'traffic_limit', type: 'bigint', nullable: true })
+  readonly trafficLimit?: number | null;
+
   @Column({ name: 'active', type: 'boolean', default: true })
   readonly active: boolean;
 
