@@ -791,9 +791,12 @@ export class TelegramService {
       .editMessageText(this.t(user, 'select_vpn_type_message'), {
         ...Markup.inlineKeyboard([
           [
-            Markup.button.callback('Обычный VPN', 'TARIFFS_BASE'),
             Markup.button.callback(
-              'Premium VPN (обход глушилок)',
+              this.t(user, 'vpn_type_base_button'),
+              'TARIFFS_BASE',
+            ),
+            Markup.button.callback(
+              this.t(user, 'vpn_type_premium_button'),
               'TARIFFS_PREMIUM',
             ),
           ],
@@ -1747,7 +1750,10 @@ export class TelegramService {
   private formatTariffLabel(lang: string | undefined, t: TariffEntity): string {
     const limitBytes = t.trafficLimit ?? null;
     if (limitBytes) {
-      return `Premium на ${t.expirationDays} дней (${this.formatTrafficLimit(limitBytes)})`;
+      const template = this.t(lang ?? 'ru', 'premium_tariff_label');
+      return template
+        .replace('{days}', String(t.expirationDays))
+        .replace('{traffic}', this.formatTrafficLimit(limitBytes));
     }
     return this.t(lang ?? 'ru', `tariff_${t.expirationDays}`);
   }

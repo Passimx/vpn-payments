@@ -126,6 +126,9 @@ export default {
   kz_flag: '🇰🇿',
   white_name: '高级套餐',
   white_flag: '🌐',
+  vpn_type_base_button: '普通 VPN',
+  vpn_type_premium_button: 'Premium VPN（强封锁可用）',
+  premium_tariff_label: 'Premium 套餐 {days} 天（{traffic}）',
 
   select_vpn_type_message:
     '选择 VPN 类型：\n\n' +
