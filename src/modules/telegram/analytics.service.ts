@@ -257,37 +257,44 @@ export class AnalyticsService {
       if (!stats?.length) continue;
 
       for (const stat of stats) {
-        const oldTraffic = await this.em
-          .createQueryBuilder(TrafficEntity, 'traffics')
-          .where({
-            keyId: stat.id,
-            serverId: server.id,
-          })
-          .andWhere(
-            "traffics.createdAt = DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
-          )
-          .getOne();
-
-        if (oldTraffic)
-          await this.em
-            .createQueryBuilder()
-            .update(TrafficEntity)
-            .set({
-              upLink: () => `up_link + ${stat.uplink}`,
-              downLink: () => `down_link + ${stat.downlink}`,
+        try {
+          const oldTraffic = await this.em
+            .createQueryBuilder(TrafficEntity, 'traffics')
+            .where({
+              keyId: stat.id,
+              serverId: server.id,
             })
-            .where('key_id = :keyId', { keyId: stat.id })
-            .andWhere('server_id = :serverId', { serverId: server.id })
-            .andWhere("created_at = DATE(NOW() AT TIME ZONE 'Europe/Moscow')")
-            .execute();
-        else
-          await this.em.insert(TrafficEntity, {
-            keyId: stat.id,
-            serverId: server.id,
-            upLink: stat.uplink,
-            downLink: stat.downlink,
-            createdAt: () => "DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
-          });
+            .andWhere(
+              "traffics.createdAt = DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
+            )
+            .getOne();
+
+          if (oldTraffic)
+            await this.em
+              .createQueryBuilder()
+              .update(TrafficEntity)
+              .set({
+                upLink: () => `up_link + ${stat.uplink}`,
+                downLink: () => `down_link + ${stat.downlink}`,
+              })
+              .where('key_id = :keyId', { keyId: stat.id })
+              .andWhere('server_id = :serverId', { serverId: server.id })
+              .andWhere("created_at = DATE(NOW() AT TIME ZONE 'Europe/Moscow')")
+              .execute();
+          else
+            await this.em.insert(TrafficEntity, {
+              keyId: stat.id,
+              serverId: server.id,
+              upLink: stat.uplink,
+              downLink: stat.downlink,
+              createdAt: () => "DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
+            });
+        } catch (e) {
+          logger.error(
+            `При получении трафика, не был найден ключь ${stat.id} с сервера ${server.id}`,
+            e,
+          );
+        }
       }
     }
   }

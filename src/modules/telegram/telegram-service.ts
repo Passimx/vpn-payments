@@ -71,7 +71,7 @@ export class TelegramService {
     this.bot.action('BTN_9', this.onBtn9);
     this.bot.action('BTN_11', this.onBtn11);
     this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
-    this.bot.action(/^MIGRATE_SERVER_COUNTRY:.+$/, this.onMigrateServerCountry);
+    this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
@@ -1137,14 +1137,14 @@ export class TelegramService {
         .catch(logger.error);
     }
     const servers = await this.em.find(ServerEntity, {
-      where: { canCreateKey: true, id: Not(key.serverId) },
+      where: { canCreateKey: true, id: Not(key.serverId), code: Not('white') },
     });
 
     const kb = Markup.inlineKeyboard([
       ...servers.map((server) => [
         Markup.button.callback(
           `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)}`,
-          `MIGRATE_SERVER_COUNTRY:${keyId}:${server.code}`,
+          `MSC:${keyId}:${server.code}`,
         ),
       ]),
 
