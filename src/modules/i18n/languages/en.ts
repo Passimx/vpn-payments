@@ -122,7 +122,7 @@ export default {
   lv_flag: '🇱🇻',
   de_name: 'Germany',
   de_flag: '🇩🇪',
-  zh_name: 'Китай',
+  zh_name: 'China',
   zh_flag: '🇨🇳',
   nl_name: 'Netherlands',
   nl_flag: '🇳🇱',
@@ -132,6 +132,9 @@ export default {
   kz_flag: '🇰🇿',
   white_name: 'Premium',
   white_flag: '🌐',
+  vpn_type_base_button: 'Regular VPN',
+  vpn_type_premium_button: 'Premium VPN (anti-blocking)',
+  premium_tariff_label: 'Premium for {days} days ({traffic})',
 
   select_vpn_type_message:
     'Choose VPN type:\n\n' +
