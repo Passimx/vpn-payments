@@ -795,6 +795,8 @@ export class TelegramService {
               this.t(user, 'vpn_type_base_button'),
               'TARIFFS_BASE',
             ),
+          ],
+          [
             Markup.button.callback(
               this.t(user, 'vpn_type_premium_button'),
               'TARIFFS_PREMIUM',
