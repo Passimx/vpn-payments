@@ -6,7 +6,6 @@ import { TransactionEntity } from '../database/entities/transaction.entity';
 import { UserEntity } from '../database/entities/user.entity';
 import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
-import { TelegramService } from '../telegram/telegram-service';
 import { logger } from '../../common/logger/logger';
 
 @Injectable()
@@ -14,7 +13,6 @@ export class TonService {
   constructor(
     private readonly em: EntityManager,
     private readonly transactionsService: TransactionsService,
-    private readonly telegramService: TelegramService,
   ) {}
 
   public async scanTransactions(): Promise<void> {
@@ -94,24 +92,15 @@ export class TonService {
         const addBalance =
           transaction.amount * priceCollection['the-open-network'].rub;
 
-        await this.em
-          .createQueryBuilder()
-          .update(UserEntity)
-          .set({
-            balance: () => `balance + ${addBalance}`,
-          })
-          .where('id = :id', { id: transaction.userId })
-          .execute();
+        await this.transactionsService.addBalance(
+          transaction.userId,
+          addBalance,
+        );
 
         await this.em.update(
           TransactionEntity,
           { id: transaction.id, place: 'ton' },
           { completed: true },
-        );
-
-        await this.telegramService.sendMessageAddBalance(
-          transaction.userId,
-          addBalance,
         );
       }),
     );

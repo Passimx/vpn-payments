@@ -123,6 +123,26 @@ export class TelegramService {
     return this.i18nService.t(lang, key);
   }
 
+  private profileMenu = (user: UserEntity) => {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
+      [Markup.button.callback(`🛒 ${this.t(user, 'buy_key')}`, 'BTN_9')],
+      [
+        Markup.button.callback(
+          `💸 ${this.t(user, 'put_money')}`,
+          'BTN_BALANCE',
+        ),
+      ],
+      [
+        Markup.button.callback(
+          `🔗 ${this.t(user, 'my_ref_link')}`,
+          'ON_MY_REF_LINK',
+        ),
+      ],
+      [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_2')],
+    ]);
+  };
+
   private menu = (user: UserEntity) =>
     Markup.inlineKeyboard([
       [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
@@ -1488,7 +1508,7 @@ export class TelegramService {
         .sendMessage(
           user.chatId,
           `${this.t(user, 'select_action')}:`,
-          this.menu(user),
+          this.profileMenu(user),
         )
         .catch(logger.error);
 

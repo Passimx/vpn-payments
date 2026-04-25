@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import WxPay from 'wechatpay-node-v3';
 import * as fs from 'node:fs';
 import path from 'node:path';
@@ -12,8 +12,6 @@ import { InvoiceCreateType } from './types/invoice-create.type';
 import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { WechatTransactionType } from './types/wechat-transaction.type';
-import { TelegramService } from '../telegram/telegram-service';
-import { UserEntity } from '../database/entities/user.entity';
 import { TransactionsService } from '../transactions/transactions.service';
 
 @Injectable()
@@ -21,8 +19,6 @@ export class WechatService {
   private wxPay: WxPay;
 
   constructor(
-    @Inject(forwardRef(() => TelegramService))
-    private readonly telegramService: TelegramService,
     private readonly transactionsService: TransactionsService,
     private readonly em: EntityManager,
   ) {
@@ -127,14 +123,7 @@ export class WechatService {
 
     const addBalance = (transaction.amount / price.usd.cny) * price.usd.rub;
 
-    await this.em
-      .createQueryBuilder()
-      .update(UserEntity)
-      .set({
-        balance: () => `balance + ${addBalance}`,
-      })
-      .where('id = :id', { id: transaction.userId })
-      .execute();
+    await this.transactionsService.addBalance(transaction.userId, addBalance);
 
     await this.em.update(
       TransactionEntity,
@@ -146,10 +135,6 @@ export class WechatService {
       {
         completed: true,
       },
-    );
-    await this.telegramService.sendMessageAddBalance(
-      transaction.userId,
-      addBalance,
     );
   }
 

@@ -1,11 +1,10 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Envs } from '../../common/env/envs';
-import { UserEntity } from '../database/entities/user.entity';
 import { TransactionEntity } from '../database/entities/transaction.entity';
-import { TelegramService } from '../telegram/telegram-service';
 import { logger } from '../../common/logger/logger';
+import { TransactionsService } from '../transactions/transactions.service';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -21,8 +20,7 @@ export type YooKassaWebhookPayload = {
 export class YookassaBalanceService {
   constructor(
     private readonly em: EntityManager,
-    @Inject(forwardRef(() => TelegramService))
-    private readonly telegramService: TelegramService,
+    private readonly transactionsService: TransactionsService,
   ) {}
 
   async createBalancePaymentLink(
@@ -149,16 +147,7 @@ export class YookassaBalanceService {
     );
 
     const amount = Number(balancePayment.amount);
-    await this.em
-      .createQueryBuilder()
-      .update(UserEntity)
-      .set({ balance: () => `balance + ${amount}` })
-      .where('id = :id', { id: balancePayment.userId })
-      .execute();
 
-    await this.telegramService.sendMessageAddBalance(
-      balancePayment.userId,
-      amount,
-    );
+    await this.transactionsService.addBalance(balancePayment.userId, amount);
   }
 }
