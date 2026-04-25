@@ -74,6 +74,7 @@ export class TelegramService {
     this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
     this.bot.action('BTN_BALANCE', this.onBalance);
+    this.bot.action('ON_MY_REF_LINK', this.onMyRefLink);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
     this.bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
     this.bot.action('ON_ADD_KEY_INSTRUCTION', this.onAddKeyInstruction);
@@ -201,6 +202,8 @@ export class TelegramService {
       logger.info(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
       this.welcomeVideoId = videoMessage.video.file_id;
     }
+
+    await this.setOpenAppButton(ctx);
   };
 
   onYookassa = async (ctx: Context) => {
@@ -308,6 +311,7 @@ export class TelegramService {
     );
     const user = await this.getUserByCtx(ctx);
 
+    await this.setOpenAppButton(ctx);
     await ctx
       .editMessageText(`${this.t(user, 'select_action')}:`, this.menu(user))
       .catch(logger.error);
@@ -330,6 +334,12 @@ export class TelegramService {
             Markup.button.callback(
               `💸 ${this.t(user, 'put_money')}`,
               'BTN_BALANCE',
+            ),
+          ],
+          [
+            Markup.button.callback(
+              `🔗 ${this.t(user, 'my_ref_link')}`,
+              'ON_MY_REF_LINK',
             ),
           ],
           [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_2')],
@@ -517,6 +527,20 @@ export class TelegramService {
     await ctx.editMessageText(payload.text, payload.extra);
   };
 
+  onMyRefLink = async (ctx: Context) => {
+    const user = await this.getUserByCtx(ctx);
+
+    await ctx.editMessageText(
+      `${this.t(user, 'ref_link_description')}:\n\n<code>https://t.me/${ctx.botInfo.username}?start=${user.id}</code>`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_1')],
+        ]),
+      },
+    );
+  };
+
   onBalance = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
@@ -560,6 +584,12 @@ export class TelegramService {
     });
     if (user) return user;
 
+    let source: undefined | string = undefined;
+    const { payload } = ctx as unknown as { payload?: string };
+    if (payload && payload.length > 0) {
+      source = payload;
+    }
+
     const id = crypto.randomUUID().replace(/-/g, '');
     await this.em.insert(UserEntity, {
       id,
@@ -567,6 +597,7 @@ export class TelegramService {
       chatId: ctx?.chat?.id,
       userName: ctx?.from!.username,
       languageCode: ctx?.from!.language_code,
+      source,
     });
     return this.em.findOneOrFail(UserEntity, {
       where: { telegramId: ctx?.from!.id },
@@ -1779,4 +1810,17 @@ export class TelegramService {
       ];
     });
   }
+
+  private setOpenAppButton = async (ctx: Context) => {
+    if (!Envs.telegram.botWebUrl) return;
+    const user = await this.getUserByCtx(ctx);
+
+    await ctx.setChatMenuButton({
+      type: 'web_app',
+      text: this.t(user, 'open_app_button'),
+      web_app: {
+        url: Envs.telegram.botWebUrl,
+      },
+    });
+  };
 }

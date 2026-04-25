@@ -1,6 +1,8 @@
 export default {
+  language_native: 'English',
+  language_native_flag: '🇺🇲',
   description:
-    'Welcome to PassimX VPN:\nAdvantages of the bot:\n\n' +
+    'Welcome to PassimX VPN\nAdvantages of the bot:\n\n' +
     '🔑 Fast VPN key delivery\n\n' +
     '🏎️ Stable and unlimited data transfer speed\n\n' +
     '🚌 Even distribution of users across servers\n\n' +
@@ -154,4 +156,9 @@ export default {
   tariff_60: '60 days',
   tariff_90: '90 days',
   tariff_365: '365 days',
+
+  open_app_button: 'Open',
+  my_ref_link: 'My referral link',
+  ref_link_description:
+    'Earn 30% from every top-up made by your referrals during their first 90 days. Bonuses are credited to your balance instantly.\nTap the link to copy it',
 };
