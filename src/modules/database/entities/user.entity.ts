@@ -51,7 +51,7 @@ export class UserEntity {
   @Column({
     name: 'source',
     type: 'varchar',
-    length: 2 ** 4,
+    length: 2 ** 6,
     nullable: true,
   })
   readonly source?: string;

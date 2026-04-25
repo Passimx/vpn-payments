@@ -33,6 +33,12 @@ export class TransactionsService {
 
     if (!user.source) return;
 
+    const diffInMs = Math.abs(
+      new Date().getTime() - new Date(user.createdAt).getTime(),
+    );
+    const daysDiff = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    if (daysDiff > 90) return;
+
     const amount = Math.floor(addBalance * 0.3);
     if (amount > 0) await this.addBalance(user.source, amount);
   }

@@ -1521,6 +1521,7 @@ export class TelegramService {
         user.chatId,
         `${this.t(user, 'balance')}: ${user.balance} ${this.t(user, 'rub')}\n<b>${this.t(user, 'select_tariff')}:</b>`,
         {
+          parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
             ...tariffButtons,
             [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
