@@ -160,5 +160,5 @@ export default {
   open_app_button: 'Open',
   my_ref_link: 'My referral link',
   ref_link_description:
-    'Earn 30% from every top-up made by your referrals during their first 90 days. Bonuses are credited to your balance instantly.\nTap the link to copy it',
+    "Earn 30% from your friends' top-ups during their first 90 days, plus 30% of the earnings of everyone they invite\nTap the link to copy it",
 };
