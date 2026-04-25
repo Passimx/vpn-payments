@@ -13,7 +13,9 @@ export const Envs = {
   },
   telegram: {
     botToken: String(process.env.TELEGRAM_BOT_TOKEN),
-    botWebUrl: String(process.env.TELEGRAM_BOT_WEB_URL),
+    botWebUrl: process.env.TELEGRAM_BOT_WEB_URL?.length
+      ? String(process.env.TELEGRAM_BOT_WEB_URL)
+      : undefined,
     addKeyVideoId: process.env.TELEGRAM_ADD_KEY_VIDEO_ID,
     addBalanceVideoId: process.env.TELEGRAM_ADD_BALANCE_VIDEO_ID,
     welcomeVideoId: process.env.TELEGRAM_WELCOME_VIDEO_ID,

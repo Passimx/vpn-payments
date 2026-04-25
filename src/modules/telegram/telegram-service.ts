@@ -528,6 +528,7 @@ export class TelegramService {
   };
 
   onMyRefLink = async (ctx: Context) => {
+    console.log(Envs.telegram.botWebUrl);
     const user = await this.getUserByCtx(ctx);
 
     await ctx.editMessageText(
