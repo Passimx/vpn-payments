@@ -86,85 +86,6 @@ export class AnalyticsService {
       backgroundColour: 'white',
     });
 
-    const usersChart = await chartJSNodeCanvas.renderToBuffer({
-      type: 'line',
-      data: {
-        labels: analytics.map(({ createdAt }) => {
-          const date = new Date(createdAt);
-
-          return new Intl.DateTimeFormat('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            timeZone: 'Europe/Moscow',
-          }).format(date);
-        }),
-        datasets: [
-          {
-            label: 'Рост активных пользователей',
-            data: analytics.map((a) => {
-              if (a.allUsersCount === 0) return 0;
-              return (a.activeUsersCount / a.allUsersCount) * 100;
-            }),
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59,130,246,0.15)',
-            tension: 0.3,
-          },
-          {
-            label: 'Рост новых пользователей',
-            data: analytics.map((a) => {
-              const base = a.allUsersCount - a.newUsersCount;
-
-              if (base === 0) return 0;
-
-              return (a.newUsersCount / base) * 100;
-            }),
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16,185,129,0.15)',
-            tension: 0.3,
-          },
-        ],
-      },
-      options: {
-        scales: {
-          x: {
-            ticks: {
-              color: '#000',
-            },
-            title: {
-              display: true,
-              text: 'Дата',
-              color: '#000',
-            },
-          },
-          y: {
-            max: 100,
-            min: 0,
-            ticks: {
-              color: '#000',
-            },
-            title: {
-              display: true,
-              text: 'Конверсия (%) пользователей',
-              color: '#000',
-            },
-          },
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              color: '#000',
-            },
-          },
-          title: {
-            display: true,
-            text: '📊 Статистика пользователей',
-            color: '#000',
-          },
-        },
-      },
-    });
-
     const paymentsChart = await chartJSNodeCanvas.renderToBuffer({
       type: 'line',
       data: {
@@ -225,16 +146,6 @@ export class AnalyticsService {
         },
       },
     });
-
-    await this.telegramService.bot.telegram
-      .sendPhoto(
-        ctx.chat!.id,
-        {
-          source: usersChart,
-        },
-        { caption: 'Конверсия (%) пользователей' },
-      )
-      .catch(logger.error);
 
     await this.telegramService.bot.telegram
       .sendPhoto(
