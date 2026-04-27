@@ -1309,7 +1309,6 @@ export class TelegramService {
     user: UserEntity,
     vpnKey: UserKeyEntity,
   ) {
-
     const created =
       vpnKey.createdAt &&
       new Date(vpnKey.createdAt).toLocaleDateString('ru-RU', {
@@ -1416,12 +1415,21 @@ export class TelegramService {
     if (!user?.chatId) return;
 
     await this.bot.telegram
-      .sendMessage(user.chatId, `❌ ${this.t(user, 'auto_renew_insufficient_balance')}`, {
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback(`💸 ${this.t(user, 'put_money')}`, 'BTN_BALANCE')],
-          [this.backToProfileButton(user)],
-        ]),
-      })
+      .sendMessage(
+        user.chatId,
+        `❌ ${this.t(user, 'auto_renew_insufficient_balance')}`,
+        {
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                `💸 ${this.t(user, 'put_money')}`,
+                'BTN_BALANCE',
+              ),
+            ],
+            [this.backToProfileButton(user)],
+          ]),
+        },
+      )
       .catch(logger.error);
   }
 
