@@ -261,6 +261,9 @@ export class XrayService {
 
     for (const key of expiredKeys) {
       try {
+        const renewed = await this.telegramService.tryAutoRenewExpiredKey(key);
+        if (renewed) continue;
+
         const removed = await this.deleteXrayKey(key);
         if (!removed) continue;
         await this.telegramService.sendMessageKeyExpired(key.id);

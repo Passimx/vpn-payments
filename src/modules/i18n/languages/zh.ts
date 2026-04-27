@@ -25,6 +25,14 @@ export default {
   expired: '已过期',
   unlimited: '不限量',
   status: '状态',
+  enabled: '已开启',
+  disabled: '已关闭',
+  auto_renew: '自动续费',
+  enable_auto_renew: '开启自动续费',
+  disable_auto_renew: '关闭自动续费',
+  auto_renew_insufficient_balance: '余额不足，无法自动续费，请先充值。',
+  auto_renew_success:
+    '您的密钥已按月度套餐自动续费 1 个月。\n如需关闭自动续费，请进入“我的密钥”并选择对应密钥。',
   active_until: '有效期至',
   copy_key: '复制密钥',
   click_to_copy_key: '点击复制',
@@ -67,7 +75,13 @@ export default {
   how_to_put_money: '如何充值',
   how_to_connect_key: '如何连接密钥',
   video_instruction: '视频教程',
-  key_almost_expired: '密钥即将到期。\n请提前续费，以免失去 VPN 连接。',
+  key_almost_expired:
+    '密钥即将到期。\n请提前续费，以免失去 VPN 连接。\n\n' +
+    '重要提示：如果您未手动关闭，密钥可能已开启自动续费。\n' +
+    '如需关闭自动续费并避免到期时扣费，请按以下步骤操作：\n' +
+    '1) 打开“我的密钥”\n' +
+    '2) 选择对应密钥\n' +
+    '3) 点击关闭自动续费按钮。',
   key_expired: '密钥已过期。\n要激活它，请点击按钮并延长有效期。',
   key_traffic_limit_exceeded:
     'Premium 套餐流量已用尽，密钥已停用。请购买新密钥以继续使用 VPN。',

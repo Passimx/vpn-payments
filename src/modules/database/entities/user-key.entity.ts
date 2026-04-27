@@ -38,6 +38,9 @@ export class UserKeyEntity {
   @Column({ name: 'expires_at', type: 'timestamptz' })
   readonly expiresAt: Date;
 
+  @Column({ name: 'auto_renew_enabled', type: 'boolean', default: true })
+  readonly autoRenewEnabled: boolean;
+
   @Column({
     name: 'status',
     type: 'varchar',

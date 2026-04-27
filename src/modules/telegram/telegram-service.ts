@@ -22,6 +22,10 @@ import { WechatService } from '../wechat/wechat.service';
 @Injectable()
 export class TelegramService {
   public bot: Telegraf;
+  private static readonly AUTO_RENEW_BASE_TARIFF_ID =
+    'f8860386-bb14-470b-a957-3998d10b417d';
+  private static readonly AUTO_RENEW_PREMIUM_TARIFF_ID =
+    '1a412ac9-e902-4644-8523-ca9e661838bb';
 
   private amountMap = new Map<number, number>();
   private addKeyVideoId = Envs.telegram.addKeyVideoId;
@@ -91,6 +95,7 @@ export class TelegramService {
     this.bot.action('TARIFFS_PREMIUM', this.onTariffsPremium);
     this.bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
     this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
+    this.bot.action(/^AUTO_RENEW_TOGGLE:([\w-]+)$/, this.onAutoRenewToggle);
     this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
     this.bot.action(/^BUTTON_MONEY:([\w-]+)$/, this.onSetButtonMoney);
     this.bot.on('text', this.onText);
@@ -1255,19 +1260,55 @@ export class TelegramService {
     ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const keyId = data.replace('KEY_DETAILS:', '');
-
     const user = await this.getUserByCtx(ctx);
-
-    const vpnKey = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId, userId: user.id },
-      relations: ['tariff', 'server'],
-    });
+    const vpnKey = await this.findUserKeyWithDetails(user.id, keyId);
     if (!vpnKey) {
       await ctx
         .answerCbQuery(this.t(user, 'key_not_found'))
         .catch(logger.error);
       return;
     }
+
+    await this.renderKeyDetails(ctx, user, vpnKey);
+  };
+
+  onAutoRenewToggle = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
+    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const keyId = data.replace('AUTO_RENEW_TOGGLE:', '');
+    const user = await this.getUserByCtx(ctx);
+    const vpnKey = await this.findUserKeyWithDetails(user.id, keyId);
+    if (!vpnKey) {
+      await ctx
+        .answerCbQuery(this.t(user, 'key_not_found'))
+        .catch(logger.error);
+      return;
+    }
+
+    await this.em.update(
+      UserKeyEntity,
+      { id: vpnKey.id },
+      { autoRenewEnabled: !vpnKey.autoRenewEnabled },
+    );
+
+    const updatedKey = await this.findUserKeyWithDetails(user.id, keyId);
+    if (!updatedKey) return;
+
+    await this.renderKeyDetails(ctx, user, updatedKey);
+  };
+
+  private findUserKeyWithDetails(userId: string, keyId: string) {
+    return this.em.findOne(UserKeyEntity, {
+      where: { id: keyId, userId },
+      relations: ['tariff', 'server'],
+    });
+  }
+
+  private async renderKeyDetails(
+    ctx: Context,
+    user: UserEntity,
+    vpnKey: UserKeyEntity,
+  ) {
 
     const created =
       vpnKey.createdAt &&
@@ -1298,6 +1339,7 @@ export class TelegramService {
       `<b>${this.t(user, 'status')}:</b> ${this.t(user, vpnKey.status)}`,
       created ? `<b>${this.t(user, 'start_date')}:</b> ${created}` : '',
       expires ? `<b>${this.t(user, 'until')}:</b> ${expires}` : '',
+      `<b>${this.t(user, 'auto_renew')}:</b> ${vpnKey.autoRenewEnabled ? this.t(user, 'enabled') : this.t(user, 'disabled')}`,
       trafficLine,
       `<b>${this.t(user, 'country')}:</b> ${this.t(user, `${vpnKey.server.code}_name`)}`,
       `<b>${this.t(user, 'key')}:</b> `,
@@ -1310,6 +1352,14 @@ export class TelegramService {
       Markup.button.callback(
         `🔄 ${this.t(user, 'extend_key')}`,
         `RENEW:${vpnKey.id}`,
+      ),
+    ]);
+    buttons.push([
+      Markup.button.callback(
+        vpnKey.autoRenewEnabled
+          ? `⛔ ${this.t(user, 'disable_auto_renew')}`
+          : `✅ ${this.t(user, 'enable_auto_renew')}`,
+        `AUTO_RENEW_TOGGLE:${vpnKey.id}`,
       ),
     ]);
 
@@ -1334,7 +1384,62 @@ export class TelegramService {
         ...Markup.inlineKeyboard(buttons),
       })
       .catch(logger.error);
-  };
+  }
+
+  public async tryAutoRenewExpiredKey(key: UserKeyEntity): Promise<boolean> {
+    if (!key.autoRenewEnabled) return false;
+
+    const tariffId =
+      key.countTrafficLimit != null
+        ? TelegramService.AUTO_RENEW_PREMIUM_TARIFF_ID
+        : TelegramService.AUTO_RENEW_BASE_TARIFF_ID;
+
+    const result = await this.keyPurchaseService.renewKey(
+      key.userId,
+      key.id,
+      tariffId,
+    );
+    if (result.ok) {
+      await this.sendAutoRenewSuccessMessage(key.userId);
+      return true;
+    }
+
+    if (result.error.includes('Недостаточно средств')) {
+      await this.sendAutoRenewInsufficientBalanceMessage(key.userId);
+    }
+
+    return false;
+  }
+
+  private async sendAutoRenewInsufficientBalanceMessage(userId: string) {
+    const user = await this.em.findOne(UserEntity, { where: { id: userId } });
+    if (!user?.chatId) return;
+
+    await this.bot.telegram
+      .sendMessage(user.chatId, `❌ ${this.t(user, 'auto_renew_insufficient_balance')}`, {
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback(`💸 ${this.t(user, 'put_money')}`, 'BTN_BALANCE')],
+          [this.backToProfileButton(user)],
+        ]),
+      })
+      .catch(logger.error);
+  }
+
+  private async sendAutoRenewSuccessMessage(userId: string) {
+    const user = await this.em.findOne(UserEntity, { where: { id: userId } });
+    if (!user?.chatId) return;
+
+    await this.bot.telegram
+      .sendMessage(
+        user.chatId,
+        `✅ ${this.t(user, 'auto_renew_success')}`,
+        Markup.inlineKeyboard([
+          [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
+          [this.backToProfileButton(user)],
+        ]),
+      )
+      .catch(logger.error);
+  }
 
   private async handlePromoCode(
     ctx: Context,

@@ -25,6 +25,15 @@ export default {
   expired: 'Expired',
   unlimited: 'Unlimited',
   status: 'Status',
+  enabled: 'Enabled',
+  disabled: 'Disabled',
+  auto_renew: 'Auto-renew',
+  enable_auto_renew: 'Enable auto-renew',
+  disable_auto_renew: 'Disable auto-renew',
+  auto_renew_insufficient_balance:
+    'Top up your balance to auto-renew this key.',
+  auto_renew_success:
+    'Your key was auto-renewed for 1 month using the monthly plan.\nYou can disable auto-renew in the "My keys" section by selecting this key.',
   active_until: 'Active until',
   copy_key: 'Copy key',
   click_to_copy_key: 'Click to copy',
@@ -70,7 +79,12 @@ export default {
   how_to_connect_key: 'How to connect a key',
   video_instruction: 'Video instruction',
   key_almost_expired:
-    "The key is about to expire.\nDon't forget to renew it in advance to avoid losing your VPN connection.",
+    "The key is about to expire.\nDon't forget to renew it in advance to avoid losing your VPN connection.\n\n" +
+    'Important: this key may have auto-renew enabled if you did not disable it manually.\n' +
+    'To disable auto-renew and avoid balance charges when the key expires:\n' +
+    '1) Open "My keys"\n' +
+    '2) Select the needed key\n' +
+    '3) Tap the auto-renew disable button.',
   key_expired:
     'The key has expired.\nTo activate it, press the button and extend its validity.',
   key_traffic_limit_exceeded:
