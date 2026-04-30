@@ -98,8 +98,8 @@ export class XrayService {
     const server = keyEntity.server;
     const inboundTag = await this.resolveRmuInboundTag(keyEntity);
 
-    await this.removeKey(server, keyId, inboundTag);
-    // if (!removed) return;
+    const removed = await this.removeKey(server, keyId, inboundTag);
+    if (!removed) return;
 
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
     return true;
