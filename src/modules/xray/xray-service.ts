@@ -1,5 +1,11 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { EntityManager, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import {
+  EntityManager,
+  IsNull,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Not,
+} from 'typeorm';
 import { ServerEntity } from '../database/entities/server.entity';
 
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -237,6 +243,7 @@ export class XrayService {
           status: 'active',
           expiresAt: LessThanOrEqual(nowPlusOneDay),
         },
+        telegramId: Not(IsNull()),
       },
       relations: ['keys', 'keys.server'],
     });

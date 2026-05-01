@@ -46,11 +46,4 @@ export class ScheduleService {
     await this.analyticsService.saveTraffic();
     await this.xrayService.checkPremiumTrafficLimitExceeded();
   }
-
-  // @Cron('30 * * * *')
-  // async sendMessageEveryOne() {
-  //   await this.telegramService.sendMessageEveryOne(
-  //     'message_new_feature_change_countries',
-  //   );
-  // }
 }

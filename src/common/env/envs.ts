@@ -16,12 +16,10 @@ export const Envs = {
     botWebUrl: process.env.TELEGRAM_BOT_WEB_URL?.length
       ? String(process.env.TELEGRAM_BOT_WEB_URL)
       : undefined,
-    addKeyVideoId: process.env.TELEGRAM_ADD_KEY_VIDEO_ID,
-    addBalanceVideoId: process.env.TELEGRAM_ADD_BALANCE_VIDEO_ID,
-    welcomeVideoId: process.env.TELEGRAM_WELCOME_VIDEO_ID,
-    changeVideoId: process.env.TELEGRAM_CHANGE_VIDEO_ID,
     archiverApiKey: String(process.env.TELEGRAM_ARCHIVER_APIKEY),
     archiverEndpoint: String(process.env.TELEGRAM_ARCHIVER_ENDPOINT),
+    autoRenewBaseTariffId: 'f8860386-bb14-470b-a957-3998d10b417d',
+    autoRenewPremiumTariffId: '1a412ac9-e902-4644-8523-ca9e661838bb',
   },
   crypto: {
     ethereum: {

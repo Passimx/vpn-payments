@@ -8,6 +8,7 @@ import { BlitzModule } from './blitz/blitz.module';
 import { KeyPurchaseModule } from './key-purchase/key-purchase.module';
 import { XrayModule } from './xray/xray.module';
 import { WechatModule } from './wechat/wechat.module';
+import { ApiModule } from './api/api.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WechatModule } from './wechat/wechat.module';
     BlitzModule,
     KeyPurchaseModule,
     WechatModule,
+    ApiModule,
   ],
 })
 export class AppModule {}

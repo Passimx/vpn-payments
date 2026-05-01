@@ -22,16 +22,7 @@ import { WechatService } from '../wechat/wechat.service';
 @Injectable()
 export class TelegramService {
   public bot: Telegraf;
-  private static readonly AUTO_RENEW_BASE_TARIFF_ID =
-    'f8860386-bb14-470b-a957-3998d10b417d';
-  private static readonly AUTO_RENEW_PREMIUM_TARIFF_ID =
-    '1a412ac9-e902-4644-8523-ca9e661838bb';
-
   private amountMap = new Map<number, number>();
-  private addKeyVideoId = Envs.telegram.addKeyVideoId;
-  private addBalanceVideoId = Envs.telegram.addBalanceVideoId;
-  private welcomeVideoId = Envs.telegram.welcomeVideoId;
-  private changeVideoId = Envs.telegram.changeVideoId;
   private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
     number,
@@ -65,6 +56,9 @@ export class TelegramService {
     archiver.listen(this.bot);
 
     this.bot.command('stats', this.analyticsService.sendAnalytics);
+    this.bot.command('loginFromWeb', this.loginFromWeb);
+    this.bot.command('resendMessage', this.resendMessage);
+
     this.bot.start(this.onStart);
     this.bot.action('BTN_1', this.onBtn1);
     this.bot.action('BTN_2', this.onBtn2);
@@ -208,7 +202,7 @@ export class TelegramService {
     );
 
     const videoMessage = await ctx
-      .replyWithVideo(this.welcomeVideoId ?? Input.fromLocalFile(filePath), {
+      .replyWithVideo(Input.fromLocalFile(filePath), {
         disable_notification: true,
       })
       .catch(logger.error);
@@ -223,10 +217,6 @@ export class TelegramService {
       .catch(logger.error);
 
     if (!videoMessage) return;
-    if (!this.welcomeVideoId) {
-      logger.info(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
-      this.welcomeVideoId = videoMessage.video.file_id;
-    }
 
     await this.setOpenAppButton(ctx);
   };
@@ -234,6 +224,7 @@ export class TelegramService {
   onYookassa = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
     const amount = this.amountMap.get(user.telegramId);
     if (!amount) return;
     const processingMessage = await ctx.reply(this.t(user, 'processing'));
@@ -282,6 +273,7 @@ export class TelegramService {
     ctx.answerCbQuery().catch(logger.error);
 
     const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
     const amount = this.amountMap.get(user.telegramId);
     const price = await this.transactionsService.getCurrencyPrice();
     if (!amount) return;
@@ -394,7 +386,7 @@ export class TelegramService {
     const user = await this.getUserByCtx(ctx);
 
     const videoMessage = await ctx
-      .replyWithVideo(this.addKeyVideoId ?? Input.fromLocalFile(filePath), {
+      .replyWithVideo(Input.fromLocalFile(filePath), {
         caption: `${this.t(user, 'video_instruction')}: ${this.t(user, 'how_to_connect_key')}\n\n${this.t(user, 'required_steps')}:\n${this.t(user, 'menu')} -> ${this.t(user, 'buy_key')} -> ${this.t(user, 'select_tariff')} -> ${this.t(user, 'buy')} -> ${this.t(user, 'copy_key')} -> ${this.t(user, 'open_download_app')} -> ${this.t(user, 'insert_key')} -> ${this.t(user, 'connect_vpn')}`,
         width: 720,
         height: 1280,
@@ -404,10 +396,6 @@ export class TelegramService {
       .catch(logger.error);
 
     if (!videoMessage) return;
-    if (!this.addKeyVideoId) {
-      logger.info(`Set addKeyVideoId = '${videoMessage.video.file_id}'`);
-      this.addKeyVideoId = videoMessage.video.file_id;
-    }
 
     await ctx
       .reply(`${this.t(user, 'select_action')}:`, this.menu(user))
@@ -427,7 +415,7 @@ export class TelegramService {
     );
 
     const videoMessage = await ctx
-      .replyWithVideo(this.addBalanceVideoId ?? Input.fromLocalFile(filePath), {
+      .replyWithVideo(Input.fromLocalFile(filePath), {
         caption: `${this.t(user, 'video_instruction')}: ${this.t(user, 'how_to_put_money')}\n\n${this.t(user, 'required_steps')}:\n${this.t(user, 'menu')} -> ${this.t(user, 'put_money')} -> ${this.t(user, 'enter_amount')} -> ${this.t(user, 'select_payment_method')} -> ${this.t(user, 'payment')}`,
         width: 720,
         height: 1280,
@@ -437,10 +425,6 @@ export class TelegramService {
       .catch(logger.error);
 
     if (!videoMessage) return;
-    if (!this.addBalanceVideoId) {
-      logger.info(`Set addBalanceVideoId = '${videoMessage.video.file_id}'`);
-      this.addBalanceVideoId = videoMessage.video.file_id;
-    }
 
     await ctx
       .reply(`${this.t(user, 'select_action')}:`, this.menu(user))
@@ -544,6 +528,7 @@ export class TelegramService {
   onSetButtonMoney = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
     const callbackData = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const amount = Number(callbackData.replace(/^(BUTTON_MONEY):/, ''));
     this.amountMap.set(user.telegramId, amount);
@@ -570,6 +555,7 @@ export class TelegramService {
   onBalance = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
     this.amountMap.set(user.telegramId, 0);
     await ctx
       .editMessageText(
@@ -620,7 +606,6 @@ export class TelegramService {
     await this.em.insert(UserEntity, {
       id,
       telegramId: ctx?.from!.id,
-      chatId: ctx?.chat?.id,
       userName: ctx?.from!.username,
       languageCode: ctx?.from!.language_code,
       source,
@@ -722,6 +707,7 @@ export class TelegramService {
   onBtn8 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
     const amountFromSet = this.amountMap.get(user.telegramId);
     if (amountFromSet === undefined) return;
 
@@ -780,6 +766,7 @@ export class TelegramService {
   onBtn11 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
     const amountFromSet = this.amountMap.get(user.telegramId);
     if (amountFromSet === undefined) return;
 
@@ -1390,8 +1377,8 @@ export class TelegramService {
 
     const tariffId =
       key.countTrafficLimit != null
-        ? TelegramService.AUTO_RENEW_PREMIUM_TARIFF_ID
-        : TelegramService.AUTO_RENEW_BASE_TARIFF_ID;
+        ? Envs.telegram.autoRenewPremiumTariffId
+        : Envs.telegram.autoRenewBaseTariffId;
 
     const result = await this.keyPurchaseService.renewKey(
       key.userId,
@@ -1412,11 +1399,11 @@ export class TelegramService {
 
   private async sendAutoRenewInsufficientBalanceMessage(userId: string) {
     const user = await this.em.findOne(UserEntity, { where: { id: userId } });
-    if (!user?.chatId) return;
+    if (!user?.telegramId) return;
 
     await this.bot.telegram
       .sendMessage(
-        user.chatId,
+        user.telegramId,
         `❌ ${this.t(user, 'auto_renew_insufficient_balance')}`,
         {
           ...Markup.inlineKeyboard([
@@ -1435,11 +1422,11 @@ export class TelegramService {
 
   private async sendAutoRenewSuccessMessage(userId: string) {
     const user = await this.em.findOne(UserEntity, { where: { id: userId } });
-    if (!user?.chatId) return;
+    if (!user?.telegramId) return;
 
     await this.bot.telegram
       .sendMessage(
-        user.chatId,
+        user.telegramId,
         `✅ ${this.t(user, 'auto_renew_success')}`,
         Markup.inlineKeyboard([
           [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
@@ -1602,11 +1589,11 @@ export class TelegramService {
 
   public async sendMessageAddBalance(userId: string, balance: number) {
     const user = await this.em.findOne(UserEntity, { where: { id: userId } });
-    if (!user?.chatId) return;
+    if (!user?.telegramId) return;
 
     await this.bot.telegram
       .sendMessage(
-        user.chatId,
+        user.telegramId,
         `${this.t(user, 'improve_balance')} <b>${Math.ceil(balance)} ${this.t(user, 'rub')}</b>`,
         { parse_mode: 'HTML' },
       )
@@ -1619,7 +1606,7 @@ export class TelegramService {
     if (userKeyExists) {
       await this.bot.telegram
         .sendMessage(
-          user.chatId,
+          user.telegramId,
           `${this.t(user, 'select_action')}:`,
           this.profileMenu(user),
         )
@@ -1631,7 +1618,7 @@ export class TelegramService {
     const tariffButtons = await this.tariffsButtons(user, 'base');
     await this.bot.telegram
       .sendMessage(
-        user.chatId,
+        user.telegramId,
         `${this.t(user, 'balance')}: ${user.balance} ${this.t(user, 'rub')}\n<b>${this.t(user, 'select_tariff')}:</b>`,
         {
           parse_mode: 'HTML',
@@ -1644,35 +1631,8 @@ export class TelegramService {
       .catch(logger.error);
   }
 
-  public async send8MarchMessage(user: UserEntity) {
-    const filePath = path.join(
-      __dirname,
-      '../',
-      '../',
-      'public',
-      'media',
-      '8march.jpeg',
-    );
-
-    await this.bot.telegram
-      .sendPhoto(user.chatId, Input.fromLocalFile(filePath), {
-        caption: this.t(user, 'message_8_march'),
-        parse_mode: 'HTML',
-      })
-      .catch(logger.error);
-    await this.bot.telegram
-      .sendMessage(user.chatId, '<b>MARCH8</b>', {
-        parse_mode: 'HTML',
-      })
-      .catch(logger.error);
-    await this.bot.telegram
-      .sendMessage(user.chatId, `${this.t(user, 'select_action')}:`, {
-        ...this.menu(user),
-      })
-      .catch(logger.error);
-  }
-
   public async sendRequestToBuyKey(user: UserEntity) {
+    if (!user.telegramId) return;
     const filePath = path.join(
       __dirname,
       '../',
@@ -1683,22 +1643,14 @@ export class TelegramService {
     );
 
     const videoMessage = await this.bot.telegram
-      .sendVideo(
-        user.chatId,
-        this.welcomeVideoId ?? Input.fromLocalFile(filePath),
-        {
-          disable_notification: true,
-        },
-      )
+      .sendVideo(user.telegramId, Input.fromLocalFile(filePath), {
+        disable_notification: true,
+      })
       .catch(logger.error);
     if (!videoMessage) return;
-    if (!this.welcomeVideoId) {
-      logger.info(`Set welcomeVideoId = '${videoMessage.video.file_id}'`);
-      this.welcomeVideoId = videoMessage.video.file_id;
-    }
 
     await this.bot.telegram
-      .sendMessage(user.chatId, this.t(user, 'message_try_first_key'), {
+      .sendMessage(user.telegramId, this.t(user, 'message_try_first_key'), {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
@@ -1725,11 +1677,12 @@ export class TelegramService {
   }
 
   public async sendAlmostExpiredKey(user: UserEntity) {
+    if (!user.telegramId) return;
     const keys = this.prepareKeysToButtons(user, user.keys);
 
     await this.bot.telegram
       .sendMessage(
-        user.chatId,
+        user.telegramId,
         this.t(user, 'key_almost_expired'),
         Markup.inlineKeyboard([...keys, [this.backToProfileButton(user)]]),
       )
@@ -1741,6 +1694,7 @@ export class TelegramService {
       .createQueryBuilder(UserEntity, 'users')
       .leftJoin('users.keys', 'keys')
       .groupBy('users.id')
+      .where('users.telegramId IS NOT NULL')
       .having('COUNT(keys.id) = 0')
       .getMany();
 
@@ -1756,10 +1710,11 @@ export class TelegramService {
       relations: ['user', 'server'],
     });
     const user = key.user;
+    if (!user.telegramId) return;
 
     const buttons = this.prepareKeysToButtons(user, [key]);
     await this.bot.telegram.sendMessage(
-      user.chatId,
+      user.telegramId,
       `${this.t(user, 'key_expired')}\n` + `${this.t(user, 'select_action')}:`,
       {
         parse_mode: 'HTML',
@@ -1777,10 +1732,11 @@ export class TelegramService {
       relations: ['user', 'server'],
     });
     const user = key.user;
+    if (!user.telegramId) return;
 
     const buttons = this.prepareKeysToButtons(user, [key]);
     await this.bot.telegram.sendMessage(
-      user.chatId,
+      user.telegramId,
       `${this.t(user, 'key_traffic_limit_exceeded')}\n` +
         `${this.t(user, 'select_action')}:`,
       {
@@ -1793,53 +1749,8 @@ export class TelegramService {
     );
   }
 
-  public async sendMessageEveryOne(key: string) {
-    const filePath = path.join(
-      __dirname,
-      '../',
-      '../',
-      'public',
-      'media',
-      'select_server.mp4',
-    );
-
-    const users = await this.em.find(UserEntity);
-
-    for (const user of users) {
-      try {
-        const videoMessage = await this.bot.telegram
-          .sendVideo(
-            user.chatId,
-            this.changeVideoId ?? Input.fromLocalFile(filePath),
-            {
-              caption: this.t(user, key),
-              supports_streaming: true,
-              disable_notification: true,
-              parse_mode: 'HTML',
-            },
-          )
-          .catch(logger.error);
-
-        await this.bot.telegram
-          .sendMessage(user.chatId, `${this.t(user, 'select_action')}:`, {
-            ...this.menu(user),
-          })
-          .catch(logger.error);
-
-        if (!videoMessage) return;
-        if (!this.changeVideoId) {
-          logger.info(`Set changeVideoId = '${videoMessage.video.file_id}'`);
-          this.changeVideoId = videoMessage.video.file_id;
-        }
-
-        await new Promise((r) => setTimeout(r, 100));
-      } catch (e) {
-        logger.error(e);
-      }
-    }
-  }
-
   private getPayloadForAddBalance = (user: UserEntity) => {
+    if (!user.telegramId) return;
     const amount = this.amountMap.get(user.telegramId);
     if (!amount) return;
     const text: string =
@@ -1957,5 +1868,51 @@ export class TelegramService {
         url: Envs.telegram.botWebUrl,
       },
     });
+  };
+
+  private loginFromWeb = (ctx: Context) => {
+    const { payload } = ctx as unknown as { payload?: string };
+    if (!payload || payload.length <= 0) return;
+
+    console.log(payload);
+  };
+
+  private resendMessage = async (ctx: Context) => {
+    if (ctx.from?.id !== 904644377 && ctx.from?.id !== 871909427) return;
+    const user = await this.getUserByCtx(ctx);
+
+    const ctxMessage = ctx.message as {
+      reply_to_message?: { message_id: number };
+    };
+
+    const message = ctxMessage.reply_to_message;
+    if (!message) {
+      await ctx.reply('Ответь на сообщение, которое нужно разослать');
+      return;
+    }
+
+    const users = await this.em.find(UserEntity, {
+      where: { telegramId: Not(IsNull()), languageCode: user.languageCode },
+    });
+
+    for (const user of users) {
+      try {
+        if (!user.telegramId) continue;
+        await ctx.telegram
+          .copyMessage(user.telegramId, ctx.chat!.id, message.message_id)
+          .catch(() => {});
+
+        await ctx.telegram
+          .sendMessage(user.telegramId, `${this.t(user, 'select_action')}:`, {
+            disable_notification: true,
+            ...this.menu(user),
+          })
+          .catch(() => {});
+
+        await new Promise((r) => setTimeout(r, 100));
+      } catch (e) {
+        logger.error(e);
+      }
+    }
   };
 }

@@ -25,11 +25,9 @@ export class UserEntity {
       to: (value: number) => value,
       from: (value: string) => Number(value),
     },
+    nullable: true,
   })
-  readonly telegramId: number;
-
-  @Column({ name: 'chat_id', type: 'bigint' })
-  readonly chatId: number;
+  readonly telegramId?: number;
 
   @Column({ name: 'user_name', type: 'varchar', nullable: true })
   readonly userName?: string;
