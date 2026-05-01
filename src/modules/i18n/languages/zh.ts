@@ -2,7 +2,8 @@ export default {
   language_native: '中文',
   language_native_flag: '🇨🇳',
   description:
-    '欢迎使用 PassimX VPN\n服务优势：\n\n' +
+    '欢迎使用 PassimX VPN\n' +
+    '服务优势：\n\n' +
     '🔑 快速获取 VPN 密钥\n\n' +
     '🏎️ 稳定且不限速的网络连接\n\n' +
     '🚌 用户在服务器之间智能分配\n\n' +
@@ -169,4 +170,5 @@ export default {
   my_ref_link: '我的推荐链接',
   ref_link_description:
     '好友注册前90天内，您可以获得其充值金额的 30% 作为奖励。此外，您还将获得他们所邀请成员收益的 30%.\n点击链接即可复制',
+  need_to_reply: '回复需要群发的消息',
 };

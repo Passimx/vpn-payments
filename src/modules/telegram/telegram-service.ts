@@ -1887,7 +1887,7 @@ export class TelegramService {
 
     const message = ctxMessage.reply_to_message;
     if (!message) {
-      await ctx.reply('Ответь на сообщение, которое нужно разослать');
+      await ctx.reply(this.t(user, 'need_to_reply'));
       return;
     }
 

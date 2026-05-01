@@ -2,7 +2,8 @@ export default {
   language_native: 'English',
   language_native_flag: '🇺🇲',
   description:
-    'Welcome to PassimX VPN\nAdvantages of the bot:\n\n' +
+    'Welcome to PassimX VPN\n' +
+    'Advantages of the bot:\n\n' +
     '🔑 Fast VPN key delivery\n\n' +
     '🏎️ Stable and unlimited data transfer speed\n\n' +
     '🚌 Even distribution of users across servers\n\n' +
@@ -175,4 +176,5 @@ export default {
   my_ref_link: 'My referral link',
   ref_link_description:
     "Earn 30% from your friends' top-ups during their first 90 days, plus 30% of the earnings of everyone they invite\nTap the link to copy it",
+  need_to_reply: 'Reply to the message that needs to be sent',
 };
