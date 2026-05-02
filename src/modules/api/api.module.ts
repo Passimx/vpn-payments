@@ -3,8 +3,6 @@ import { ApiController } from './api.controller';
 import { AuthService } from './services/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { Envs } from '../../common/env/envs';
-import { AuthGuard } from '../../common/guards/auth.guard';
-import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -13,7 +11,7 @@ import { APP_GUARD } from '@nestjs/core';
       secret: Envs.main.jwtSecret,
     }),
   ],
-  providers: [AuthService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [AuthService],
   controllers: [ApiController],
   exports: [AuthService],
 })
