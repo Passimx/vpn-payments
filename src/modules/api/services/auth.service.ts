@@ -4,7 +4,6 @@ import { UserEntity } from '../../database/entities/user.entity';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { TokenType } from '../types/token.type';
-import { logger } from '../../../common/logger/logger';
 import { UserResponseDto } from '../dto/responses/user.dto';
 
 @Injectable()
@@ -45,8 +44,8 @@ export class AuthService {
   async verifyTokenAsync(token: string): Promise<TokenType | undefined> {
     try {
       return this.jwtService.verifyAsync<TokenType>(token);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      logger.error(e);
       return undefined;
     }
   }
