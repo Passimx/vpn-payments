@@ -18,6 +18,7 @@ import { AnalyticsService } from './analytics.service';
 import { Archiver } from '@passimx/archiver';
 import { logger } from '../../common/logger/logger';
 import { WechatService } from '../wechat/wechat.service';
+import { AuthService } from '../api/services/auth.service';
 
 @Injectable()
 export class TelegramService {
@@ -43,6 +44,7 @@ export class TelegramService {
     @Inject(forwardRef(() => XrayService))
     private readonly xrayService: XrayService,
     private readonly wechatService: WechatService,
+    private readonly athService: AuthService,
   ) {}
 
   async onModuleInit() {
@@ -538,7 +540,6 @@ export class TelegramService {
   };
 
   onMyRefLink = async (ctx: Context) => {
-    console.log(Envs.telegram.botWebUrl);
     const user = await this.getUserByCtx(ctx);
 
     await ctx.editMessageText(
@@ -1870,11 +1871,26 @@ export class TelegramService {
     });
   };
 
-  private loginFromWeb = (ctx: Context) => {
+  private loginFromWeb = async (ctx: Context) => {
+    const user = await this.getUserByCtx(ctx);
     const { payload } = ctx as unknown as { payload?: string };
-    if (!payload || payload.length <= 0) return;
+    if (!payload || payload.length <= 0)
+      return ctx.sendMessage(
+        `${this.t(user, 'key_not_found')}\n\n${this.t(user, 'select_action')}`,
+        {
+          parse_mode: 'HTML',
+          ...this.profileMenu(user),
+        },
+      );
 
-    console.log(payload);
+    this.athService.setKey(payload, ctx.from!.id);
+    await ctx.sendMessage(
+      `${this.t(user, 'login_from_web')}\n\n${this.t(user, 'select_action')}`,
+      {
+        parse_mode: 'HTML',
+        ...this.profileMenu(user),
+      },
+    );
   };
 
   private resendMessage = async (ctx: Context) => {

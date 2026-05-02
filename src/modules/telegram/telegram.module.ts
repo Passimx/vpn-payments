@@ -7,6 +7,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { I18nModule } from '../i18n/i18n.module';
 import { AnalyticsService } from './analytics.service';
 import { WechatModule } from '../wechat/wechat.module';
+import { ApiModule } from '../api/api.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WechatModule } from '../wechat/wechat.module';
     XrayModule,
     YookassaModule,
     WechatModule,
+    ApiModule,
   ],
   providers: [TelegramService, AnalyticsService],
   exports: [TelegramService, AnalyticsService],

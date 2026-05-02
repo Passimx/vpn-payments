@@ -4,6 +4,10 @@ import { config } from 'dotenv';
 config();
 
 export const Envs = {
+  main: {
+    appPort: Number(process.env.APP_PORT ?? 2000),
+    jwtSecret: String(process.env.JWT_SECRET),
+  },
   database: {
     host: process.env.PG_HOST,
     port: Number(process.env.PG_PORT),

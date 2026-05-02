@@ -177,4 +177,7 @@ export default {
   ref_link_description:
     "Earn 30% from your friends' top-ups during their first 90 days, plus 30% of the earnings of everyone they invite\nTap the link to copy it",
   need_to_reply: 'Reply to the message that needs to be sent',
+
+  login_from_web:
+    'Выполняется вход через аккаунт телеграмм.\nДля завершения входа вернитесь в приложение.',
 };
