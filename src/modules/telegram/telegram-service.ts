@@ -1647,7 +1647,7 @@ export class TelegramService {
       .sendVideo(user.telegramId, Input.fromLocalFile(filePath), {
         disable_notification: true,
       })
-      .catch(logger.error);
+      .catch(() => {});
     if (!videoMessage) return;
 
     await this.bot.telegram
