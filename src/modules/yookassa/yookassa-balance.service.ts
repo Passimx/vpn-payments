@@ -148,6 +148,10 @@ export class YookassaBalanceService {
 
     const amount = Number(balancePayment.amount);
 
-    await this.transactionsService.addBalance(balancePayment.userId, amount);
+    await this.transactionsService.addBalance(
+      balancePayment.userId,
+      amount,
+      'rub',
+    );
   }
 }

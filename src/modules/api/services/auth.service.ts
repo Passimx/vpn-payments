@@ -9,7 +9,7 @@ import { UserResponseDto } from '../dto/responses/user.dto';
 
 @Injectable()
 export class AuthService {
-  private readonly loginUserKey = new Map<string, number>();
+  private readonly loginUserKey = new Map<string, string>();
 
   constructor(
     private readonly em: EntityManager,
@@ -17,14 +17,11 @@ export class AuthService {
   ) {}
 
   public async loginByTelegram(key: string) {
-    const telegramId = this.loginUserKey.get(key);
-    if (!telegramId) return new DataResponse('not_found');
+    const userId = this.loginUserKey.get(key);
+    if (!userId) return new DataResponse('not_found');
     this.loginUserKey.delete(key);
 
-    const user = await this.em.findOne(UserEntity, {
-      where: { telegramId },
-      relations: ['keys', 'keys.server'],
-    });
+    const user = await this.getUser(userId);
     if (!user) return new DataResponse('not_found');
 
     const payload = { userId: user.id, createdAt: Date.now() };
@@ -33,15 +30,12 @@ export class AuthService {
     return new DataResponse({ token });
   }
 
-  public setKey(key: string, telegramId: number) {
-    this.loginUserKey.set(key, telegramId);
+  public setKey(key: string, userId: string) {
+    this.loginUserKey.set(key, userId);
   }
 
   public async getUsersMe(id: string) {
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { id },
-      relations: ['keys', 'keys.server'],
-    });
+    const user = await this.getUser(id);
 
     return new DataResponse<UserResponseDto>(
       UserResponseDto.getFromUserEntity(user),
@@ -55,5 +49,12 @@ export class AuthService {
       logger.error(e);
       return undefined;
     }
+  }
+
+  private getUser(id: string) {
+    return this.em.findOneOrFail(UserEntity, {
+      where: { id },
+      relations: ['keys', 'keys.server', 'balanceAccount'],
+    });
   }
 }

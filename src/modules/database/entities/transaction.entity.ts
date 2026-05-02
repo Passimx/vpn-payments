@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { UserEntity } from './user.entity';
+import { type CurrencyType } from '../../transactions/types/currency.type';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
@@ -10,14 +11,7 @@ export class TransactionEntity {
   readonly amount: number;
 
   @Column({ name: 'currency', type: 'varchar', default: 2 ** 4 })
-  readonly currency:
-    | 'bitcoin'
-    | 'ethereum'
-    | 'solana'
-    | 'ton'
-    | 'usd'
-    | 'rub'
-    | 'cny';
+  readonly currency: CurrencyType;
 
   @Column({ name: 'message', type: 'text', nullable: true })
   readonly message: string;

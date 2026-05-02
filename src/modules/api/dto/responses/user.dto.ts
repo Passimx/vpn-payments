@@ -1,5 +1,6 @@
 import { UserEntity } from '../../../database/entities/user.entity';
 import { UserKeyEntity } from '../../../database/entities/user-key.entity';
+import { BalanceAccount } from '../../../database/entities/balance-account.entity';
 
 export class UserKeyDto {
   readonly id: string;
@@ -33,7 +34,7 @@ export class UserKeyDto {
 export class UserResponseDto {
   readonly id: string;
 
-  readonly balance: number;
+  readonly balanceAccount: BalanceAccount;
 
   readonly keys: UserKeyDto[];
 
@@ -46,7 +47,7 @@ export class UserResponseDto {
 
     return new UserResponseDto({
       id: user.id,
-      balance: user.balance,
+      balanceAccount: user.balanceAccount,
       keys,
     });
   }

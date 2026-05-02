@@ -1,5 +1,13 @@
-import { Check, Column, CreateDateColumn, Entity, OneToMany } from 'typeorm';
+import {
+  Check,
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { UserKeyEntity } from './user-key.entity';
+import { BalanceAccount } from './balance-account.entity';
 
 @Entity({ name: 'users' })
 @Check('check_balance', 'balance >= 0')
@@ -45,6 +53,9 @@ export class UserEntity {
 
   @OneToMany(() => UserKeyEntity, (userKey) => userKey.user)
   readonly keys: UserKeyEntity[];
+
+  @OneToOne(() => BalanceAccount, (balance) => balance.user)
+  readonly balanceAccount: BalanceAccount;
 
   @Column({
     name: 'source',

@@ -109,9 +109,6 @@ export class WechatService {
       nonce,
     );
 
-    const price = await this.transactionsService.getCurrencyPrice();
-    if (!price) return;
-
     const transaction = await this.em.findOneOrFail(TransactionEntity, {
       where: {
         paymentId: result.out_trade_no,
@@ -121,9 +118,11 @@ export class WechatService {
       },
     });
 
-    const addBalance = (transaction.amount / price.usd.cny) * price.usd.rub;
-
-    await this.transactionsService.addBalance(transaction.userId, addBalance);
+    await this.transactionsService.addBalance(
+      transaction.userId,
+      transaction.amount,
+      'cny',
+    );
 
     await this.em.update(
       TransactionEntity,

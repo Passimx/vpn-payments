@@ -84,17 +84,12 @@ export class TonService {
   }
 
   private async addBalance(transactions: TransactionEntity[]) {
-    const priceCollection = await this.transactionsService.getCurrencyPrice();
-    if (!priceCollection) return;
-
     await Promise.all(
       transactions.map(async (transaction) => {
-        const addBalance =
-          transaction.amount * priceCollection['the-open-network'].rub;
-
         await this.transactionsService.addBalance(
           transaction.userId,
-          addBalance,
+          transaction.amount,
+          transaction.currency,
         );
 
         await this.em.update(
@@ -134,7 +129,7 @@ export class TonService {
       if (payloadOp === 0) message = payloadSlice.loadStringTail();
 
       return {
-        currency: 'USD',
+        currency: 'ton_usdt',
         type: 'Credit',
         amount: Number(jettonAmount) / 1e6,
         message,

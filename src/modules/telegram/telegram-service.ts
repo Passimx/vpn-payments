@@ -19,6 +19,7 @@ import { Archiver } from '@passimx/archiver';
 import { logger } from '../../common/logger/logger';
 import { WechatService } from '../wechat/wechat.service';
 import { AuthService } from '../api/services/auth.service';
+import { BalanceAccount } from '../database/entities/balance-account.entity';
 
 @Injectable()
 export class TelegramService {
@@ -611,6 +612,10 @@ export class TelegramService {
       languageCode: ctx?.from!.language_code,
       source,
     });
+    await this.em.insert(BalanceAccount, {
+      userId: id,
+    });
+
     return this.em.findOneOrFail(UserEntity, {
       where: { telegramId: ctx?.from!.id },
     });
@@ -1883,7 +1888,7 @@ export class TelegramService {
         },
       );
 
-    this.athService.setKey(payload, ctx.from!.id);
+    this.athService.setKey(payload, user.id);
     await ctx.sendMessage(
       `${this.t(user, 'login_from_web')}\n\n${this.t(user, 'select_action')}`,
       {

@@ -3,6 +3,8 @@ import { CryptoPriceType } from './types/crypto-price.type';
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TelegramService } from '../telegram/telegram-service';
+import { CurrencyType } from './types/currency.type';
+import { BalanceAccount } from '../database/entities/balance-account.entity';
 
 @Injectable()
 export class TransactionsService {
@@ -15,12 +17,16 @@ export class TransactionsService {
   private cache: CryptoPriceType | null = null;
   private readonly TTL = 10 * 60 * 1000;
 
-  public async addBalance(userId: string, addBalance: number) {
+  public async addBalance(
+    userId: string,
+    addBalance: number,
+    currency: CurrencyType,
+  ) {
     await this.em
       .createQueryBuilder()
-      .update(UserEntity)
+      .update(BalanceAccount)
       .set({
-        balance: () => `balance + ${addBalance}`,
+        [currency]: () => `${currency} + ${addBalance}`,
       })
       .where('id = :id', { id: userId })
       .execute();
@@ -40,7 +46,7 @@ export class TransactionsService {
     if (daysDiff > 90) return;
 
     const amount = Math.floor(addBalance * 0.3);
-    if (amount > 0) await this.addBalance(user.source, amount);
+    if (amount > 0) await this.addBalance(user.source, amount, currency);
   }
 
   // получение актуального курса криптовалют
