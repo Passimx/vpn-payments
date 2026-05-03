@@ -236,9 +236,9 @@ export class TelegramService {
       amount,
     );
     await ctx.deleteMessage(processingMessage.message_id);
-    if (!result.ok) {
+    if (!result.success) {
       await ctx
-        .editMessageText(`❌ ${result.error}`, {
+        .editMessageText(`❌ ${result.data}`, {
           ...Markup.inlineKeyboard([
             [
               Markup.button.callback(
@@ -259,7 +259,7 @@ export class TelegramService {
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
-            [Markup.button.url('💳 YooKassa', result.paymentUrl)],
+            [Markup.button.url('💳 YooKassa', result.data)],
             [
               Markup.button.callback(
                 `⬅️ ${this.t(user, 'back')}`,
@@ -283,12 +283,13 @@ export class TelegramService {
     if (!price) return;
 
     const processingMessage = await ctx.reply(this.t(user, 'processing'));
-    const invoiceQrCode = await this.wechatService.createInvoice({
-      outTradeNo: Date.now().toString(),
-      amount: amount / (price.usd.rub / price.usd.cny),
-      userId: user.id,
-    });
-    if (!invoiceQrCode) return;
+    const result = await this.wechatService.createInvoice(
+      user.id,
+      amount / (price.usd.rub / price.usd.cny),
+    );
+    if (!result.success) return;
+
+    const invoiceQrCode = await this.wechatService.createImage(result.data);
 
     await ctx.deleteMessage(processingMessage.message_id);
     await ctx

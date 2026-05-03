@@ -3,8 +3,9 @@ export class DataResponse<T> {
 
   readonly data: string | T;
 
-  constructor(data: string | T) {
-    this.success = typeof data !== 'string';
+  constructor(data: string | T, success?: boolean) {
+    if (!success) this.success = typeof data !== 'string';
+    else this.success = success;
 
     this.data = data;
   }

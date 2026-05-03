@@ -7,7 +7,7 @@ import { TransactionsService } from '../../transactions/transactions.service';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 
-@Controller('api')
+@Controller()
 @UseGuards(AuthGuard)
 export class ApiController {
   constructor(

@@ -5,6 +5,7 @@ import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { logger } from '../../common/logger/logger';
 import { TransactionsService } from '../transactions/transactions.service';
+import { DataResponse } from '../api/dto/responses/data-response.dto';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -26,17 +27,14 @@ export class YookassaBalanceService {
   async createBalancePaymentLink(
     userId: string,
     amount: number,
-  ): Promise<{ ok: true; paymentUrl: string } | { ok: false; error: string }> {
+  ): Promise<DataResponse<string>> {
     try {
       const shopId = (Envs.yookassa.walletNumber || '').trim();
       const secretKey = (Envs.yookassa.accessToken || '').trim();
-      if (!shopId || !secretKey) {
-        return {
-          ok: false,
-          error:
-            'Оплата через YooKassa временно недоступна. Попробуйте другой способ оплаты (TON или СБП).',
-        };
-      }
+      if (!shopId || !secretKey)
+        return new DataResponse(
+          'Оплата через YooKassa временно недоступна. Попробуйте другой способ оплаты (TON или СБП).',
+        );
 
       const idempotenceKey = randomUUID();
       const authHeader =
@@ -67,13 +65,10 @@ export class YookassaBalanceService {
         }),
       });
 
-      if (!res.ok) {
-        return {
-          ok: false,
-          error:
-            'Не удалось создать платеж в YooKassa. Попробуйте другой способ оплаты (TON или СБП).',
-        };
-      }
+      if (!res.ok)
+        return new DataResponse(
+          'Не удалось создать платеж в YooKassa. Попробуйте другой способ оплаты (TON или СБП).',
+        );
 
       const payment = (await res.json()) as {
         id: string;
@@ -86,13 +81,10 @@ export class YookassaBalanceService {
       const paymentId = payment.id;
       const paymentUrl = payment.confirmation?.confirmation_url;
 
-      if (!paymentId || !paymentUrl) {
-        return {
-          ok: false,
-          error:
-            'Не удалось получить ссылку на оплату в YooKassa. Попробуйте другой способ оплаты.',
-        };
-      }
+      if (!paymentId || !paymentUrl)
+        return new DataResponse(
+          'Не удалось получить ссылку на оплату в YooKassa. Попробуйте другой способ оплаты.',
+        );
 
       const now = Date.now();
       await this.em.save(TransactionEntity, {
@@ -108,17 +100,12 @@ export class YookassaBalanceService {
         createdAt: now,
       } as unknown as TransactionEntity);
 
-      return {
-        ok: true,
-        paymentUrl,
-      };
+      return new DataResponse(paymentUrl, true);
     } catch (error) {
       logger.error('[YooKassa] createBalancePaymentLink exception', error);
-      return {
-        ok: false,
-        error:
-          'Оплата через YooKassa временно недоступна, используйте другие сервисы для оплаты',
-      };
+      return new DataResponse(
+        'Оплата через YooKassa временно недоступна, используйте другие сервисы для оплаты',
+      );
     }
   }
 

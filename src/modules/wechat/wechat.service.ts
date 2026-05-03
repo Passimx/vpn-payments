@@ -3,7 +3,6 @@ import WxPay from 'wechatpay-node-v3';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { Envs } from '../../common/env/envs';
-import { OrderType } from './types/order.type';
 import { logger } from '../../common/logger/logger';
 import { InvoiceCallbackType } from './types/invoice-callback.type';
 import { createCanvas, loadImage } from 'canvas';
@@ -13,6 +12,7 @@ import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { WechatTransactionType } from './types/wechat-transaction.type';
 import { TransactionsService } from '../transactions/transactions.service';
+import { DataResponse } from '../api/dto/responses/data-response.dto';
 
 @Injectable()
 export class WechatService {
@@ -25,17 +25,21 @@ export class WechatService {
     this.initWxPay();
   }
 
-  public async createInvoice(orderData: OrderType) {
-    if (!this.wxPay) return;
+  public async createInvoice(
+    userId: string,
+    amount: number,
+  ): Promise<DataResponse<string>> {
+    if (!this.wxPay) return new DataResponse('error');
     const { notify_url } = Envs.wechat;
-    if (!notify_url) return;
+    if (!notify_url) return new DataResponse('error');
+    const outTradeNo = Date.now().toString();
 
     const params = {
-      description: orderData.userId,
-      out_trade_no: orderData.outTradeNo,
+      description: userId,
+      out_trade_no: outTradeNo,
       notify_url,
       amount: {
-        total: Math.ceil(orderData.amount * 100),
+        total: Math.ceil(amount * 100),
         currency: 'CNY',
       },
     };
@@ -46,15 +50,15 @@ export class WechatService {
 
     if (result.status !== 200) {
       logger.error(result.error);
-      return null;
+      return new DataResponse('error');
     }
 
     const url = result.data.code_url;
     const now = Date.now();
     await this.em.insert(TransactionEntity, {
       id: BigInt(now),
-      userId: orderData.userId,
-      paymentId: orderData.outTradeNo,
+      userId: userId,
+      paymentId: outTradeNo,
       amount: params.amount.total / 100,
       currency: 'cny',
       type: 'Credit',
@@ -64,6 +68,10 @@ export class WechatService {
       createdAt: now,
     });
 
+    return new DataResponse(url, true);
+  }
+
+  public async createImage(url: string) {
     const size = 400;
     const canvas = createCanvas(size, size);
     const ctx = canvas.getContext('2d');
