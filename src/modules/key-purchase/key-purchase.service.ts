@@ -12,6 +12,8 @@ import { XrayService } from '../xray/xray-service';
 import { PurchaseResult } from './types/purchase-result.type';
 import { RenewKeyResult } from './types/renew-key-result.type';
 import { PriceWithPromoResult } from './types/price-with-promo-result.type';
+import { TransactionsService } from '../transactions/transactions.service';
+import { I18nService } from '../i18n/i18n.service';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -19,6 +21,8 @@ export class KeyPurchaseService {
     private readonly dataSource: DataSource,
     private readonly blitzService: BlitzService,
     private readonly xrayService: XrayService,
+    private readonly transactionsService: TransactionsService,
+    private readonly i18nService: I18nService,
   ) {}
 
   async purchase(
@@ -72,11 +76,17 @@ export class KeyPurchaseService {
         };
       }
 
-      const balance = Number(user.balance);
-      if (balance < finalPrice) {
+      const result = await this.transactionsService.decreaseBalance(
+        userId,
+        finalPrice,
+        'rub',
+        qr.manager,
+      );
+
+      if (!result) {
         return {
           ok: false,
-          error: `Недостаточно средств. Баланс: ${balance} руб.`,
+          error: this.t(user, 't1'),
         };
       }
 
@@ -143,15 +153,6 @@ export class KeyPurchaseService {
         tariffId: tariff.id,
         vpnKeyId: createdKeyId,
       });
-      if (finalPrice > 0) {
-        const priceRounded = Math.round(finalPrice);
-        await qr.manager
-          .createQueryBuilder()
-          .update(UserEntity)
-          .set({ balance: () => `balance - ${priceRounded}` })
-          .where('id = :id', { id: user.id })
-          .execute();
-      }
       if (appliedPromo) {
         await qr.manager.insert(PromoUsageEntity, {
           userId: user.id,
@@ -309,11 +310,17 @@ export class KeyPurchaseService {
         };
       }
 
-      const balance = Number(user.balance);
-      if (balance < finalPrice) {
+      const result = await this.transactionsService.decreaseBalance(
+        userId,
+        finalPrice,
+        'rub',
+        qr.manager,
+      );
+
+      if (!result) {
         return {
           ok: false,
-          error: `Недостаточно средств. Баланс: ${balance} руб.`,
+          error: this.t(user, 't1'),
         };
       }
 
@@ -322,7 +329,7 @@ export class KeyPurchaseService {
         if (!isConnected) {
           return {
             ok: false,
-            error: 'Сервис временно недоступен. Попробуйте позже.',
+            error: this.t(user, 't2'),
           };
         }
 
@@ -383,16 +390,6 @@ export class KeyPurchaseService {
         vpnKeyId: vpnKey.id,
       });
 
-      if (finalPrice > 0) {
-        const priceRounded = Math.round(finalPrice);
-        await qr.manager
-          .createQueryBuilder()
-          .update(UserEntity)
-          .set({ balance: () => `balance - ${priceRounded}` })
-          .where('id = :id', { id: user.id })
-          .execute();
-      }
-
       if (appliedPromo) {
         await qr.manager.insert(PromoUsageEntity, {
           userId: user.id,
@@ -412,5 +409,14 @@ export class KeyPurchaseService {
     } finally {
       await qr.release();
     }
+  }
+
+  private t(payload: UserEntity | string, key: string) {
+    let lang = 'en';
+
+    if (typeof payload === 'string') lang = payload;
+    else if (payload.languageCode) lang = payload.languageCode;
+
+    return this.i18nService.t(lang, key);
   }
 }

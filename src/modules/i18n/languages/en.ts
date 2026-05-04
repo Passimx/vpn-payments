@@ -179,5 +179,9 @@ export default {
   need_to_reply: 'Reply to the message that needs to be sent',
 
   login_from_web:
-    'Выполняется вход через аккаунт телеграмм.\nДля завершения входа вернитесь в приложение.',
+    'Logging in via Telegram.\nPlease return to the app to complete the process.',
+  t1: 'Not enough credit.',
+  t2: 'Service temporarily unavailable. Please try again later',
+  t10: '$',
+  t11: 'usd',
 };

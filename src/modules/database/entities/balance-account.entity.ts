@@ -16,7 +16,7 @@ export class BalanceAccount {
       from: (value: string) => Number(value),
     },
   })
-  readonly rub: number;
+  rub: number;
 
   @Column({
     name: 'cny',
@@ -27,7 +27,7 @@ export class BalanceAccount {
       from: (value: string) => Number(value),
     },
   })
-  readonly cny: number;
+  cny: number;
 
   @Column({
     name: 'ton',
@@ -38,7 +38,7 @@ export class BalanceAccount {
       from: (value: string) => Number(value),
     },
   })
-  readonly ton: number;
+  ton: number;
 
   @Column({
     name: 'ton_usdt',
@@ -49,7 +49,7 @@ export class BalanceAccount {
       from: (value: string) => Number(value),
     },
   })
-  readonly tonUsdt: number;
+  tonUsdt: number;
 
   @OneToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
