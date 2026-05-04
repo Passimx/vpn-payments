@@ -785,21 +785,23 @@ export class TelegramService {
     const amountFromSet = this.amountMap.get(user.telegramId);
     if (amountFromSet === undefined) return;
 
-    const priceCollection = await this.transactionsService.getCurrencyPrice();
-    if (!priceCollection) return;
+    const price = await this.transactionsService.getCurrencyPrice();
+    if (!price) return;
 
     const address = Envs.crypto.ton.walletAddress;
     const text = user.id;
-    const value =
-      (1 / priceCollection['the-open-network'].rub) * amountFromSet * 1e9;
-    const amount = Math.ceil(value);
+    const amount = await this.transactionsService.convert(
+      amountFromSet,
+      this.t(user, 't11'),
+      'the-open-network',
+    );
 
     await ctx
       .editMessageText(
         `⬇️ <b>${this.t(user, 'payment_inf')}</b>\n` +
           `${this.t(user, 'click_for_the_copy')}` +
           `${this.t(user, 'wallet_address')}: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
-          `${this.t(user, 'amount')}: <code>${amount / 1e9}</code> TON\n` +
+          `${this.t(user, 'amount')}: <code>${this.transactionsService.formatNumber(amount, 'TON')}</code>\n` +
           `${this.t(user, 'allowed_jettons')}: <b>TON</b>, <b>USDT</b>\n` +
           `${this.t(user, 'comment')}: <code>${user.id}</code>`,
         {
@@ -815,19 +817,19 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                `https://my.tt/transfer/${address}?text=${text}&amount=${amount}`,
+                `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
               ),
             ],
             [
               Markup.button.url(
                 'Tonkeeper',
-                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount}`,
+                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
               ),
             ],
             [
               Markup.button.url(
                 'Tonhub',
-                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount}`,
+                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
               ),
             ],
             [this.backToPayWaysButton(user)],
@@ -850,15 +852,18 @@ export class TelegramService {
     const address = Envs.crypto.ton.walletAddress;
     const text = user.id;
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
-    const value = (1 / priceCollection.usd.rub) * amountFromSet * 1e6;
-    const amount = Math.ceil(value);
+    const amount = await this.transactionsService.convert(
+      amountFromSet,
+      this.t(user, 't11'),
+      'usd',
+    );
 
     await ctx
       .editMessageText(
         `⬇️ <b>${this.t(user, 'payment_inf')}</b>\n` +
           `${this.t(user, 'click_for_the_copy')}` +
           `${this.t(user, 'wallet_address')}: <code>${Envs.crypto.ton.walletAddress}</code>\n` +
-          `${this.t(user, 'amount')}: <code>${amount / 1e6}</code> USDT\n` +
+          `${this.t(user, 'amount')}: <code>${this.transactionsService.formatNumber(amount, 'USDT')}</code>\n` +
           `${this.t(user, 'allowed_jettons')}: <b>TON</b>, <b>USDT</b>\n` +
           `${this.t(user, 'comment')}: <code>${user.id}</code>`,
         {
@@ -874,19 +879,19 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                `https://my.tt/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
+                `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
               ),
             ],
             [
               Markup.button.url(
                 'Tonkeeper',
-                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
+                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
               ),
             ],
             [
               Markup.button.url(
                 'Tonhub',
-                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount}${jetton}`,
+                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
               ),
             ],
             [this.backToPayWaysButton(user)],
