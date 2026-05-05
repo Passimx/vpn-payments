@@ -709,7 +709,7 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}}\n<b>${this.t(user, 'select_tariff')}:</b>`,
+        `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}\n<b>${this.t(user, 'select_tariff')}:</b>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([...tariffButtons, backButtonRow]),

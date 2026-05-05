@@ -32,7 +32,7 @@ export class TransactionsService {
       .set({
         [currency]: () => `${currency} + ${balance}`,
       })
-      .where('id = :id', { id: userId })
+      .where('user_id = :userId', { userId })
       .execute();
 
     await this.telegramService.sendMessageAddBalance(userId, balance, currency);
