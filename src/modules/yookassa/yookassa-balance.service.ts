@@ -6,6 +6,7 @@ import { TransactionEntity } from '../database/entities/transaction.entity';
 import { logger } from '../../common/logger/logger';
 import { TransactionsService } from '../transactions/transactions.service';
 import { DataResponse } from '../api/dto/responses/data-response.dto';
+import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -138,7 +139,7 @@ export class YookassaBalanceService {
     await this.transactionsService.addBalance(
       balancePayment.userId,
       amount,
-      'rub',
+      CurrencyEnum.RUB,
     );
   }
 }

@@ -7,6 +7,7 @@ import { UserEntity } from '../database/entities/user.entity';
 import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
 import { logger } from '../../common/logger/logger';
+import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 @Injectable()
 export class TonService {
@@ -129,7 +130,7 @@ export class TonService {
       if (payloadOp === 0) message = payloadSlice.loadStringTail();
 
       return {
-        currency: 'ton_usdt',
+        currency: CurrencyEnum.TON_USDT,
         type: 'Credit',
         amount: Number(jettonAmount) / 1e6,
         message,
@@ -144,7 +145,7 @@ export class TonService {
         .trim();
 
       return {
-        currency: 'ton',
+        currency: CurrencyEnum.TON,
         type: 'Credit',
         amount: Number(msg.info.value.coins) / 1e9,
         message,

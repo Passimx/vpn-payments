@@ -3,7 +3,7 @@ import { CryptoPriceType } from './types/crypto-price.type';
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TelegramService } from '../telegram/telegram-service';
-import { CurrencyType } from './types/currency.type';
+import { CurrencyEnum } from './types/currency.enum';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class TransactionsService {
   public async addBalance(
     userId: string,
     balance: number,
-    currency: CurrencyType,
+    currency: CurrencyEnum,
   ) {
     await this.em
       .createQueryBuilder()
@@ -72,7 +72,10 @@ export class TransactionsService {
     ).catch(() => {});
     if (!response) return;
 
-    this.cache = (await response.json()) as CryptoPriceType;
+    const data = (await response.json()) as CryptoPriceType;
+    data.ton = data['the-open-network'];
+
+    this.cache = data;
     setTimeout(() => {
       this.cache = null;
     }, this.TTL);
@@ -82,7 +85,7 @@ export class TransactionsService {
 
   public async getUserTotalBalance(
     balanceAccount: BalanceAccount,
-    currency: string,
+    currency: CurrencyEnum,
   ) {
     const currencyPrice = this.cache;
     if (!currencyPrice) return 0;
@@ -92,7 +95,7 @@ export class TransactionsService {
     const currencyMap = {
       rub: 'rub',
       cny: 'cny',
-      ton: 'the-open-network',
+      ton: 'ton',
       tonUsdt: 'usd',
     };
 
@@ -111,7 +114,7 @@ export class TransactionsService {
   public async decreaseBalance(
     userId: string,
     amount: number,
-    currency: CurrencyType | 'the-open-network',
+    currency: CurrencyEnum,
     manager: EntityManager,
   ): Promise<boolean> {
     const balanceAccount = await manager.findOneOrFail(BalanceAccount, {
@@ -122,8 +125,8 @@ export class TransactionsService {
     if (!currencyPrice) return false;
 
     if (amount > 0 && balanceAccount.rub > 0) {
-      amount = await this.convert(amount, currency, 'rub');
-      currency = 'rub';
+      amount = await this.convert(amount, currency, CurrencyEnum.RUB);
+      currency = CurrencyEnum.RUB;
 
       if (balanceAccount.rub >= amount) {
         balanceAccount.rub -= amount;
@@ -135,8 +138,8 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.cny) {
-      amount = await this.convert(amount, currency, 'cny');
-      currency = 'cny';
+      amount = await this.convert(amount, currency, CurrencyEnum.CNY);
+      currency = CurrencyEnum.CNY;
 
       if (balanceAccount.cny >= amount) {
         balanceAccount.cny -= amount;
@@ -148,8 +151,8 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.ton) {
-      amount = await this.convert(amount, currency, 'the-open-network');
-      currency = 'the-open-network';
+      amount = await this.convert(amount, currency, CurrencyEnum.TON);
+      currency = CurrencyEnum.TON;
 
       if (balanceAccount.ton >= amount) {
         balanceAccount.ton -= amount;
@@ -161,7 +164,7 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.tonUsdt) {
-      amount = await this.convert(amount, currency, 'usd');
+      amount = await this.convert(amount, currency, CurrencyEnum.TON_USDT);
       // currency = 'usd';
 
       if (balanceAccount.tonUsdt >= amount) {
@@ -179,7 +182,7 @@ export class TransactionsService {
     return true;
   }
 
-  public async convert(amount: number, from: string, to: string) {
+  public async convert(amount: number, from: CurrencyEnum, to: CurrencyEnum) {
     const currencyPrice = await this.getCurrencyPrice();
     if (!currencyPrice) return 0;
 
@@ -194,9 +197,9 @@ export class TransactionsService {
     } else if (currencyPrice[to]?.[from]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       result = amount / currencyPrice[to][from];
-    } else if (from !== 'usd' && to !== 'usd') {
-      const inUsd = await this.convert(amount, from, 'usd');
-      result = await this.convert(inUsd, 'usd', to);
+    } else if (from !== CurrencyEnum.USD && to !== CurrencyEnum.USD) {
+      const inUsd = await this.convert(amount, from, CurrencyEnum.USD);
+      result = await this.convert(inUsd, CurrencyEnum.USD, to);
     }
 
     return Math.floor(result * 100) / 100;

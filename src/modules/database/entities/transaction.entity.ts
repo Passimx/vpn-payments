@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { type CurrencyType } from '../../transactions/types/currency.type';
+import { type CurrencyEnum } from '../../transactions/types/currency.enum';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
@@ -11,7 +11,7 @@ export class TransactionEntity {
   readonly amount: number;
 
   @Column({ name: 'currency', type: 'varchar', default: 2 ** 4 })
-  readonly currency: CurrencyType;
+  readonly currency: CurrencyEnum;
 
   @Column({ name: 'message', type: 'text', nullable: true })
   readonly message: string;

@@ -14,6 +14,7 @@ import { RenewKeyResult } from './types/renew-key-result.type';
 import { PriceWithPromoResult } from './types/price-with-promo-result.type';
 import { TransactionsService } from '../transactions/transactions.service';
 import { I18nService } from '../i18n/i18n.service';
+import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -79,7 +80,7 @@ export class KeyPurchaseService {
       const result = await this.transactionsService.decreaseBalance(
         userId,
         finalPrice,
-        'rub',
+        CurrencyEnum.RUB,
         qr.manager,
       );
 
@@ -313,7 +314,7 @@ export class KeyPurchaseService {
       const result = await this.transactionsService.decreaseBalance(
         userId,
         finalPrice,
-        'rub',
+        CurrencyEnum.RUB,
         qr.manager,
       );
 

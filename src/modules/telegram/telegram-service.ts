@@ -20,7 +20,7 @@ import { logger } from '../../common/logger/logger';
 import { WechatService } from '../wechat/wechat.service';
 import { AuthService } from '../api/services/auth.service';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
-import { CurrencyType } from '../transactions/types/currency.type';
+import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 @Injectable()
 export class TelegramService {
@@ -236,8 +236,8 @@ export class TelegramService {
 
     const convertedAmount = await this.transactionsService.convert(
       amount,
-      this.t(user, 't11'),
-      'rub',
+      this.t(user, 't11') as CurrencyEnum,
+      CurrencyEnum.RUB,
     );
 
     const result = await this.yookassaBalanceService.createBalancePaymentLink(
@@ -264,7 +264,7 @@ export class TelegramService {
 
     await ctx
       .editMessageText(
-        `${this.t(user, 'ru_payment_message')}\n${this.t(user, 'deposit_amount')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(amount, this.t(user, 't11'), 'rub'), '₽')}`,
+        `${this.t(user, 'ru_payment_message')}\n${this.t(user, 'deposit_amount')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(amount, this.t(user, 't11') as CurrencyEnum, CurrencyEnum.RUB), '₽')}`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
@@ -295,8 +295,8 @@ export class TelegramService {
 
     const convertedAmount = await this.transactionsService.convert(
       amount,
-      this.t(user, 't11'),
-      'cny',
+      this.t(user, 't11') as CurrencyEnum,
+      CurrencyEnum.CNY,
     );
 
     const result = await this.wechatService.createInvoice(
@@ -363,7 +363,7 @@ export class TelegramService {
 
     const balance = await this.transactionsService.getUserTotalBalance(
       user.balanceAccount,
-      this.t(user, 't11'),
+      this.t(user, 't11') as CurrencyEnum,
     );
 
     await ctx
@@ -585,26 +585,26 @@ export class TelegramService {
 
     const price100 = await this.transactionsService.convert(
       100,
-      'rub',
-      this.t(user, 't11'),
+      CurrencyEnum.RUB,
+      this.t(user, 't11') as CurrencyEnum,
     );
 
     const price200 = await this.transactionsService.convert(
       200,
-      'rub',
-      this.t(user, 't11'),
+      CurrencyEnum.RUB,
+      this.t(user, 't11') as CurrencyEnum,
     );
 
     const price300 = await this.transactionsService.convert(
       300,
-      'rub',
-      this.t(user, 't11'),
+      CurrencyEnum.RUB,
+      this.t(user, 't11') as CurrencyEnum,
     );
 
     const price1000 = await this.transactionsService.convert(
       1000,
-      'rub',
-      this.t(user, 't11'),
+      CurrencyEnum.RUB,
+      this.t(user, 't11') as CurrencyEnum,
     );
 
     this.amountMap.set(user.telegramId, 0);
@@ -694,7 +694,7 @@ export class TelegramService {
     const tariffButtons = await this.tariffsButtons(user, kind);
     const balance = await this.transactionsService.getUserTotalBalance(
       user.balanceAccount,
-      this.t(user, 't11'),
+      this.t(user, 't11') as CurrencyEnum,
     );
 
     if (!tariffButtons.length) {
@@ -737,7 +737,7 @@ export class TelegramService {
       `📦 <b>${this.t(user, `tariff_${tariff.expirationDays}`)}</b>\n\n` +
       `📊 ${this.t(user, 'traffic')}: ${trafficText}\n` +
       `📅 ${this.t(user, 'term')}: ${tariff.expirationDays} ${this.t(user, 'days')}\n` +
-      `💰 ${this.t(user, 'price')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(tariff.price, 'rub', this.t(user, 't11')), this.t(user, 't10'))}\n`;
+      `💰 ${this.t(user, 'price')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(tariff.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}\n`;
 
     await ctx
       .editMessageText(text, {
@@ -792,8 +792,8 @@ export class TelegramService {
     const text = user.id;
     const amount = await this.transactionsService.convert(
       amountFromSet,
-      this.t(user, 't11'),
-      'the-open-network',
+      this.t(user, 't11') as CurrencyEnum,
+      CurrencyEnum.TON,
     );
 
     await ctx
@@ -854,8 +854,8 @@ export class TelegramService {
     const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
     const amount = await this.transactionsService.convert(
       amountFromSet,
-      this.t(user, 't11'),
-      'usd',
+      this.t(user, 't11') as CurrencyEnum,
+      CurrencyEnum.USD,
     );
 
     await ctx
@@ -1578,7 +1578,7 @@ export class TelegramService {
       });
       await ctx
         .reply(
-          `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.finalPrice, 'rub', this.t(user, 't11')), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
+          `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
           {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
@@ -1606,7 +1606,7 @@ export class TelegramService {
       });
       await ctx
         .reply(
-          `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.finalPrice, 'rub', this.t(user, 't11')), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
+          `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
           {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
@@ -1669,7 +1669,7 @@ export class TelegramService {
   public async sendMessageAddBalance(
     userId: string,
     addBalance: number,
-    currency: CurrencyType,
+    currency: CurrencyEnum,
   ) {
     const user = await this.em.findOne(UserEntity, {
       where: { id: userId },
@@ -1677,49 +1677,57 @@ export class TelegramService {
     });
     if (!user?.telegramId) return;
 
-    await this.bot.telegram
-      .sendMessage(
-        user.telegramId,
-        `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(addBalance, currency, this.t(user, 't11')), this.t(user, 't10'))}</b>`,
-        { parse_mode: 'HTML' },
-      )
-      .catch(logger.error);
-
-    const userKeyExists = await this.em.exists(UserKeyEntity, {
-      where: { userId },
-    });
-
-    if (userKeyExists) {
-      await this.bot.telegram
-        .sendMessage(
-          user.telegramId,
-          `${this.t(user, 'select_action')}:`,
-          this.profileMenu(user),
-        )
-        .catch(logger.error);
-
-      return;
-    }
-
-    const tariffButtons = await this.tariffsButtons(user, 'base');
-    const balance = await this.transactionsService.getUserTotalBalance(
-      user.balanceAccount,
-      this.t(user, 't11'),
+    const t = await this.transactionsService.convert(
+      addBalance,
+      currency,
+      this.t(user, 't11') as CurrencyEnum,
     );
 
-    await this.bot.telegram
-      .sendMessage(
-        user.telegramId,
-        `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}\n<b>${this.t(user, 'select_tariff')}:</b>`,
-        {
-          parse_mode: 'HTML',
-          ...Markup.inlineKeyboard([
-            ...tariffButtons,
-            [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
-          ]),
-        },
-      )
-      .catch(logger.error);
+    console.log(t);
+
+    // await this.bot.telegram
+    //   .sendMessage(
+    //     user.telegramId,
+    //     `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(addBalance, currency, this.t(user, 't11')), this.t(user, 't10'))}</b>`,
+    //     { parse_mode: 'HTML' },
+    //   )
+    //   .catch(logger.error);
+    //
+    // const userKeyExists = await this.em.exists(UserKeyEntity, {
+    //   where: { userId },
+    // });
+    //
+    // if (userKeyExists) {
+    //   await this.bot.telegram
+    //     .sendMessage(
+    //       user.telegramId,
+    //       `${this.t(user, 'select_action')}:`,
+    //       this.profileMenu(user),
+    //     )
+    //     .catch(logger.error);
+    //
+    //   return;
+    // }
+    //
+    // const tariffButtons = await this.tariffsButtons(user, 'base');
+    // const balance = await this.transactionsService.getUserTotalBalance(
+    //   user.balanceAccount,
+    //   this.t(user, 't11'),
+    // );
+    //
+    // await this.bot.telegram
+    //   .sendMessage(
+    //     user.telegramId,
+    //     `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}\n<b>${this.t(user, 'select_tariff')}:</b>`,
+    //     {
+    //       parse_mode: 'HTML',
+    //       ...Markup.inlineKeyboard([
+    //         ...tariffButtons,
+    //         [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
+    //       ]),
+    //     },
+    //   )
+    //   .catch(logger.error);
   }
 
   public async sendRequestToBuyKey(user: UserEntity) {
@@ -1903,7 +1911,7 @@ export class TelegramService {
     return await Promise.all(
       filteredList.map(async (t) => [
         Markup.button.callback(
-          `${this.formatTariffLabel(user.languageCode, t)} — ${this.transactionsService.formatNumber(await this.transactionsService.convert(t.price, 'rub', this.t(user, 't11')), this.t(user, 't10'))}`,
+          `${this.formatTariffLabel(user.languageCode, t)} — ${this.transactionsService.formatNumber(await this.transactionsService.convert(t.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}`,
           `T:${t.id}`,
         ),
       ]),

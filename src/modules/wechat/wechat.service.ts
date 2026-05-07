@@ -13,6 +13,7 @@ import { TransactionEntity } from '../database/entities/transaction.entity';
 import { WechatTransactionType } from './types/wechat-transaction.type';
 import { TransactionsService } from '../transactions/transactions.service';
 import { DataResponse } from '../api/dto/responses/data-response.dto';
+import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 @Injectable()
 export class WechatService {
@@ -60,7 +61,7 @@ export class WechatService {
       userId: userId,
       paymentId: outTradeNo,
       amount: params.amount.total / 100,
-      currency: 'cny',
+      currency: CurrencyEnum.CNY,
       type: 'Credit',
       place: 'wechat',
       completed: false,
@@ -121,7 +122,7 @@ export class WechatService {
       where: {
         paymentId: result.out_trade_no,
         place: 'wechat',
-        currency: 'cny',
+        currency: CurrencyEnum.CNY,
         completed: false,
       },
     });
@@ -129,7 +130,7 @@ export class WechatService {
     await this.transactionsService.addBalance(
       transaction.userId,
       transaction.amount,
-      'cny',
+      CurrencyEnum.CNY,
     );
 
     await this.em.update(
