@@ -42,6 +42,10 @@ export class TransactionsService {
     });
 
     if (!user.source) return;
+    const userEntity = await this.em.findOne(UserEntity, {
+      where: { id: user.source },
+    });
+    if (!userEntity) return;
 
     const diffInMs = Math.abs(
       new Date().getTime() - new Date(user.createdAt).getTime(),

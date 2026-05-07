@@ -144,7 +144,7 @@ export class TonService {
         .trim();
 
       return {
-        currency: 'TON',
+        currency: 'ton',
         type: 'Credit',
         amount: Number(msg.info.value.coins) / 1e9,
         message,
