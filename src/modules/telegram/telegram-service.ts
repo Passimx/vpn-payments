@@ -21,6 +21,9 @@ import { WechatService } from '../wechat/wechat.service';
 import { AuthService } from '../api/services/auth.service';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
+import { ResendMessageType } from './types/resend-message.type';
+
+let resendMessageData: ResendMessageType | undefined;
 
 @Injectable()
 export class TelegramService {
@@ -61,7 +64,7 @@ export class TelegramService {
 
     this.bot.command('stats', this.analyticsService.sendAnalytics);
     this.bot.command('loginFromWeb', this.loginFromWeb);
-    this.bot.command('resendMessage', this.resendMessage);
+    this.bot.command('resendMessage', this.saveResendMessage);
 
     this.bot.start(this.onStart);
     this.bot.action('BTN_1', this.onBtn1);
@@ -1993,34 +1996,33 @@ export class TelegramService {
     );
   };
 
-  private resendMessage = async (ctx: Context) => {
-    if (ctx.from?.id !== 904644377 && ctx.from?.id !== 871909427) return;
-    const user = await this.getUserByCtx(ctx);
+  public async resendMessage() {
+    if (!resendMessageData || resendMessageData.started) return;
+    resendMessageData.started = true;
 
-    const ctxMessage = ctx.message as {
-      reply_to_message?: { message_id: number };
-    };
-
-    const message = ctxMessage.reply_to_message;
-    if (!message) {
-      await ctx.reply(this.t(user, 'need_to_reply'));
-      return;
-    }
-
-    const users = await this.em.find(UserEntity, {
-      where: { telegramId: Not(IsNull()), languageCode: user.languageCode },
-    });
+    const users = await this.em
+      .createQueryBuilder(UserEntity, 'users')
+      .innerJoin('users.keys', 'keys', "keys.status = 'active'")
+      .where('users.telegramId IS NOT NULL')
+      .andWhere('users.languageCode = :languageCode', {
+        languageCode: resendMessageData.languageCode,
+      })
+      .getMany();
 
     for (const user of users) {
       try {
         if (!user.telegramId) continue;
-        await ctx.telegram
-          .copyMessage(user.telegramId, ctx.chat!.id, message.message_id)
+        await this.bot.telegram
+          .copyMessage(
+            user.telegramId,
+            resendMessageData.chatId,
+            resendMessageData.messageId,
+            { disable_notification: true },
+          )
           .catch(() => {});
 
-        await ctx.telegram
+        await this.bot.telegram
           .sendMessage(user.telegramId, `${this.t(user, 'select_action')}:`, {
-            disable_notification: true,
             ...this.menu(user),
           })
           .catch(() => {});
@@ -2030,5 +2032,29 @@ export class TelegramService {
         logger.error(e);
       }
     }
+
+    resendMessageData = undefined;
+  }
+
+  private saveResendMessage = async (ctx: Context) => {
+    if (ctx.from?.id !== 904644377 && ctx.from?.id !== 871909427) return;
+    const user = await this.getUserByCtx(ctx);
+    if (!user.telegramId) return;
+
+    const ctxMessage = ctx.message as {
+      message_id: number;
+      reply_to_message?: { message_id: number };
+    };
+    const message = ctxMessage.reply_to_message;
+    if (!message) {
+      return ctx.reply(this.t(user, 'need_to_reply'));
+    }
+
+    resendMessageData = {
+      started: false,
+      languageCode: user.languageCode,
+      chatId: user.telegramId,
+      messageId: message.message_id,
+    };
   };
 }

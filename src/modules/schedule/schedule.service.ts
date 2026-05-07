@@ -46,4 +46,9 @@ export class ScheduleService {
     await this.analyticsService.saveTraffic();
     await this.xrayService.checkPremiumTrafficLimitExceeded();
   }
+
+  @Cron('* * * * *')
+  public async resendMessage() {
+    await this.telegramService.resendMessage();
+  }
 }

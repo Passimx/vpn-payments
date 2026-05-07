@@ -46,7 +46,7 @@ export class UserEntity {
     length: 2 ** 4,
     default: 'en',
   })
-  readonly languageCode?: string;
+  readonly languageCode: string;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
