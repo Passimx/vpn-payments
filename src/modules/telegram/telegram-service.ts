@@ -22,6 +22,8 @@ import { AuthService } from '../api/services/auth.service';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { ResendMessageType } from './types/resend-message.type';
+import { TonService } from '../ton/ton.service';
+import { AppWalletEnum } from '../ton/enums/app-wallet.enum';
 
 let resendMessageData: ResendMessageType | undefined;
 
@@ -50,6 +52,7 @@ export class TelegramService {
     private readonly xrayService: XrayService,
     private readonly wechatService: WechatService,
     private readonly athService: AuthService,
+    private readonly tonService: TonService,
   ) {}
 
   async onModuleInit() {
@@ -788,11 +791,6 @@ export class TelegramService {
     const amountFromSet = this.amountMap.get(user.telegramId);
     if (amountFromSet === undefined) return;
 
-    const price = await this.transactionsService.getCurrencyPrice();
-    if (!price) return;
-
-    const address = Envs.crypto.ton.walletAddress;
-    const text = user.id;
     const amount = await this.transactionsService.convert(
       amountFromSet,
       this.t(user, 't11') as CurrencyEnum,
@@ -820,19 +818,34 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
+                this.tonService.getTonInvoice(
+                  user.id,
+                  amount,
+                  CurrencyEnum.TON,
+                  AppWalletEnum.MY_TON_WALLET,
+                ).data,
               ),
             ],
             [
               Markup.button.url(
                 'Tonkeeper',
-                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
+                this.tonService.getTonInvoice(
+                  user.id,
+                  amount,
+                  CurrencyEnum.TON,
+                  AppWalletEnum.TON_KEEPER,
+                ).data,
               ),
             ],
             [
               Markup.button.url(
                 'Tonhub',
-                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
+                this.tonService.getTonInvoice(
+                  user.id,
+                  amount,
+                  CurrencyEnum.TON,
+                  AppWalletEnum.TON_HUB,
+                ).data,
               ),
             ],
             [this.backToPayWaysButton(user)],
@@ -849,12 +862,6 @@ export class TelegramService {
     const amountFromSet = this.amountMap.get(user.telegramId);
     if (amountFromSet === undefined) return;
 
-    const priceCollection = await this.transactionsService.getCurrencyPrice();
-    if (!priceCollection) return;
-
-    const address = Envs.crypto.ton.walletAddress;
-    const text = user.id;
-    const jetton = '&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
     const amount = await this.transactionsService.convert(
       amountFromSet,
       this.t(user, 't11') as CurrencyEnum,
@@ -882,19 +889,34 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
+                this.tonService.getTonInvoice(
+                  user.id,
+                  amount,
+                  CurrencyEnum.TON_USDT,
+                  AppWalletEnum.MY_TON_WALLET,
+                ).data,
               ),
             ],
             [
               Markup.button.url(
                 'Tonkeeper',
-                `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
+                this.tonService.getTonInvoice(
+                  user.id,
+                  amount,
+                  CurrencyEnum.TON_USDT,
+                  AppWalletEnum.TON_KEEPER,
+                ).data,
               ),
             ],
             [
               Markup.button.url(
                 'Tonhub',
-                `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
+                this.tonService.getTonInvoice(
+                  user.id,
+                  amount,
+                  CurrencyEnum.TON_USDT,
+                  AppWalletEnum.TON_HUB,
+                ).data,
               ),
             ],
             [this.backToPayWaysButton(user)],

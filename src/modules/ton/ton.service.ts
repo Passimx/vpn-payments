@@ -86,55 +86,27 @@ export class TonService {
     if (transactions.length) await this.addBalance(transactionsNotEmpty);
   }
 
-  public async getTonInvoice(
+  public getTonInvoice(
     userId: string,
     amount: number,
     currency: CurrencyEnum.TON | CurrencyEnum.TON_USDT,
     app: AppWalletEnum,
-  ): Promise<DataResponse<string>> {
-    console.log(userId, amount, currency, app);
-    await Promise.all([]);
-    const paymentUrl = '';
+  ): DataResponse<string> {
+    let paymentUrl = 'https://tonhub.com';
 
-    // TON
-    // [
-    //   Markup.button.url(
-    //     'MyTonWallet',
-    //     `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
-    //   ),
-    // ],
-    //   [
-    //     Markup.button.url(
-    //       'Tonkeeper',
-    //       `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
-    //     ),
-    //   ],
-    //   [
-    //     Markup.button.url(
-    //       'Tonhub',
-    //       `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
-    //     ),
-    //   ],
+    if (app === AppWalletEnum.MY_TON_WALLET)
+      paymentUrl = 'https://my.tt/transfer';
+    if (app === AppWalletEnum.TON_KEEPER)
+      paymentUrl = 'https://app.tonkeeper.com';
 
-    // USDT
-    // [
-    //   Markup.button.url(
-    //     'MyTonWallet',
-    //     `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
-    //   ),
-    // ],
-    //   [
-    //     Markup.button.url(
-    //       'Tonkeeper',
-    //       `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
-    //     ),
-    //   ],
-    //   [
-    //     Markup.button.url(
-    //       'Tonhub',
-    //       `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
-    //     ),
-    //   ],
+    paymentUrl += '/transfer';
+
+    if (currency === CurrencyEnum.TON_USDT)
+      paymentUrl += `/${Envs.crypto.ton.jettonWalletAddress}?amount=${amount * 1e6}&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs`;
+    else
+      paymentUrl += `/${Envs.crypto.ton.walletAddress}?amount=${amount * 1e9}`;
+
+    paymentUrl += `&text=${userId}`;
 
     return new DataResponse(paymentUrl, true);
   }

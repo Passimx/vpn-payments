@@ -8,6 +8,7 @@ import { I18nModule } from '../i18n/i18n.module';
 import { AnalyticsService } from './analytics.service';
 import { WechatModule } from '../wechat/wechat.module';
 import { ApiModule } from '../api/api.module';
+import { TonModule } from '../ton/ton.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ApiModule } from '../api/api.module';
     YookassaModule,
     WechatModule,
     ApiModule,
+    TonModule,
   ],
   providers: [TelegramService, AnalyticsService],
   exports: [TelegramService, AnalyticsService],

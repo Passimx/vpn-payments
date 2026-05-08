@@ -21,12 +21,12 @@ export class InvoicesService {
     return await this.wechatService.createInvoice(userId, amount);
   }
 
-  public async getTonInvoice(
+  public getTonInvoice(
     userId: string,
     amount: number,
     currency: CurrencyEnum.TON | CurrencyEnum.TON_USDT,
     app: AppWalletEnum,
   ) {
-    return await this.tonService.getTonInvoice(userId, amount, currency, app);
+    return this.tonService.getTonInvoice(userId, amount, currency, app);
   }
 }
