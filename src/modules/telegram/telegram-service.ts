@@ -243,7 +243,7 @@ export class TelegramService {
       CurrencyEnum.RUB,
     );
 
-    const result = await this.yookassaBalanceService.createBalancePaymentLink(
+    const result = await this.yookassaBalanceService.createInvoice(
       user.id,
       convertedAmount,
     );
@@ -1680,57 +1680,49 @@ export class TelegramService {
     });
     if (!user?.telegramId) return;
 
-    const t = await this.transactionsService.convert(
-      addBalance,
-      currency,
+    await this.bot.telegram
+      .sendMessage(
+        user.telegramId,
+        `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(addBalance, currency, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>`,
+        { parse_mode: 'HTML' },
+      )
+      .catch(logger.error);
+
+    const userKeyExists = await this.em.exists(UserKeyEntity, {
+      where: { userId },
+    });
+
+    if (userKeyExists) {
+      await this.bot.telegram
+        .sendMessage(
+          user.telegramId,
+          `${this.t(user, 'select_action')}:`,
+          this.profileMenu(user),
+        )
+        .catch(logger.error);
+
+      return;
+    }
+
+    const tariffButtons = await this.tariffsButtons(user, 'base');
+    const balance = await this.transactionsService.getUserTotalBalance(
+      user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
 
-    console.log(t);
-
-    // await this.bot.telegram
-    //   .sendMessage(
-    //     user.telegramId,
-    //     `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(addBalance, currency, this.t(user, 't11')), this.t(user, 't10'))}</b>`,
-    //     { parse_mode: 'HTML' },
-    //   )
-    //   .catch(logger.error);
-    //
-    // const userKeyExists = await this.em.exists(UserKeyEntity, {
-    //   where: { userId },
-    // });
-    //
-    // if (userKeyExists) {
-    //   await this.bot.telegram
-    //     .sendMessage(
-    //       user.telegramId,
-    //       `${this.t(user, 'select_action')}:`,
-    //       this.profileMenu(user),
-    //     )
-    //     .catch(logger.error);
-    //
-    //   return;
-    // }
-    //
-    // const tariffButtons = await this.tariffsButtons(user, 'base');
-    // const balance = await this.transactionsService.getUserTotalBalance(
-    //   user.balanceAccount,
-    //   this.t(user, 't11'),
-    // );
-    //
-    // await this.bot.telegram
-    //   .sendMessage(
-    //     user.telegramId,
-    //     `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}\n<b>${this.t(user, 'select_tariff')}:</b>`,
-    //     {
-    //       parse_mode: 'HTML',
-    //       ...Markup.inlineKeyboard([
-    //         ...tariffButtons,
-    //         [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
-    //       ]),
-    //     },
-    //   )
-    //   .catch(logger.error);
+    await this.bot.telegram
+      .sendMessage(
+        user.telegramId,
+        `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}\n<b>${this.t(user, 'select_tariff')}:</b>`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            ...tariffButtons,
+            [Markup.button.callback(`🌐️ ${this.t(user, 'menu')}`, 'BTN_1')],
+          ]),
+        },
+      )
+      .catch(logger.error);
   }
 
   public async sendRequestToBuyKey(user: UserEntity) {

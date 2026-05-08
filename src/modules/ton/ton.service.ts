@@ -8,6 +8,8 @@ import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
 import { logger } from '../../common/logger/logger';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
+import { DataResponse } from '../api/dto/responses/data-response.dto';
+import { AppWalletEnum } from './enums/app-wallet.enum';
 
 @Injectable()
 export class TonService {
@@ -82,6 +84,59 @@ export class TonService {
     await this.em.insert(TransactionEntity, transactionsNotEmpty);
 
     if (transactions.length) await this.addBalance(transactionsNotEmpty);
+  }
+
+  public async getTonInvoice(
+    userId: string,
+    amount: number,
+    currency: CurrencyEnum.TON | CurrencyEnum.TON_USDT,
+    app: AppWalletEnum,
+  ): Promise<DataResponse<string>> {
+    console.log(userId, amount, currency, app);
+    await Promise.all([]);
+    const paymentUrl = '';
+
+    // TON
+    // [
+    //   Markup.button.url(
+    //     'MyTonWallet',
+    //     `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
+    //   ),
+    // ],
+    //   [
+    //     Markup.button.url(
+    //       'Tonkeeper',
+    //       `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
+    //     ),
+    //   ],
+    //   [
+    //     Markup.button.url(
+    //       'Tonhub',
+    //       `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e9}`,
+    //     ),
+    //   ],
+
+    // USDT
+    // [
+    //   Markup.button.url(
+    //     'MyTonWallet',
+    //     `https://my.tt/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
+    //   ),
+    // ],
+    //   [
+    //     Markup.button.url(
+    //       'Tonkeeper',
+    //       `https://app.tonkeeper.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
+    //     ),
+    //   ],
+    //   [
+    //     Markup.button.url(
+    //       'Tonhub',
+    //       `https://tonhub.com/transfer/${address}?text=${text}&amount=${amount * 1e6}${jetton}`,
+    //     ),
+    //   ],
+
+    return new DataResponse(paymentUrl, true);
   }
 
   private async addBalance(transactions: TransactionEntity[]) {

@@ -25,7 +25,7 @@ export class YookassaBalanceService {
     private readonly transactionsService: TransactionsService,
   ) {}
 
-  async createBalancePaymentLink(
+  async createInvoice(
     userId: string,
     amount: number,
   ): Promise<DataResponse<string>> {
