@@ -1,30 +1,11 @@
-import {
-  Check,
-  Column,
-  CreateDateColumn,
-  Entity,
-  OneToMany,
-  OneToOne,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, OneToOne } from 'typeorm';
 import { UserKeyEntity } from './user-key.entity';
 import { BalanceAccount } from './balance-account.entity';
 
 @Entity({ name: 'users' })
-@Check('check_balance', 'balance >= 0')
 export class UserEntity {
   @Column({ name: 'id', type: 'varchar', primary: true })
   readonly id: string;
-
-  @Column({
-    name: 'balance',
-    type: 'bigint',
-    default: 0,
-    transformer: {
-      to: (value: number) => value,
-      from: (value: string) => Number(value),
-    },
-  })
-  readonly balance: number;
 
   @Column({
     name: 'telegram_id',

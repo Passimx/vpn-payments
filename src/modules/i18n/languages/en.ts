@@ -184,4 +184,5 @@ export default {
   t2: 'Service temporarily unavailable. Please try again later',
   t10: '$',
   t11: 'usd',
+  t12: 'Click-throughs',
 };
