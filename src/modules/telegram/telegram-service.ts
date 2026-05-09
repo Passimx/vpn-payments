@@ -2041,6 +2041,18 @@ export class TelegramService {
           })
           .catch(() => {});
 
+        if (Envs.telegram.botWebUrl)
+          await this.bot.telegram.setChatMenuButton({
+            chatId: user.telegramId,
+            menuButton: {
+              type: 'web_app',
+              text: this.t(user, 'open_app_button'),
+              web_app: {
+                url: Envs.telegram.botWebUrl,
+              },
+            },
+          });
+
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {
         logger.error(e);
