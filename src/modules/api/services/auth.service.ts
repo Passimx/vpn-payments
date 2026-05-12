@@ -54,6 +54,7 @@ export class AuthService {
     return this.em.findOneOrFail(UserEntity, {
       where: { id },
       relations: ['keys', 'keys.server', 'balanceAccount'],
+      order: { keys: { createdAt: 'ASC' } },
     });
   }
 }
