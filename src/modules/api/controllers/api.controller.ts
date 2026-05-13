@@ -6,6 +6,8 @@ import { Public } from '../../../common/guards/public.decorator';
 import { TransactionsService } from '../../transactions/transactions.service';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
+import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
+import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -30,5 +32,15 @@ export class ApiController {
   async getCurrencyPrice() {
     const payload = await this.transactionsService.getCurrencyPrice();
     return new DataResponse(payload);
+  }
+
+  @Post('tariffs')
+  tariffs(@Body() body: GetTariffsDto) {
+    return this.authService.getTariffs(body);
+  }
+
+  @Post('extend-key')
+  extendKey(@UserId() userId: string, @Body() body: ExtendKeyDto) {
+    return this.authService.extendKey(userId, body);
   }
 }

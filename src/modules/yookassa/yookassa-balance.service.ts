@@ -32,10 +32,7 @@ export class YookassaBalanceService {
     try {
       const shopId = (Envs.yookassa.walletNumber || '').trim();
       const secretKey = (Envs.yookassa.accessToken || '').trim();
-      if (!shopId || !secretKey)
-        return new DataResponse(
-          'Оплата через YooKassa временно недоступна. Попробуйте другой способ оплаты (TON или СБП).',
-        );
+      if (!shopId || !secretKey) return new DataResponse('yookassa_not_found');
 
       const idempotenceKey = randomUUID();
       const authHeader =
@@ -55,7 +52,7 @@ export class YookassaBalanceService {
             currency: 'RUB',
           },
           capture: true,
-          description: `Пополнение баланса user:${userId}`,
+          description: `user:${userId}`,
           confirmation: {
             type: 'redirect',
             return_url: 'tg://resolve?domain=passimx_vpn_bot',
@@ -66,10 +63,7 @@ export class YookassaBalanceService {
         }),
       });
 
-      if (!res.ok)
-        return new DataResponse(
-          'Не удалось создать платеж в YooKassa. Попробуйте другой способ оплаты (TON или СБП).',
-        );
+      if (!res.ok) return new DataResponse('yookassa_not_found');
 
       const payment = (await res.json()) as {
         id: string;
@@ -83,9 +77,7 @@ export class YookassaBalanceService {
       const paymentUrl = payment.confirmation?.confirmation_url;
 
       if (!paymentId || !paymentUrl)
-        return new DataResponse(
-          'Не удалось получить ссылку на оплату в YooKassa. Попробуйте другой способ оплаты.',
-        );
+        return new DataResponse('yookassa_not_found');
 
       const now = Date.now();
       await this.em.save(TransactionEntity, {
@@ -104,9 +96,7 @@ export class YookassaBalanceService {
       return new DataResponse(paymentUrl, true);
     } catch (error) {
       logger.error('[YooKassa] createBalancePaymentLink exception', error);
-      return new DataResponse(
-        'Оплата через YooKassa временно недоступна, используйте другие сервисы для оплаты',
-      );
+      return new DataResponse('yookassa_not_found');
     }
   }
 

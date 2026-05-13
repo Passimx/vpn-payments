@@ -70,6 +70,10 @@ export default {
   click: 'Click',
   key_not_found: 'Key not found',
   tariff_not_found: 'Tariff not found',
+  yookassa_not_found:
+    'Payment via YooKassa is temporarily unavailable. Please try another payment method.',
+  error: 'Error',
+  free_time_used: 'Trial period has already been used',
   active_tariffs_not_found: 'There are currently no available tariffs',
   put_money: 'Top up balance',
   required_steps: 'Required steps',

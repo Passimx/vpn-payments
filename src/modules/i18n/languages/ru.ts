@@ -70,6 +70,10 @@ export default {
   click: 'Нажмите',
   key_not_found: 'Ключ не найден',
   tariff_not_found: 'Тариф не найден',
+  yookassa_not_found:
+    'Оплата через YooKassa временно недоступна. Попробуйте другой способ оплаты.',
+  error: 'Ошибка',
+  free_time_used: 'Пробный период уже использован',
   active_tariffs_not_found: 'Сейчас нет доступных тарифов',
   put_money: 'Пополнить баланс',
   required_steps: 'Необходимые шаги',

@@ -116,7 +116,7 @@ export class TelegramService {
         ]);
       }
 
-    void this.bot.launch();
+    // void this.bot.launch();
   }
 
   onModuleDestroy() {
@@ -253,7 +253,7 @@ export class TelegramService {
     await ctx.deleteMessage(processingMessage.message_id);
     if (!result.success) {
       await ctx
-        .editMessageText(`❌ ${result.data}`, {
+        .editMessageText(`❌ ${this.t(user, result.data)}`, {
           ...Markup.inlineKeyboard([
             [
               Markup.button.callback(
@@ -1165,9 +1165,9 @@ export class TelegramService {
         renewTariffId,
         promoCode,
       );
-      if (!result.ok) {
+      if (!result.success && typeof result.data === 'string') {
         await ctx
-          .editMessageText(`❌ ${result.error}`, {
+          .editMessageText(`❌ ${this.t(user, result.data)}`, {
             ...Markup.inlineKeyboard([
               [
                 Markup.button.callback(
@@ -1208,9 +1208,9 @@ export class TelegramService {
         promoCode,
         protocol,
       );
-      if (!result.ok) {
+      if (!result.success && typeof result.data === 'string') {
         await ctx
-          .editMessageText(`❌ ${result.error}`, {
+          .editMessageText(`❌ ${this.t(user, result.data)}`, {
             ...Markup.inlineKeyboard([
               [
                 Markup.button.callback(
@@ -1225,11 +1225,12 @@ export class TelegramService {
         return;
       }
 
-      await this.showKeyCreatedScreen(
-        ctx,
-        result.uri,
-        this.backToProfileButton(user),
-      );
+      if (typeof result.data !== 'string')
+        await this.showKeyCreatedScreen(
+          ctx,
+          result.data.uri,
+          this.backToProfileButton(user),
+        );
     }
   };
 
@@ -1479,70 +1480,6 @@ export class TelegramService {
       .catch(logger.error);
   }
 
-  public async tryAutoRenewExpiredKey(key: UserKeyEntity): Promise<boolean> {
-    if (!key.autoRenewEnabled) return false;
-
-    const tariffId =
-      key.countTrafficLimit != null
-        ? Envs.telegram.autoRenewPremiumTariffId
-        : Envs.telegram.autoRenewBaseTariffId;
-
-    const result = await this.keyPurchaseService.renewKey(
-      key.userId,
-      key.id,
-      tariffId,
-    );
-    if (result.ok) {
-      await this.sendAutoRenewSuccessMessage(key.userId);
-      return true;
-    }
-
-    if (result.error.includes('Недостаточно средств')) {
-      await this.sendAutoRenewInsufficientBalanceMessage(key.userId);
-    }
-
-    return false;
-  }
-
-  private async sendAutoRenewInsufficientBalanceMessage(userId: string) {
-    const user = await this.em.findOne(UserEntity, { where: { id: userId } });
-    if (!user?.telegramId) return;
-
-    await this.bot.telegram
-      .sendMessage(
-        user.telegramId,
-        `❌ ${this.t(user, 'auto_renew_insufficient_balance')}`,
-        {
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.callback(
-                `💸 ${this.t(user, 'put_money')}`,
-                'BTN_BALANCE',
-              ),
-            ],
-            [this.backToProfileButton(user)],
-          ]),
-        },
-      )
-      .catch(logger.error);
-  }
-
-  private async sendAutoRenewSuccessMessage(userId: string) {
-    const user = await this.em.findOne(UserEntity, { where: { id: userId } });
-    if (!user?.telegramId) return;
-
-    await this.bot.telegram
-      .sendMessage(
-        user.telegramId,
-        `✅ ${this.t(user, 'auto_renew_success')}`,
-        Markup.inlineKeyboard([
-          [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
-          [this.backToProfileButton(user)],
-        ]),
-      )
-      .catch(logger.error);
-  }
-
   private async handlePromoCode(
     ctx: Context,
     telegramId: number,
@@ -1580,10 +1517,10 @@ export class TelegramService {
       tariffId,
       promoText,
     );
-    if (!priceResult.ok) {
+    if (!priceResult.success && typeof priceResult.data === 'string') {
       const backCallback = isRenew ? `RENEW:${id}` : `T:${tariffId}`;
       await ctx
-        .reply(`❌ ${priceResult.error}`, {
+        .reply(`❌ ${this.t(user, priceResult.data)}`, {
           ...Markup.inlineKeyboard([
             [
               Markup.button.callback(
@@ -1604,51 +1541,53 @@ export class TelegramService {
         promoCode: promoText,
         isRenew: true,
       });
-      await ctx
-        .reply(
-          `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
-          {
-            parse_mode: 'HTML',
-            ...Markup.inlineKeyboard([
-              [
-                Markup.button.callback(
-                  `✅ ${this.t(user, 'buy')}`,
-                  `BUY_KEY:${id}`,
-                ),
-              ],
-              [
-                Markup.button.callback(
-                  `⬅️ ${this.t(user, 'to_keys')}`,
-                  'BTN_5',
-                ),
-              ],
-            ]),
-          },
-        )
-        .catch(logger.error);
+      if (typeof priceResult.data !== 'string')
+        await ctx
+          .reply(
+            `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.data.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
+            {
+              parse_mode: 'HTML',
+              ...Markup.inlineKeyboard([
+                [
+                  Markup.button.callback(
+                    `✅ ${this.t(user, 'buy')}`,
+                    `BUY_KEY:${id}`,
+                  ),
+                ],
+                [
+                  Markup.button.callback(
+                    `⬅️ ${this.t(user, 'to_keys')}`,
+                    'BTN_5',
+                  ),
+                ],
+              ]),
+            },
+          )
+          .catch(logger.error);
     } else {
       this.pendingPromo.set(telegramId, {
         id: tariffId,
         promoCode: promoText,
         isRenew: false,
       });
-      await ctx
-        .reply(
-          `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
-          {
-            parse_mode: 'HTML',
-            ...Markup.inlineKeyboard([
-              [
-                Markup.button.callback(
-                  `✅ ${this.t(user, 'buy')}`,
-                  `BUY:${tariffId}`,
-                ),
-              ],
-              [this.backToTariffsButton(user)],
-            ]),
-          },
-        )
-        .catch(logger.error);
+      if (typeof priceResult.data !== 'string')
+        await ctx
+          .reply(
+            `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.data.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
+            {
+              parse_mode: 'HTML',
+              ...Markup.inlineKeyboard([
+                [
+                  Markup.button.callback(
+                    `✅ ${this.t(user, 'buy')}`,
+                    `BUY:${tariffId}`,
+                  ),
+                ],
+                [this.backToTariffsButton(user)],
+              ]),
+            },
+          )
+          .catch(logger.error);
     }
     return true;
   }

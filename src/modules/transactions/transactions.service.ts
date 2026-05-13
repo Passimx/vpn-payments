@@ -164,7 +164,7 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.tonUsdt) {
-      amount = await this.convert(amount, currency, CurrencyEnum.TON_USDT);
+      amount = await this.convert(amount, currency, CurrencyEnum.USD);
       // currency = 'usd';
 
       if (balanceAccount.tonUsdt >= amount) {

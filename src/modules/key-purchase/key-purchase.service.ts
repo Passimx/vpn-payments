@@ -9,12 +9,12 @@ import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { BlitzService } from '../blitz/blitz.service';
 import { XrayService } from '../xray/xray-service';
-import { PurchaseResult } from './types/purchase-result.type';
-import { RenewKeyResult } from './types/renew-key-result.type';
 import { PriceWithPromoResult } from './types/price-with-promo-result.type';
 import { TransactionsService } from '../transactions/transactions.service';
 import { I18nService } from '../i18n/i18n.service';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
+import { DataResponse } from '../api/dto/responses/data-response.dto';
+import { PurchaseResult } from './types/purchase-result.type';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -31,7 +31,7 @@ export class KeyPurchaseService {
     tariffId: string,
     promoCode?: string,
     protocol: 'xray' | 'hysteria' = 'xray',
-  ): Promise<PurchaseResult> {
+  ): Promise<DataResponse<string | PurchaseResult>> {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
@@ -62,20 +62,17 @@ export class KeyPurchaseService {
           tariff.id,
           effectivePromoCode,
         );
-        if (!priceResult.ok) return priceResult;
-        finalPrice = priceResult.finalPrice;
-        appliedPromo = priceResult.appliedPromo;
+        if (!priceResult.success && typeof priceResult.data === 'string')
+          return new DataResponse<string>(priceResult.data);
+
+        if (typeof priceResult.data !== 'string') {
+          finalPrice = priceResult.data.finalPrice;
+          appliedPromo = priceResult.data.appliedPromo;
+        }
       }
 
       // Бесплатные пробные тарифы выдаем только через соответствующий trial-промокод.
-      if (finalPrice === 0 && !appliedPromo) {
-        const requiredPromo =
-          tariff.trafficLimit != null ? 'PREMIUM_TRIAL' : 'TRIAL';
-        return {
-          ok: false,
-          error: `Для этого тарифа используйте промокод ${requiredPromo}`,
-        };
-      }
+      if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
 
       const result = await this.transactionsService.decreaseBalance(
         userId,
@@ -84,12 +81,7 @@ export class KeyPurchaseService {
         qr.manager,
       );
 
-      if (!result) {
-        return {
-          ok: false,
-          error: this.t(user, 't1'),
-        };
-      }
+      if (!result) return new DataResponse(this.t(user, 't1'));
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
@@ -99,12 +91,7 @@ export class KeyPurchaseService {
 
       if (protocol === 'xray') {
         const amKey = await this.xrayService.createXrayKey(user, tariff.id);
-        if (!amKey) {
-          return {
-            ok: false,
-            error: 'Ошибка создания Xray-ключа. Попробуйте позже.',
-          };
-        }
+        if (!amKey) return new DataResponse('error');
 
         createdKeyId = amKey.id;
         vpnUri = amKey.key;
@@ -119,20 +106,11 @@ export class KeyPurchaseService {
           note: user.id,
         });
 
-        if (!createResult.success) {
-          return {
-            ok: false,
-            error: `Ошибка создания Hysteria-ключа: ${createResult.error ?? 'Неизвестная ошибка'}`,
-          };
-        }
+        if (!createResult.success) return new DataResponse(`error`);
 
         const uriResult = await this.blitzService.getUserKeyUri(username);
-        if (!uriResult.success || !uriResult.uri) {
-          return {
-            ok: false,
-            error: `Ошибка получения ссылки Hysteria-ключа: ${uriResult.error ?? 'URI не получен'}`,
-          };
-        }
+        if (!uriResult.success || !uriResult.uri)
+          return new DataResponse('error');
 
         vpnUri = uriResult.uri;
         createdKeyId = crypto.randomUUID().replace(/-/g, '');
@@ -162,11 +140,8 @@ export class KeyPurchaseService {
       }
 
       await qr.commitTransaction();
-      return {
-        ok: true,
-        uri: vpnUri,
-        keyId: createdKeyId,
-      };
+
+      return new DataResponse({ uri: vpnUri, keyId: createdKeyId });
     } catch (e) {
       await qr.rollbackTransaction();
       const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -175,7 +150,7 @@ export class KeyPurchaseService {
         msg,
         e instanceof Error ? e.stack : undefined,
       );
-      return { ok: false, error: `Ошибка: ${msg}` };
+      return new DataResponse(`error`);
     } finally {
       await qr.release();
     }
@@ -185,22 +160,18 @@ export class KeyPurchaseService {
     userId: string,
     tariffId: string,
     promoCode: string,
-  ): Promise<PriceWithPromoResult> {
+  ): Promise<DataResponse<string | PriceWithPromoResult>> {
     const manager = this.dataSource.manager;
 
     const tariff = await manager.findOne(TariffEntity, {
       where: { id: tariffId, active: true },
     });
-    if (!tariff) {
-      return { ok: false, error: 'Тариф не найден' };
-    }
+    if (!tariff) return new DataResponse('tariff_not_found');
 
     const promo = await manager.findOne(PromoCodeEntity, {
       where: { code: promoCode, active: true },
     });
-    if (!promo) {
-      return { ok: false, error: 'Промокод не найден или не активен' };
-    }
+    if (!promo) return new DataResponse('error');
 
     const existingUsage = await manager.findOne(PromoUsageEntity, {
       where: {
@@ -208,23 +179,14 @@ export class KeyPurchaseService {
         promoCodeId: promo.id,
       },
     });
-    if (existingUsage) {
-      return {
-        ok: false,
-        error:
-          promo.code === 'TRIAL' || promo.code === 'PREMIUM_TRIAL'
-            ? 'Пробный период уже использован'
-            : 'Этот промокод уже был использован',
-      };
-    }
+    if (existingUsage) return new DataResponse('free_time_used');
 
     if (
       promo.allowedTariffIds != null &&
       promo.allowedTariffIds.length > 0 &&
       !promo.allowedTariffIds.includes(tariffId)
-    ) {
-      return { ok: false, error: 'Промокод не действует на этот тариф' };
-    }
+    )
+      return new DataResponse('free_time_used');
 
     const originalPrice = Number(tariff.price);
     let finalPrice = originalPrice;
@@ -235,12 +197,11 @@ export class KeyPurchaseService {
       finalPrice = Math.max(0, Math.round(originalPrice - discount));
     }
 
-    return {
-      ok: true,
+    return new DataResponse<PriceWithPromoResult>({
       originalPrice,
       finalPrice,
       appliedPromo: promo,
-    };
+    });
   }
 
   async renewKey(
@@ -248,38 +209,29 @@ export class KeyPurchaseService {
     keyId: string,
     tariffId: string,
     promoCode?: string,
-  ): Promise<RenewKeyResult> {
+  ): Promise<DataResponse<string | PriceWithPromoResult>> {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
 
     try {
-      const user = await qr.manager.findOne(UserEntity, {
+      const user = await qr.manager.findOneOrFail(UserEntity, {
         where: { id: userId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!user) {
-        return { ok: false, error: 'Пользователь не найден' };
-      }
 
       const vpnKey = await qr.manager.findOne(UserKeyEntity, {
         where: { id: keyId, userId: user.id },
         relations: ['tariff'],
       });
-      if (!vpnKey) {
-        return { ok: false, error: 'Ключ не найден' };
-      }
+      if (!vpnKey) return new DataResponse('key_not_found');
 
-      if (!vpnKey.tariffId || !vpnKey.tariff) {
-        return { ok: false, error: 'Тариф для ключа не найден' };
-      }
+      if (!vpnKey.tariffId || !vpnKey.tariff)
+        return new DataResponse('tariff_not_found');
 
-      const tariff = await qr.manager.findOne(TariffEntity, {
+      const tariff = await qr.manager.findOneOrFail(TariffEntity, {
         where: { id: tariffId, active: true },
       });
-      if (!tariff) {
-        return { ok: false, error: 'Тариф не найден' };
-      }
 
       let finalPrice = Number(tariff.price);
       let appliedPromo: PromoCodeEntity | null = null;
@@ -297,19 +249,14 @@ export class KeyPurchaseService {
           tariff.id,
           effectivePromoCode,
         );
-        if (!priceResult.ok) return priceResult;
-        finalPrice = priceResult.finalPrice;
-        appliedPromo = priceResult.appliedPromo;
+        if (!priceResult.success || typeof priceResult.data === 'string')
+          return priceResult;
+
+        finalPrice = priceResult.data.finalPrice;
+        appliedPromo = priceResult.data.appliedPromo;
       }
 
-      if (finalPrice === 0 && !appliedPromo) {
-        const requiredPromo =
-          tariff.trafficLimit != null ? 'PREMIUM_TRIAL' : 'TRIAL';
-        return {
-          ok: false,
-          error: `Для этого тарифа используйте промокод ${requiredPromo}`,
-        };
-      }
+      if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
 
       const result = await this.transactionsService.decreaseBalance(
         userId,
@@ -318,21 +265,11 @@ export class KeyPurchaseService {
         qr.manager,
       );
 
-      if (!result) {
-        return {
-          ok: false,
-          error: this.t(user, 't1'),
-        };
-      }
+      if (!result) return new DataResponse('t1');
 
       if (vpnKey.protocol === 'hysteria') {
         const isConnected = await this.blitzService.checkConnection();
-        if (!isConnected) {
-          return {
-            ok: false,
-            error: this.t(user, 't2'),
-          };
-        }
+        if (!isConnected) return new DataResponse('t2');
 
         const editResult = await this.blitzService.editUser({
           userId: vpnKey.userId,
@@ -340,20 +277,10 @@ export class KeyPurchaseService {
           renewCreationDate: true,
         });
 
-        if (!editResult.success) {
-          return {
-            ok: false,
-            error: `Ошибка продления ключа: ${editResult.error}`,
-          };
-        }
+        if (!editResult.success) return new DataResponse('error');
       } else if (vpnKey.protocol === 'xray') {
         const reactivated = await this.xrayService.reactivateXrayKey(vpnKey.id);
-        if (!reactivated) {
-          return {
-            ok: false,
-            error: 'Ошибка продления Xray-ключа. Попробуйте позже.',
-          };
-        }
+        if (!reactivated) return new DataResponse('error');
       }
 
       const base = new Date(vpnKey.expiresAt);
@@ -399,14 +326,11 @@ export class KeyPurchaseService {
       }
 
       await qr.commitTransaction();
-      return {
-        ok: true,
-        keyId: vpnKey.id,
-      };
+      return new DataResponse(vpnKey.id, true);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       await qr.rollbackTransaction();
-      const msg = e instanceof Error ? e.message : 'Unknown error';
-      return { ok: false, error: `Ошибка: ${msg}` };
+      return new DataResponse('error');
     } finally {
       await qr.release();
     }

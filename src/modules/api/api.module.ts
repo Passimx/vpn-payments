@@ -9,6 +9,7 @@ import { InvoicesService } from './services/invoices.service';
 import { YookassaModule } from '../yookassa/yookassa.module';
 import { WechatModule } from '../wechat/wechat.module';
 import { TonModule } from '../ton/ton.module';
+import { KeyPurchaseModule } from '../key-purchase/key-purchase.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { TonModule } from '../ton/ton.module';
     YookassaModule,
     WechatModule,
     TonModule,
+    KeyPurchaseModule,
   ],
   providers: [AuthService, InvoicesService],
   controllers: [ApiController, InvoicesController],
