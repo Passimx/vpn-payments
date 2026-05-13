@@ -116,7 +116,7 @@ export class TelegramService {
         ]);
       }
 
-    // void this.bot.launch();
+    void this.bot.launch();
   }
 
   onModuleDestroy() {
