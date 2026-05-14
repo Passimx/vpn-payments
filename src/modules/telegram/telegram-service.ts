@@ -1301,7 +1301,7 @@ export class TelegramService {
       ...servers.map((server) => [
         Markup.button.callback(
           `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)}`,
-          `MSC:${keyId}:${server.code}`,
+          `MSC:${keyId}:${server.id}`,
         ),
       ]),
 
@@ -1314,7 +1314,7 @@ export class TelegramService {
   };
 
   onMigrateServerCountry = async (ctx: Context) => {
-    const [, keyId, code] = (
+    const [, keyId, serverId] = (
       (ctx.callbackQuery as { data?: string })?.data ?? ''
     ).split(':');
     const user = await this.getUserByCtx(ctx);
@@ -1331,7 +1331,7 @@ export class TelegramService {
     await ctx.answerCbQuery(this.t(user, 'processing')).catch(logger.error);
     const newUri = await this.xrayService.migrateXrayKeyToAnotherServer(
       vpnKey.id,
-      code,
+      serverId,
     );
     if (!newUri) {
       return ctx

@@ -15,6 +15,8 @@ export class UserKeyDto {
 
   readonly serverCode: string;
 
+  readonly serverId: string;
+
   constructor(payload: UserKeyDto) {
     Object.assign(this, payload);
   }
@@ -27,6 +29,7 @@ export class UserKeyDto {
       createdAt: key.createdAt,
       status: key.status,
       serverCode: key.server.code,
+      serverId: key.server.id,
     });
   }
 }

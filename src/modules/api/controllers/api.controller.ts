@@ -8,6 +8,7 @@ import { DataResponse } from '../dto/responses/data-response.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
+import { ChangeServerDto } from '../dto/requests/change-server.dto';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -42,5 +43,15 @@ export class ApiController {
   @Post('extend-key')
   extendKey(@UserId() userId: string, @Body() body: ExtendKeyDto) {
     return this.authService.extendKey(userId, body);
+  }
+
+  @Post('servers')
+  getServers() {
+    return this.authService.getServers();
+  }
+
+  @Post('change-server')
+  changeServer(@UserId() userId: string, @Body() body: ChangeServerDto) {
+    return this.authService.changeServer(userId, body);
   }
 }

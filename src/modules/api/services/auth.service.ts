@@ -10,6 +10,10 @@ import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { KeyPurchaseService } from '../../key-purchase/key-purchase.service';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
+import { ServerEntity } from '../../database/entities/server.entity';
+import { GetServerDto } from '../dto/responses/get-server.dto';
+import { ChangeServerDto } from '../dto/requests/change-server.dto';
+import { XrayService } from '../../xray/xray-service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +23,7 @@ export class AuthService {
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
     private readonly keyPurchaseService: KeyPurchaseService,
+    private readonly xrayService: XrayService,
   ) {}
 
   public async loginByTelegram(key: string) {
@@ -84,6 +89,31 @@ export class AuthService {
 
     if (!result.success && typeof result.data === 'string')
       return new DataResponse(result.data);
+
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { userId, id: body.keyId },
+    });
+
+    return new DataResponse<UserKeyEntity>(key);
+  }
+
+  public async getServers() {
+    const servers = await this.em.find(ServerEntity, {
+      where: { canCreateKey: true, code: Not('white') },
+    });
+
+    return new DataResponse<GetServerDto[]>(
+      GetServerDto.getManyFromServerEntities(servers),
+    );
+  }
+
+  public async changeServer(userId: string, body: ChangeServerDto) {
+    const response = await this.xrayService.migrateXrayKeyToAnotherServer(
+      body.keyId,
+      body.serverId,
+    );
+
+    if (!response) return new DataResponse('error');
 
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { userId, id: body.keyId },

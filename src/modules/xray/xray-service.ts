@@ -148,7 +148,7 @@ export class XrayService {
 
   public async migrateXrayKeyToAnotherServer(
     keyId: string,
-    code: string,
+    serverId: string,
   ): Promise<string | null> {
     const keyEntity = await this.em.findOne(UserKeyEntity, {
       where: {
@@ -162,7 +162,7 @@ export class XrayService {
 
     const oldServer = keyEntity.server;
     const newServer = await this.em.findOne(ServerEntity, {
-      where: { code, canCreateKey: true },
+      where: { id: serverId, canCreateKey: true },
     });
 
     if (!newServer) return null;
