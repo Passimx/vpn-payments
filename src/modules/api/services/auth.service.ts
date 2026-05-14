@@ -4,7 +4,7 @@ import { UserEntity } from '../../database/entities/user.entity';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { TokenType } from '../types/token.type';
-import { UserResponseDto } from '../dto/responses/user.dto';
+import { UserKeyDto, UserResponseDto } from '../dto/responses/user.dto';
 import { TariffEntity } from '../../database/entities/tariff.entity';
 import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
@@ -44,7 +44,7 @@ export class AuthService {
     this.loginUserKey.set(key, userId);
   }
 
-  public async getUsersMe(id: string) {
+  public async getUsersMe(id: string): Promise<DataResponse<UserResponseDto>> {
     const user = await this.getUser(id);
 
     return new DataResponse<UserResponseDto>(
@@ -80,7 +80,7 @@ export class AuthService {
   public async extendKey(
     userId: string,
     body: ExtendKeyDto,
-  ): Promise<DataResponse<string | UserKeyEntity>> {
+  ): Promise<DataResponse<string | UserKeyDto>> {
     const result = await this.keyPurchaseService.renewKey(
       userId,
       body.keyId,
@@ -92,9 +92,10 @@ export class AuthService {
 
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { userId, id: body.keyId },
+      relations: ['server'],
     });
 
-    return new DataResponse<UserKeyEntity>(key);
+    return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
   }
 
   public async getServers() {
@@ -107,7 +108,10 @@ export class AuthService {
     );
   }
 
-  public async changeServer(userId: string, body: ChangeServerDto) {
+  public async changeServer(
+    userId: string,
+    body: ChangeServerDto,
+  ): Promise<DataResponse<string | UserKeyDto>> {
     const response = await this.xrayService.migrateXrayKeyToAnotherServer(
       body.keyId,
       body.serverId,
@@ -117,9 +121,10 @@ export class AuthService {
 
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { userId, id: body.keyId },
+      relations: ['server'],
     });
 
-    return new DataResponse<UserKeyEntity>(key);
+    return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
   }
 
   private getUser(id: string) {
