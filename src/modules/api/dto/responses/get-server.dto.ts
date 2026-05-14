@@ -5,13 +5,16 @@ export class GetServerDto {
 
   readonly code: string;
 
-  constructor(id: string, code: string) {
+  readonly host: string;
+
+  constructor(id: string, code: string, host: string) {
     this.id = id;
     this.code = code;
+    this.host = host;
   }
 
   public static getFromServerEntity(entity: ServerEntity) {
-    return new GetServerDto(entity.id, entity.code);
+    return new GetServerDto(entity.id, entity.code, entity.host);
   }
 
   public static getManyFromServerEntities(entities: ServerEntity[]) {
