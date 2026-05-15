@@ -9,6 +9,7 @@ import { AuthGuard } from '../../../common/guards/auth.guard';
 import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
+import { CreateKeyBody } from '../dto/requests/create-key.body';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -54,4 +55,14 @@ export class ApiController {
   changeServer(@UserId() userId: string, @Body() body: ChangeServerDto) {
     return this.authService.changeServer(userId, body);
   }
+
+  @Post('create-key')
+  createKey(@UserId() userId: string, @Body() body: CreateKeyBody) {
+    return this.authService.createKey(userId, body);
+  }
+
+  // @Post('delete-key')
+  // deleteKey(@UserId() userId: string, @Body() body: DeleteKeyDto) {
+  //   return this.authService.deleteKey(userId, body);
+  // }
 }

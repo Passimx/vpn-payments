@@ -14,6 +14,7 @@ import { ServerEntity } from '../../database/entities/server.entity';
 import { GetServerDto } from '../dto/responses/get-server.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { XrayService } from '../../xray/xray-service';
+import { CreateKeyBody } from '../dto/requests/create-key.body';
 
 @Injectable()
 export class AuthService {
@@ -126,6 +127,37 @@ export class AuthService {
 
     return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
   }
+
+  public async createKey(
+    userId: string,
+    body: CreateKeyBody,
+  ): Promise<DataResponse<string | UserKeyDto>> {
+    const result = await this.keyPurchaseService.purchase(
+      userId,
+      body.tariffId,
+      undefined,
+      'xray',
+    );
+
+    if (!result.success && typeof result.data === 'string')
+      return new DataResponse(result.data);
+
+    if (typeof result.data !== 'string') {
+      const key = await this.em.findOneOrFail(UserKeyEntity, {
+        where: { key: result.data.uri },
+        relations: ['server'],
+      });
+
+      return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
+    }
+
+    return new DataResponse(result.data);
+  }
+
+  // public async deleteKey(
+  //   userId: string,
+  //   body: DeleteKeyDto,
+  // ): Promise<DataResponse<string | boolean>> {}
 
   private getUser(id: string) {
     return this.em.findOneOrFail(UserEntity, {
