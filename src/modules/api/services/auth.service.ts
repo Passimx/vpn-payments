@@ -4,12 +4,11 @@ import { UserEntity } from '../../database/entities/user.entity';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { TokenType } from '../types/token.type';
-import { UserKeyDto, UserResponseDto } from '../dto/responses/user.dto';
+import { UserResponseDto } from '../dto/responses/user.dto';
 import { TariffEntity } from '../../database/entities/tariff.entity';
 import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { KeyPurchaseService } from '../../key-purchase/key-purchase.service';
-import { UserKeyEntity } from '../../database/entities/user-key.entity';
 import { ServerEntity } from '../../database/entities/server.entity';
 import { GetServerDto } from '../dto/responses/get-server.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
@@ -81,7 +80,7 @@ export class AuthService {
   public async extendKey(
     userId: string,
     body: ExtendKeyDto,
-  ): Promise<DataResponse<string | UserKeyDto>> {
+  ): Promise<DataResponse<string | UserResponseDto>> {
     const result = await this.keyPurchaseService.renewKey(
       userId,
       body.keyId,
@@ -91,12 +90,7 @@ export class AuthService {
     if (!result.success && typeof result.data === 'string')
       return new DataResponse(result.data);
 
-    const key = await this.em.findOneOrFail(UserKeyEntity, {
-      where: { userId, id: body.keyId },
-      relations: ['server'],
-    });
-
-    return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
+    return this.getUsersMe(userId);
   }
 
   public async getServers() {
@@ -112,7 +106,7 @@ export class AuthService {
   public async changeServer(
     userId: string,
     body: ChangeServerDto,
-  ): Promise<DataResponse<string | UserKeyDto>> {
+  ): Promise<DataResponse<string | UserResponseDto>> {
     const response = await this.xrayService.migrateXrayKeyToAnotherServer(
       body.keyId,
       body.serverId,
@@ -120,18 +114,13 @@ export class AuthService {
 
     if (!response) return new DataResponse('error');
 
-    const key = await this.em.findOneOrFail(UserKeyEntity, {
-      where: { userId, id: body.keyId },
-      relations: ['server'],
-    });
-
-    return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
+    return this.getUsersMe(userId);
   }
 
   public async createKey(
     userId: string,
     body: CreateKeyBody,
-  ): Promise<DataResponse<string | UserKeyDto>> {
+  ): Promise<DataResponse<string | UserResponseDto>> {
     const result = await this.keyPurchaseService.purchase(
       userId,
       body.tariffId,
@@ -142,16 +131,7 @@ export class AuthService {
     if (!result.success && typeof result.data === 'string')
       return new DataResponse(result.data);
 
-    if (typeof result.data !== 'string') {
-      const key = await this.em.findOneOrFail(UserKeyEntity, {
-        where: { key: result.data.uri },
-        relations: ['server'],
-      });
-
-      return new DataResponse<UserKeyDto>(UserKeyDto.getFromUserKey(key));
-    }
-
-    return new DataResponse(result.data);
+    return this.getUsersMe(userId);
   }
 
   // public async deleteKey(
