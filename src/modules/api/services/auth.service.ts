@@ -135,9 +135,7 @@ export class AuthService {
     userId: string,
     body: DeleteKeyDto,
   ): Promise<DataResponse<string | UserResponseDto>> {
-    await this.em.softDelete(UserKeyEntity, {
-      where: { id: body.keyId, userId },
-    });
+    await this.em.softDelete(UserKeyEntity, { id: body.keyId, userId });
 
     return this.getUser(userId);
   }

@@ -1487,7 +1487,7 @@ export class TelegramService {
       ]);
     }
 
-    if (vpnKey.expiresAt && new Date(vpnKey.expiresAt).getTime() < Date.now())
+    if (vpnKey.status === 'expired')
       buttons.push([
         Markup.button.callback(
           `🗑️ ${this.t(user, 'delete_key')}`,
