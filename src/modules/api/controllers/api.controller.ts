@@ -10,6 +10,7 @@ import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
+import { DeleteKeyDto } from '../dto/requests/delete-key.dto';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -27,7 +28,7 @@ export class ApiController {
 
   @Get('users/me')
   GetUsersMe(@UserId() userId: string) {
-    return this.authService.getUsersMe(userId);
+    return this.authService.getUser(userId);
   }
 
   @Get('currency-price')
@@ -61,8 +62,8 @@ export class ApiController {
     return this.authService.createKey(userId, body);
   }
 
-  // @Post('delete-key')
-  // deleteKey(@UserId() userId: string, @Body() body: DeleteKeyDto) {
-  //   return this.authService.deleteKey(userId, body);
-  // }
+  @Post('delete-key')
+  deleteKey(@UserId() userId: string, @Body() body: DeleteKeyDto) {
+    return this.authService.deleteKey(userId, body);
+  }
 }

@@ -14,6 +14,8 @@ import { GetServerDto } from '../dto/responses/get-server.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { XrayService } from '../../xray/xray-service';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
+import { UserKeyEntity } from '../../database/entities/user-key.entity';
+import { DeleteKeyDto } from '../dto/requests/delete-key.dto';
 
 @Injectable()
 export class AuthService {
@@ -31,7 +33,10 @@ export class AuthService {
     if (!userId) return new DataResponse('not_found');
     this.loginUserKey.delete(key);
 
-    const user = await this.getUser(userId);
+    const user = await this.em.findOneOrFail(UserEntity, {
+      where: { id: userId },
+    });
+
     if (!user) return new DataResponse('not_found');
 
     const payload = { userId: user.id, createdAt: Date.now() };
@@ -42,14 +47,6 @@ export class AuthService {
 
   public setKey(key: string, userId: string) {
     this.loginUserKey.set(key, userId);
-  }
-
-  public async getUsersMe(id: string): Promise<DataResponse<UserResponseDto>> {
-    const user = await this.getUser(id);
-
-    return new DataResponse<UserResponseDto>(
-      UserResponseDto.getFromUserEntity(user),
-    );
   }
 
   public async verifyTokenAsync(token: string): Promise<TokenType | undefined> {
@@ -90,7 +87,7 @@ export class AuthService {
     if (!result.success && typeof result.data === 'string')
       return new DataResponse(result.data);
 
-    return this.getUsersMe(userId);
+    return this.getUser(userId);
   }
 
   public async getServers() {
@@ -114,7 +111,7 @@ export class AuthService {
 
     if (!response) return new DataResponse('error');
 
-    return this.getUsersMe(userId);
+    return this.getUser(userId);
   }
 
   public async createKey(
@@ -131,19 +128,29 @@ export class AuthService {
     if (!result.success && typeof result.data === 'string')
       return new DataResponse(result.data);
 
-    return this.getUsersMe(userId);
+    return this.getUser(userId);
   }
 
-  // public async deleteKey(
-  //   userId: string,
-  //   body: DeleteKeyDto,
-  // ): Promise<DataResponse<string | boolean>> {}
+  public async deleteKey(
+    userId: string,
+    body: DeleteKeyDto,
+  ): Promise<DataResponse<string | UserResponseDto>> {
+    await this.em.softDelete(UserKeyEntity, {
+      where: { id: body.keyId, userId },
+    });
 
-  private getUser(id: string) {
-    return this.em.findOneOrFail(UserEntity, {
+    return this.getUser(userId);
+  }
+
+  public async getUser(id: string) {
+    const user = await this.em.findOneOrFail(UserEntity, {
       where: { id },
       relations: ['keys', 'keys.server', 'balanceAccount'],
       order: { keys: { createdAt: 'ASC' } },
     });
+
+    return new DataResponse<UserResponseDto>(
+      UserResponseDto.getFromUserEntity(user),
+    );
   }
 }

@@ -81,6 +81,7 @@ export class TelegramService {
     this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
     this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
+    this.bot.action(/^DELETE_KEY:([\w-]+)$/, this.onDeleKey);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ON_MY_REF_LINK', this.onMyRefLink);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
@@ -1395,6 +1396,19 @@ export class TelegramService {
     await this.renderKeyDetails(ctx, user, updatedKey);
   };
 
+  onDeleKey = async (ctx: Context) => {
+    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const keyId = data.replace('DELETE_KEY:', '');
+    const user = await this.getUserByCtx(ctx);
+
+    await this.em.softDelete(UserKeyEntity, {
+      id: keyId,
+      userId: user.id,
+    });
+
+    await this.onBtn1(ctx);
+  };
+
   private findUserKeyWithDetails(userId: string, keyId: string) {
     return this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId },
@@ -1472,6 +1486,14 @@ export class TelegramService {
         ),
       ]);
     }
+
+    if (vpnKey.expiresAt && new Date(vpnKey.expiresAt).getTime() < Date.now())
+      buttons.push([
+        Markup.button.callback(
+          `🗑️ ${this.t(user, 'delete_key')}`,
+          `DELETE_KEY:${vpnKey.id}`,
+        ),
+      ]);
 
     buttons.push([this.backToProfileButton(user)]);
 

@@ -174,6 +174,7 @@ export default {
   ref_link_description:
     '好友注册前90天内，您可以获得其充值金额的 30% 作为奖励。此外，您还将获得他们所邀请成员收益的 30%.\n点击链接即可复制',
   need_to_reply: '回复需要群发的消息',
+  delete_key: '删除',
 
   login_from_web: '正在通过 Telegram 登录。\n请返回应用以完成登录。',
   t1: '余额不足',
