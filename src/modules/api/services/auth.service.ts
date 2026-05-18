@@ -15,7 +15,7 @@ import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { XrayService } from '../../xray/xray-service';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
-import { DeleteKeyDto } from '../dto/requests/delete-key.dto';
+import { KeyIdDto } from '../dto/requests/key-id.dto';
 
 @Injectable()
 export class AuthService {
@@ -100,6 +100,22 @@ export class AuthService {
     );
   }
 
+  public async changeAutoRenew(
+    userId: string,
+    { keyId }: KeyIdDto,
+  ): Promise<DataResponse<string | UserResponseDto>> {
+    await this.em
+      .createQueryBuilder()
+      .update(UserKeyEntity)
+      .set({
+        autoRenewEnabled: () => 'NOT auto_renew_enabled',
+      })
+      .where({ id: keyId, userId })
+      .execute();
+
+    return this.getUser(userId);
+  }
+
   public async changeServer(
     userId: string,
     body: ChangeServerDto,
@@ -133,7 +149,7 @@ export class AuthService {
 
   public async deleteKey(
     userId: string,
-    body: DeleteKeyDto,
+    body: KeyIdDto,
   ): Promise<DataResponse<string | UserResponseDto>> {
     await this.em.softDelete(UserKeyEntity, { id: body.keyId, userId });
 

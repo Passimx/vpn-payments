@@ -1,6 +1,6 @@
 import { IsUUID } from 'class-validator';
 
-export class DeleteKeyDto {
+export class KeyIdDto {
   @IsUUID()
   readonly keyId: string;
 }

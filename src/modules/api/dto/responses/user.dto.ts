@@ -17,6 +17,8 @@ export class UserKeyDto {
 
   readonly serverId: string;
 
+  readonly autoRenewEnabled: boolean;
+
   constructor(payload: UserKeyDto) {
     Object.assign(this, payload);
   }
@@ -30,6 +32,7 @@ export class UserKeyDto {
       status: key.status,
       serverCode: key.server.code,
       serverId: key.server.id,
+      autoRenewEnabled: key.autoRenewEnabled,
     });
   }
 }

@@ -10,7 +10,7 @@ import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
-import { DeleteKeyDto } from '../dto/requests/delete-key.dto';
+import { KeyIdDto } from '../dto/requests/key-id.dto';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -57,13 +57,18 @@ export class ApiController {
     return this.authService.changeServer(userId, body);
   }
 
+  @Post('change-auto-renew')
+  changeAutoRenew(@UserId() userId: string, @Body() body: KeyIdDto) {
+    return this.authService.changeAutoRenew(userId, body);
+  }
+
   @Post('create-key')
   createKey(@UserId() userId: string, @Body() body: CreateKeyBody) {
     return this.authService.createKey(userId, body);
   }
 
   @Post('delete-key')
-  deleteKey(@UserId() userId: string, @Body() body: DeleteKeyDto) {
+  deleteKey(@UserId() userId: string, @Body() body: KeyIdDto) {
     return this.authService.deleteKey(userId, body);
   }
 }
