@@ -175,18 +175,17 @@ export class AuthService {
         .createQueryBuilder(UserEntity, 'u')
         .select('u.source', 'id')
         .addSelect('COUNT(DISTINCT u.id)', 'allCount')
-        .addSelect(
-          'COUNT(DISTINCT u.id) FILTER (WHERE uk.id IS NOT NULL)',
-          'activeCount',
-        )
-        .innerJoin(UserEntity, 'u2', 'u2.id = u.source')
+        .addSelect('COUNT(DISTINCT uk.user_id)', 'activeCount')
         .leftJoin(
           UserKeyEntity,
           'uk',
-          "uk.user_id = u2.id AND uk.status ='active'",
+          "uk.user_id = u.id AND uk.status ='active'",
         )
+        .where('u.source IS NOT NULL')
+        .andWhere('EXISTS(SELECT id FROM users u2 WHERE u2.id = u.source)')
         .groupBy('u.source')
         .orderBy('"activeCount"', 'DESC')
+        .addOrderBy('"allCount"', 'DESC')
         .limit(5)
         .getRawMany<RefInfoUserItemDto>(),
 
