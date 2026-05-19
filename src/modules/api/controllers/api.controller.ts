@@ -71,4 +71,9 @@ export class ApiController {
   deleteKey(@UserId() userId: string, @Body() body: KeyIdDto) {
     return this.authService.deleteKey(userId, body);
   }
+
+  @Get('ref-info')
+  getRefInfo(@UserId() userId: string) {
+    return this.authService.getRefInfo(userId);
+  }
 }

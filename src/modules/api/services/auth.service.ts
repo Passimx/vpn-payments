@@ -16,6 +16,7 @@ import { XrayService } from '../../xray/xray-service';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
+import { RefInfoDto, RefInfoUserItemDto } from '../dto/responses/ref-info.dto';
 
 @Injectable()
 export class AuthService {
@@ -166,5 +167,22 @@ export class AuthService {
     return new DataResponse<UserResponseDto>(
       UserResponseDto.getFromUserEntity(user),
     );
+  }
+
+  public async getRefInfo(userId: string): Promise<DataResponse<RefInfoDto>> {
+    const [users, count] = await Promise.all([
+      this.em
+        .createQueryBuilder(UserEntity, 'u')
+        .select('u.source', 'id')
+        .addSelect('COUNT(u.source)', 'count')
+        .innerJoin('users', 'u2', 'u2.id = u.source')
+        .groupBy('u.source')
+        .orderBy('count', 'DESC')
+        .limit(5)
+        .getRawMany<RefInfoUserItemDto>(),
+      this.em.count(UserEntity, { where: { source: userId } }),
+    ]);
+
+    return new DataResponse<RefInfoDto>({ users, me: { id: userId, count } });
   }
 }
