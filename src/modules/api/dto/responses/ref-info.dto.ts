@@ -12,5 +12,7 @@ export class RefInfoDto {
 export class RefInfoUserItemDto {
   readonly id: string;
 
-  readonly count: number;
+  readonly allCount: number;
+
+  readonly activeCount: number;
 }

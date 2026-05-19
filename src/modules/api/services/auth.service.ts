@@ -170,19 +170,35 @@ export class AuthService {
   }
 
   public async getRefInfo(userId: string): Promise<DataResponse<RefInfoDto>> {
-    const [users, count] = await Promise.all([
+    const [users, allCount, activeCount] = await Promise.all([
       this.em
         .createQueryBuilder(UserEntity, 'u')
         .select('u.source', 'id')
-        .addSelect('COUNT(u.source)', 'count')
-        .innerJoin('users', 'u2', 'u2.id = u.source')
+        .addSelect('COUNT(DISTINCT u.id)', 'allCount')
+        .addSelect(
+          'COUNT(DISTINCT u.id) FILTER (WHERE uk.id IS NOT NULL)',
+          'activeCount',
+        )
+        .innerJoin(UserEntity, 'u2', 'u2.id = u.source')
+        .leftJoin(
+          UserKeyEntity,
+          'uk',
+          "uk.user_id = u2.id AND uk.status ='active'",
+        )
         .groupBy('u.source')
-        .orderBy('count', 'DESC')
+        .orderBy('"activeCount"', 'DESC')
         .limit(5)
         .getRawMany<RefInfoUserItemDto>(),
+
       this.em.count(UserEntity, { where: { source: userId } }),
+      this.em.count(UserEntity, {
+        where: { source: userId, keys: { id: Not(IsNull()) } },
+      }),
     ]);
 
-    return new DataResponse<RefInfoDto>({ users, me: { id: userId, count } });
+    return new DataResponse<RefInfoDto>({
+      users,
+      me: { id: userId, allCount, activeCount },
+    });
   }
 }
