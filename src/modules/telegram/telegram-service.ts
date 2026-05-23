@@ -945,22 +945,23 @@ export class TelegramService {
         this.t(user, 'select_tariff'),
         {
           ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback(
-              this.t(user, 'vpn_type_base_button'),
-              'TARIFFS_BASE',
-            ),
-          ],
-          // PREMIUM_DISABLED: раскомментировать, когда premium-сервер заработает
-          // [
-          //   Markup.button.callback(
-          //     this.t(user, 'vpn_type_premium_button'),
-          //     'TARIFFS_PREMIUM',
-          //   ),
-          // ],
-          [this.backToProfileButton(user)],
-        ]),
-      })
+            [
+              Markup.button.callback(
+                this.t(user, 'vpn_type_base_button'),
+                'TARIFFS_BASE',
+              ),
+            ],
+            // PREMIUM_DISABLED: раскомментировать, когда premium-сервер заработает
+            // [
+            //   Markup.button.callback(
+            //     this.t(user, 'vpn_type_premium_button'),
+            //     'TARIFFS_PREMIUM',
+            //   ),
+            // ],
+            [this.backToProfileButton(user)],
+          ]),
+        },
+      )
       .catch(logger.error);
   };
 
