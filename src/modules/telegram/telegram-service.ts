@@ -940,20 +940,24 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
     await ctx
-      .editMessageText(this.t(user, 'select_vpn_type_message'), {
-        ...Markup.inlineKeyboard([
+      .editMessageText(
+        // PREMIUM_DISABLED: this.t(user, 'select_vpn_type_message'),
+        this.t(user, 'select_tariff'),
+        {
+          ...Markup.inlineKeyboard([
           [
             Markup.button.callback(
               this.t(user, 'vpn_type_base_button'),
               'TARIFFS_BASE',
             ),
           ],
-          [
-            Markup.button.callback(
-              this.t(user, 'vpn_type_premium_button'),
-              'TARIFFS_PREMIUM',
-            ),
-          ],
+          // PREMIUM_DISABLED: раскомментировать, когда premium-сервер заработает
+          // [
+          //   Markup.button.callback(
+          //     this.t(user, 'vpn_type_premium_button'),
+          //     'TARIFFS_PREMIUM',
+          //   ),
+          // ],
           [this.backToProfileButton(user)],
         ]),
       })
