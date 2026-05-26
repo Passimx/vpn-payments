@@ -201,7 +201,7 @@ export class AuthService {
     const [users, allCount, activeCount] = await Promise.all([
       this.em
         .createQueryBuilder(UserEntity, 'u')
-        .select('u.source', 'id')
+        .select('u2.id', 'id')
         .addSelect('COUNT(DISTINCT u.id)', 'allCount')
         .addSelect('COUNT(DISTINCT uk.user_id)', 'activeCount')
         .leftJoin(
@@ -209,13 +209,12 @@ export class AuthService {
           'uk',
           "uk.user_id = u.id AND uk.status ='active'",
         )
-        .where('u.source IS NOT NULL')
-        .andWhere('EXISTS(SELECT id FROM users u2 WHERE u2.id = u.source)')
-        .groupBy('u.source, u.created_at')
+        .innerJoin(UserEntity, 'u2', 'u2.id = u.source')
+        .groupBy('u2.id, u2.created_at')
         .orderBy({
           '"activeCount"': 'DESC',
           '"allCount"': 'DESC',
-          'u.created_at': 'DESC',
+          'u2.created_at': 'DESC',
         })
         .limit(5)
         .getRawMany<RefInfoUserItemDto>(),
