@@ -212,9 +212,11 @@ export class AuthService {
         .where('u.source IS NOT NULL')
         .andWhere('EXISTS(SELECT id FROM users u2 WHERE u2.id = u.source)')
         .groupBy('u.source, u.created_at')
-        .orderBy('"activeCount"', 'DESC')
-        .addOrderBy('"allCount"', 'DESC')
-        .addOrderBy('u.created_at', 'DESC')
+        .orderBy({
+          '"activeCount"': 'DESC',
+          '"allCount"': 'DESC',
+          'u.created_at': 'DESC',
+        })
         .limit(5)
         .getRawMany<RefInfoUserItemDto>(),
 
