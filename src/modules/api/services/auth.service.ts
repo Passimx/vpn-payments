@@ -172,17 +172,12 @@ export class AuthService {
   }
 
   public async createAccount(body: CreateAccountDto) {
-    const userSource = await this.em.findOne(UserEntity, {
-      where: { id: body.source },
-    });
-    if (!userSource) return new DataResponse('not_found');
-
     const id = crypto.randomUUID().replace(/-/g, '');
     await this.em.insert(UserEntity, {
       id,
       languageCode: body.languageCode,
-      source: body.source,
     });
+
     await this.em.insert(BalanceAccount, {
       userId: id,
     });
@@ -191,7 +186,6 @@ export class AuthService {
     if (!user) return new DataResponse('not_found');
 
     const payload = { userId: user.id, createdAt: Date.now() };
-
     const token = await this.jwtService.signAsync(payload);
 
     return new DataResponse({ token });
