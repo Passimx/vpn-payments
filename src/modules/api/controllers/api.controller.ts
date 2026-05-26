@@ -11,6 +11,7 @@ import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
+import { CreateAccountDto } from '../dto/requests/create-account.dto';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -20,8 +21,8 @@ export class ApiController {
     private readonly transactionsService: TransactionsService,
   ) {}
 
-  @Post('login-by-telegram')
   @Public()
+  @Post('login-by-telegram')
   loginByTelegram(@Body() body: LoginDto) {
     return this.authService.loginByTelegram(body.key);
   }
@@ -75,5 +76,11 @@ export class ApiController {
   @Get('ref-info')
   getRefInfo(@UserId() userId: string) {
     return this.authService.getRefInfo(userId);
+  }
+
+  @Public()
+  @Post('create-account')
+  createAccount(@Body() body: CreateAccountDto) {
+    return this.authService.createAccount(body);
   }
 }

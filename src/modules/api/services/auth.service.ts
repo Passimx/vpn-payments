@@ -17,6 +17,8 @@ import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { RefInfoDto, RefInfoUserItemDto } from '../dto/responses/ref-info.dto';
+import { BalanceAccount } from '../../database/entities/balance-account.entity';
+import { CreateAccountDto } from '../dto/requests/create-account.dto';
 
 @Injectable()
 export class AuthService {
@@ -157,7 +159,7 @@ export class AuthService {
     return this.getUser(userId);
   }
 
-  public async getUser(id: string) {
+  public async getUser(id: string): Promise<DataResponse<UserResponseDto>> {
     const user = await this.em.findOneOrFail(UserEntity, {
       where: { id },
       relations: ['keys', 'keys.server', 'balanceAccount'],
@@ -167,6 +169,32 @@ export class AuthService {
     return new DataResponse<UserResponseDto>(
       UserResponseDto.getFromUserEntity(user),
     );
+  }
+
+  public async createAccount(body: CreateAccountDto) {
+    const userSource = await this.em.findOne(UserEntity, {
+      where: { id: body.source },
+    });
+    if (!userSource) return new DataResponse('not_found');
+
+    const id = crypto.randomUUID().replace(/-/g, '');
+    await this.em.insert(UserEntity, {
+      id,
+      languageCode: body.languageCode,
+      source: body.source,
+    });
+    await this.em.insert(BalanceAccount, {
+      userId: id,
+    });
+
+    const user = await this.em.findOne(UserEntity, { where: { id } });
+    if (!user) return new DataResponse('not_found');
+
+    const payload = { userId: user.id, createdAt: Date.now() };
+
+    const token = await this.jwtService.signAsync(payload);
+
+    return new DataResponse({ token });
   }
 
   public async getRefInfo(userId: string): Promise<DataResponse<RefInfoDto>> {
@@ -183,15 +211,19 @@ export class AuthService {
         )
         .where('u.source IS NOT NULL')
         .andWhere('EXISTS(SELECT id FROM users u2 WHERE u2.id = u.source)')
-        .groupBy('u.source')
+        .groupBy('u.source, u.created_at')
         .orderBy('"activeCount"', 'DESC')
         .addOrderBy('"allCount"', 'DESC')
+        .addOrderBy('u.created_at', 'DESC')
         .limit(5)
         .getRawMany<RefInfoUserItemDto>(),
 
       this.em.count(UserEntity, { where: { source: userId } }),
       this.em.count(UserEntity, {
-        where: { source: userId, keys: { id: Not(IsNull()) } },
+        where: {
+          source: userId,
+          keys: { status: 'active' },
+        },
       }),
     ]);
 
