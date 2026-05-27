@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager, IsNull, Not } from 'typeorm';
+import { EntityManager, Not } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -1025,10 +1025,7 @@ export class TelegramService {
           .catch(logger.error);
         return;
       }
-      if (
-        (renewKey.tariff.trafficLimit != null) !==
-        (tariff.trafficLimit != null)
-      ) {
+      if (renewKey.tariff.useCascade !== tariff.useCascade) {
         await ctx
           .answerCbQuery(this.t(user, 'mismatched_tariff_for_renew'))
           .catch(logger.error);
@@ -1263,7 +1260,7 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
 
-    const renewKind = vpnKey.tariff.trafficLimit != null ? 'premium' : 'base';
+    const renewKind = vpnKey.tariff.useCascade ? 'premium' : 'base';
     await this.showActiveTariffsList(
       ctx,
       user,
@@ -1482,7 +1479,7 @@ export class TelegramService {
     if (
       vpnKey.protocol === 'xray' &&
       vpnKey.status === 'active' &&
-      vpnKey.tariff.trafficLimit == null
+      !vpnKey.tariff.useCascade
     ) {
       buttons.push([
         Markup.button.callback(
@@ -1875,10 +1872,10 @@ export class TelegramService {
   private async tariffsButtons(user: UserEntity, kind: 'base' | 'premium') {
     const where =
       kind === 'premium'
-        ? { active: true, trafficLimit: Not(IsNull()) }
-        : { active: true, trafficLimit: IsNull() };
+        ? { active: true, useCascade: true }
+        : { active: true, useCascade: false };
 
-    const list = await this.em.find(TariffEntity, {
+    const filteredList = await this.em.find(TariffEntity, {
       where,
       order: { price: 'ASC' },
     });
@@ -1893,12 +1890,12 @@ export class TelegramService {
       })
       .getExists();
 
-    const filteredList = hasUsedTrialPromo
-      ? list.filter((t) => Number(t.price) > 0)
-      : list;
+    const pricedList = hasUsedTrialPromo
+      ? filteredList.filter((t) => Number(t.price) > 0)
+      : filteredList;
 
     return await Promise.all(
-      filteredList.map(async (t) => [
+      pricedList.map(async (t) => [
         Markup.button.callback(
           `${this.formatTariffLabel(user.languageCode, t)} — ${this.transactionsService.formatNumber(await this.transactionsService.convert(t.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}`,
           `T:${t.id}`,
@@ -1911,7 +1908,10 @@ export class TelegramService {
     const n = Number(limitBytes);
     if (!Number.isFinite(n) || n <= 0) return this.t('ru', 'unlimited');
     const gb = n / 1024 / 1024 / 1024;
-    // Округляем до целых, чтобы выглядело как на тарифах (5/10/30 Gb).
+    if (gb >= 1024) {
+      const tb = Math.round((gb / 1024) * 10) / 10;
+      return `${String(tb).replace('.', ',')} Tb`;
+    }
     const gbRounded = Math.round(gb);
     return `${gbRounded} Gb`;
   }
@@ -1919,10 +1919,15 @@ export class TelegramService {
   private formatTariffLabel(lang: string | undefined, t: TariffEntity): string {
     const limitBytes = t.trafficLimit ?? null;
     if (limitBytes) {
-      const template = this.t(lang ?? 'ru', 'premium_tariff_label');
-      return template
-        .replace('{days}', String(t.expirationDays))
-        .replace('{traffic}', this.formatTrafficLimit(limitBytes));
+      if (t.useCascade) {
+        const template = this.t(lang ?? 'ru', 'premium_tariff_label');
+        return template
+          .replace('{days}', String(t.expirationDays))
+          .replace('{traffic}', this.formatTrafficLimit(limitBytes));
+      }
+
+      // Обычный тариф с лимитом трафика: не показываем слово Premium.
+      return `${this.t(lang ?? 'ru', `tariff_${t.expirationDays}`)} (${this.formatTrafficLimit(limitBytes)})`;
     }
     return this.t(lang ?? 'ru', `tariff_${t.expirationDays}`);
   }

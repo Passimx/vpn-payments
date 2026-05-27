@@ -88,7 +88,7 @@ export default {
     '3) 点击关闭自动续费按钮。',
   key_expired: '密钥已过期。\n要激活它，请点击按钮并延长有效期。',
   key_traffic_limit_exceeded:
-    'Premium 套餐流量已用尽，密钥已停用。请购买新密钥以继续使用 VPN。',
+    '套餐流量已用尽，密钥已停用。续费密钥将增加对应流量。',
   mismatched_tariff_for_renew: '所选套餐与当前密钥续期不匹配。',
   app_links: '应用下载',
   no_active_keys: '您没有有效的密钥',

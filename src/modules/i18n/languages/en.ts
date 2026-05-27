@@ -93,7 +93,7 @@ export default {
   key_expired:
     'The key has expired.\nTo activate it, press the button and extend its validity.',
   key_traffic_limit_exceeded:
-    'Your Premium tariff traffic limit has been reached. The key has been disabled. Buy a new key to continue using the VPN.',
+    'Your VPN tariff traffic limit has been reached. The key has been disabled. Buy a new key to continue using the VPN.',
   mismatched_tariff_for_renew:
     'Selected tariff is not compatible with this key renewal.',
   app_links: 'App links',

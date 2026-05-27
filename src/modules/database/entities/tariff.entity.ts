@@ -19,6 +19,9 @@ export class TariffEntity {
   @Column({ name: 'traffic_limit', type: 'bigint', nullable: true })
   readonly trafficLimit?: number | null;
 
+  @Column({ name: 'use_cascade', type: 'boolean', default: false })
+  readonly useCascade: boolean;
+
   @Column({ name: 'active', type: 'boolean', default: true })
   readonly active: boolean;
 

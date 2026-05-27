@@ -15,7 +15,7 @@ export class TransactionsService {
   ) {}
 
   onModuleInit() {
-    this.getCurrencyPrice();
+    void this.getCurrencyPrice();
   }
 
   private cache: CryptoPriceType | null = null;
@@ -104,7 +104,11 @@ export class TransactionsService {
       const fromCurrency = currencyMap[key];
       if (!fromCurrency) continue;
 
-      const converted = await this.convert(value, fromCurrency, currency);
+      const converted = await this.convert(
+        Number(value),
+        fromCurrency as CurrencyEnum,
+        currency,
+      );
       sum += converted;
     }
 

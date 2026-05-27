@@ -44,7 +44,7 @@ export class XrayService {
       let server: ServerEntity | null;
       let keyOpts = options;
 
-      if (tariff.trafficLimit) {
+      if (tariff.useCascade) {
         server = await this.em.findOne(ServerEntity, {
           where: { code: 'white' },
         });
@@ -193,7 +193,7 @@ export class XrayService {
     };
 
     setTimeout(() => {
-      checkAndDeleteKey();
+      void checkAndDeleteKey();
     }, 60 * 1000);
 
     return key;
@@ -326,7 +326,7 @@ export class XrayService {
     }
   }
 
-  // Статистика потребления Premium-трафика в формате `1,55 Gb / 5,00 Gb`.
+  // Статистика потребления трафика в формате `1,55 Gb / 5,00 Gb`.
   public async getPremiumTrafficProgress(
     keyId: string,
     limitBytes: number | null | undefined,
@@ -342,7 +342,8 @@ export class XrayService {
     const usedBytes = Number(row?.used ?? 0);
     const toGb = (bytes: number) =>
       (Math.max(bytes, 0) / 1024 / 1024 / 1024).toFixed(2).replace('.', ',');
-    return `${toGb(usedBytes)} Gb / ${toGb(limitBytes)} Gb`;
+    const leftBytes = Math.max(0, Number(limitBytes) - Math.max(0, usedBytes));
+    return `${toGb(usedBytes)} Gb / ${toGb(limitBytes)} Gb (осталось ${toGb(leftBytes)} Gb)`;
   }
 
   public async syncActiveKeys(serverId?: string): Promise<number> {

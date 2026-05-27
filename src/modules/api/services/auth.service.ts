@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager, IsNull, Not } from 'typeorm';
+import { EntityManager, Not } from 'typeorm';
 import { UserEntity } from '../../database/entities/user.entity';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -66,8 +66,8 @@ export class AuthService {
   }: GetTariffsDto): Promise<DataResponse<TariffEntity[]>> {
     const where =
       kind === 'premium'
-        ? { active: true, trafficLimit: Not(IsNull()) }
-        : { active: true, trafficLimit: IsNull() };
+        ? { active: true, useCascade: true }
+        : { active: true, useCascade: false };
 
     const tariffs = await this.em.find(TariffEntity, {
       where,

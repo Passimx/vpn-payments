@@ -50,7 +50,7 @@ export class KeyPurchaseService {
       let appliedPromo: PromoCodeEntity | null = null;
       const autoTrialPromoCode =
         finalPrice === 0
-          ? tariff.trafficLimit != null
+          ? tariff.useCascade
             ? 'PREMIUM_TRIAL'
             : 'TRIAL'
           : undefined;
@@ -237,7 +237,7 @@ export class KeyPurchaseService {
       let appliedPromo: PromoCodeEntity | null = null;
       const autoTrialPromoCode =
         finalPrice === 0
-          ? tariff.trafficLimit != null
+          ? tariff.useCascade
             ? 'PREMIUM_TRIAL'
             : 'TRIAL'
           : undefined;
