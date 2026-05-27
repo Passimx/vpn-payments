@@ -89,6 +89,7 @@ export default {
   key_expired: '密钥已过期。\n要激活它，请点击按钮并延长有效期。',
   key_traffic_limit_exceeded:
     '套餐流量已用尽，密钥已停用。续费密钥将增加对应流量。',
+  key_traffic_low_warning: '密钥流量即将用尽。建议提前续费以保持连接。',
   mismatched_tariff_for_renew: '所选套餐与当前密钥续期不匹配。',
   app_links: '应用下载',
   no_active_keys: '您没有有效的密钥',

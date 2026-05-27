@@ -1834,6 +1834,40 @@ export class TelegramService {
     );
   }
 
+  public async sendMessageKeyTrafficLow(
+    keyId: string,
+    leftBytes: number,
+    limitBytes: number,
+  ) {
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['user', 'server'],
+    });
+    const user = key.user;
+    if (!user.telegramId) return;
+
+    const progress = await this.xrayService.getPremiumTrafficProgress(
+      keyId,
+      limitBytes,
+    );
+    if (!progress) return;
+
+    const buttons = this.prepareKeysToButtons(user, [key]);
+    await this.bot.telegram.sendMessage(
+      user.telegramId,
+      `${this.t(user, 'key_traffic_low_warning')}\n` +
+        `<b>${this.t(user, 'traffic')}:</b> ${progress}\n\n` +
+        `${this.t(user, 'select_action')}:`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          ...buttons,
+          [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_2')],
+        ]),
+      },
+    );
+  }
+
   private getPayloadForAddBalance = (user: UserEntity) => {
     if (!user.telegramId) return;
     const amount = this.amountMap.get(user.telegramId);

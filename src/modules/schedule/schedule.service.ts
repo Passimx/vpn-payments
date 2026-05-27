@@ -41,10 +41,11 @@ export class ScheduleService {
     await this.analyticsService.saveAnalytics();
   }
 
-  @Cron('*/5 * * * *')
+  @Cron('*/1 * * * *')
   public async saveTrafficAndCheckPremiumLimits() {
     await this.analyticsService.saveTraffic();
     await this.xrayService.checkPremiumTrafficLimitExceeded();
+    await this.xrayService.notifyLowTraffic();
   }
 
   @Cron('* * * * *')
