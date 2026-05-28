@@ -23,9 +23,6 @@ const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
 @Injectable()
 export class XrayService {
-  private readonly lowTrafficNotifyCooldownMs = 24 * 60 * 60 * 1000;
-  private readonly lowTrafficNotifiedAt = new Map<string, number>();
-
   constructor(
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
@@ -335,8 +332,6 @@ export class XrayService {
       relations: ['user'],
     });
 
-    const now = Date.now();
-
     for (const key of keys) {
       const limit = key.countTrafficLimit;
       if (!limit || limit <= 0) continue;
@@ -352,12 +347,8 @@ export class XrayService {
       const left = Math.max(0, Number(limit) - Math.max(0, used));
       const leftRatio = left / Number(limit);
 
-      // thresholds: <=10% or <=5%
-      if (!(leftRatio <= 0.1 || leftRatio <= 0.05)) continue;
-
-      const last = this.lowTrafficNotifiedAt.get(key.id) ?? 0;
-      if (now - last < this.lowTrafficNotifyCooldownMs) continue;
-      this.lowTrafficNotifiedAt.set(key.id, now);
+      // threshold: <=10%
+      if (leftRatio > 0.1) continue;
 
       await this.telegramService.sendMessageKeyTrafficLow(key.id, left, limit);
       await new Promise((r) => setTimeout(r, 100));

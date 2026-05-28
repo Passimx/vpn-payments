@@ -27,6 +27,7 @@ export class ScheduleService {
   @Cron('0 */12 * * *')
   public async checkAlmostExpiredKeys() {
     await this.xrayService.checkAlmostExpiredKeys();
+    await this.xrayService.notifyLowTraffic();
   }
 
   @Cron('0 18 * * *', {
@@ -41,11 +42,10 @@ export class ScheduleService {
     await this.analyticsService.saveAnalytics();
   }
 
-  @Cron('*/1 * * * *')
+  @Cron('*/5 * * * *')
   public async saveTrafficAndCheckPremiumLimits() {
     await this.analyticsService.saveTraffic();
     await this.xrayService.checkPremiumTrafficLimitExceeded();
-    await this.xrayService.notifyLowTraffic();
   }
 
   @Cron('* * * * *')
