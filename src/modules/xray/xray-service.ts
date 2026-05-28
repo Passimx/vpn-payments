@@ -326,6 +326,35 @@ export class XrayService {
     }
   }
 
+  public async notifyLowTraffic(): Promise<void> {
+    const keys = await this.em.find(UserKeyEntity, {
+      where: { protocol: 'xray', status: 'active' },
+      relations: ['user'],
+    });
+
+    for (const key of keys) {
+      const limit = key.countTrafficLimit;
+      if (!limit || limit <= 0) continue;
+      if (!key.user?.telegramId) continue;
+
+      const row = await this.em
+        .createQueryBuilder(TrafficEntity, 't')
+        .select('COALESCE(SUM(t.downLink), 0)', 'used')
+        .where('t.keyId = :keyId', { keyId: key.id })
+        .getRawOne<{ used: string | number }>();
+
+      const used = Number(row?.used ?? 0);
+      const left = Math.max(0, Number(limit) - Math.max(0, used));
+      const leftRatio = left / Number(limit);
+
+      // threshold: <=10%
+      if (leftRatio > 0.1) continue;
+
+      await this.telegramService.sendMessageKeyTrafficLow(key.id, left, limit);
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+
   // Статистика потребления трафика в формате `1,55 Gb / 5,00 Gb`.
   public async getPremiumTrafficProgress(
     keyId: string,

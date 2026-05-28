@@ -27,6 +27,7 @@ export class ScheduleService {
   @Cron('0 */12 * * *')
   public async checkAlmostExpiredKeys() {
     await this.xrayService.checkAlmostExpiredKeys();
+    await this.xrayService.notifyLowTraffic();
   }
 
   @Cron('0 18 * * *', {

@@ -94,6 +94,8 @@ export default {
     'The key has expired.\nTo activate it, press the button and extend its validity.',
   key_traffic_limit_exceeded:
     'Your VPN tariff traffic limit has been reached. The key has been disabled. Buy a new key to continue using the VPN.',
+  key_traffic_low_warning:
+    'Your key is running low on traffic. We recommend renewing in advance to stay connected.',
   mismatched_tariff_for_renew:
     'Selected tariff is not compatible with this key renewal.',
   app_links: 'App links',
@@ -164,10 +166,11 @@ export default {
     'Great for everyday use.\n\n' +
     '🛡️ Premium tariff\n' +
     'It works:\n' +
-    '- Under the most severe blockings\n' +
+    '- Works under blockings\n' +
     '- At factories\n' +
     '- During allowlists/whitelists\n' +
-    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.',
+    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.\n\n' +
+    'ℹ️ Before buying, we recommend checking whether bypassing blocks works using a trial (free) key.',
 
   tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',

@@ -940,28 +940,23 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
     await ctx
-      .editMessageText(
-        // PREMIUM_DISABLED: this.t(user, 'select_vpn_type_message'),
-        this.t(user, 'select_tariff'),
-        {
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.callback(
-                this.t(user, 'vpn_type_base_button'),
-                'TARIFFS_BASE',
-              ),
-            ],
-            // PREMIUM_DISABLED: раскомментировать, когда premium-сервер заработает
-            // [
-            //   Markup.button.callback(
-            //     this.t(user, 'vpn_type_premium_button'),
-            //     'TARIFFS_PREMIUM',
-            //   ),
-            // ],
-            [this.backToProfileButton(user)],
-          ]),
-        },
-      )
+      .editMessageText(this.t(user, 'select_vpn_type_message'), {
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback(
+              this.t(user, 'vpn_type_base_button'),
+              'TARIFFS_BASE',
+            ),
+          ],
+          [
+            Markup.button.callback(
+              this.t(user, 'vpn_type_premium_button'),
+              'TARIFFS_PREMIUM',
+            ),
+          ],
+          [this.backToProfileButton(user)],
+        ]),
+      })
       .catch(logger.error);
   };
 
@@ -1823,6 +1818,40 @@ export class TelegramService {
     await this.bot.telegram.sendMessage(
       user.telegramId,
       `${this.t(user, 'key_traffic_limit_exceeded')}\n` +
+        `${this.t(user, 'select_action')}:`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          ...buttons,
+          [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_2')],
+        ]),
+      },
+    );
+  }
+
+  public async sendMessageKeyTrafficLow(
+    keyId: string,
+    leftBytes: number,
+    limitBytes: number,
+  ) {
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['user', 'server'],
+    });
+    const user = key.user;
+    if (!user.telegramId) return;
+
+    const progress = await this.xrayService.getPremiumTrafficProgress(
+      keyId,
+      limitBytes,
+    );
+    if (!progress) return;
+
+    const buttons = this.prepareKeysToButtons(user, [key]);
+    await this.bot.telegram.sendMessage(
+      user.telegramId,
+      `${this.t(user, 'key_traffic_low_warning')}\n` +
+        `<b>${this.t(user, 'traffic')}:</b> ${progress}\n\n` +
         `${this.t(user, 'select_action')}:`,
       {
         parse_mode: 'HTML',

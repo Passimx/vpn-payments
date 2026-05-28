@@ -89,6 +89,7 @@ export default {
   key_expired: '密钥已过期。\n要激活它，请点击按钮并延长有效期。',
   key_traffic_limit_exceeded:
     '套餐流量已用尽，密钥已停用。续费密钥将增加对应流量。',
+  key_traffic_low_warning: '密钥流量即将用尽。建议提前续费以保持连接。',
   mismatched_tariff_for_renew: '所选套餐与当前密钥续期不匹配。',
   app_links: '应用下载',
   no_active_keys: '您没有有效的密钥',
@@ -157,10 +158,11 @@ export default {
     '适合日常使用。\n\n' +
     '🛡️ Premium 套餐\n' +
     '它在这种情况下工作：\n' +
-    '- 最强的封锁环境\n' +
+    '- 在封锁环境下可用\n' +
     '- 工厂/厂区网络\n' +
     '- 白名单期间\n' +
-    '它有流量限制，所以建议同时购买普通 VPN 套餐。',
+    '它有流量限制，所以建议同时购买普通 VPN 套餐。\n\n' +
+    'ℹ️ 购买前，建议先使用试用（免费）密钥测试是否可以绕过封锁。',
 
   tariff_1: '试用（1天）',
   tariff_3: '试用（3天）',
