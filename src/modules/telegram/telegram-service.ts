@@ -940,26 +940,23 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
     await ctx
-      .editMessageText(
-        this.t(user, 'select_vpn_type_message'),
-        {
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.callback(
-                this.t(user, 'vpn_type_base_button'),
-                'TARIFFS_BASE',
-              ),
-            ],
-            [
-              Markup.button.callback(
-                this.t(user, 'vpn_type_premium_button'),
-                'TARIFFS_PREMIUM',
-              ),
-            ],
-            [this.backToProfileButton(user)],
-          ]),
-        },
-      )
+      .editMessageText(this.t(user, 'select_vpn_type_message'), {
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback(
+              this.t(user, 'vpn_type_base_button'),
+              'TARIFFS_BASE',
+            ),
+          ],
+          [
+            Markup.button.callback(
+              this.t(user, 'vpn_type_premium_button'),
+              'TARIFFS_PREMIUM',
+            ),
+          ],
+          [this.backToProfileButton(user)],
+        ]),
+      })
       .catch(logger.error);
   };
 
