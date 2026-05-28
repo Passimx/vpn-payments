@@ -166,10 +166,11 @@ export default {
     'Great for everyday use.\n\n' +
     '🛡️ Premium tariff\n' +
     'It works:\n' +
-    '- Under the most severe blockings\n' +
+    '- Works under blockings\n' +
     '- At factories\n' +
     '- During allowlists/whitelists\n' +
-    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.',
+    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.\n\n' +
+    'ℹ️ Before buying, we recommend checking whether bypassing blocks works using a trial (free) key.',
 
   tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',

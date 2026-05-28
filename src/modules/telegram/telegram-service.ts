@@ -941,8 +941,7 @@ export class TelegramService {
     }
     await ctx
       .editMessageText(
-        // PREMIUM_DISABLED: this.t(user, 'select_vpn_type_message'),
-        this.t(user, 'select_tariff'),
+        this.t(user, 'select_vpn_type_message'),
         {
           ...Markup.inlineKeyboard([
             [
@@ -951,13 +950,12 @@ export class TelegramService {
                 'TARIFFS_BASE',
               ),
             ],
-            // PREMIUM_DISABLED: раскомментировать, когда premium-сервер заработает
-            // [
-            //   Markup.button.callback(
-            //     this.t(user, 'vpn_type_premium_button'),
-            //     'TARIFFS_PREMIUM',
-            //   ),
-            // ],
+            [
+              Markup.button.callback(
+                this.t(user, 'vpn_type_premium_button'),
+                'TARIFFS_PREMIUM',
+              ),
+            ],
             [this.backToProfileButton(user)],
           ]),
         },
