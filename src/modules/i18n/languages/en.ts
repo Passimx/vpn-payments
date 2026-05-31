@@ -158,6 +158,7 @@ export default {
   vpn_type_base_button: 'Regular VPN',
   vpn_type_premium_button: 'Premium VPN (anti-blocking)',
   premium_tariff_label: 'Premium for {days} days ({traffic})',
+  stars_invoice_title: 'Payment via Telegram Stars',
 
   select_vpn_type_message:
     'Choose VPN type:\n\n' +

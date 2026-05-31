@@ -167,16 +167,16 @@ export class TransactionsService {
       }
     }
 
-    if (amount > 0 && balanceAccount.tonUsdt) {
+    if (amount > 0 && balanceAccount.usd) {
       amount = await this.convert(amount, currency, CurrencyEnum.USD);
       // currency = 'usd';
 
-      if (balanceAccount.tonUsdt >= amount) {
-        balanceAccount.tonUsdt -= amount;
+      if (balanceAccount.usd >= amount) {
+        balanceAccount.usd -= amount;
         amount = 0;
       } else {
-        amount -= balanceAccount.tonUsdt;
-        balanceAccount.tonUsdt = 0;
+        amount -= balanceAccount.usd;
+        balanceAccount.usd = 0;
       }
     }
 

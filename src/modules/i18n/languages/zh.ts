@@ -150,6 +150,7 @@ export default {
   vpn_type_base_button: '普通 VPN',
   vpn_type_premium_button: 'Premium VPN（强封锁可用）',
   premium_tariff_label: 'Premium 套餐 {days} 天（{traffic}）',
+  stars_invoice_title: '通过 Telegram Stars 进行支付',
 
   select_vpn_type_message:
     '选择 VPN 类型：\n\n' +

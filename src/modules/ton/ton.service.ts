@@ -89,7 +89,7 @@ export class TonService {
   public getTonInvoice(
     userId: string,
     amount: number,
-    currency: CurrencyEnum.TON | CurrencyEnum.TON_USDT,
+    currency: CurrencyEnum.TON | CurrencyEnum.USD,
     app: AppWalletEnum,
   ): DataResponse<string> {
     let paymentUrl = 'https://tonhub.com';
@@ -101,7 +101,7 @@ export class TonService {
 
     paymentUrl += '/transfer';
 
-    if (currency === CurrencyEnum.TON_USDT)
+    if (currency === CurrencyEnum.USD)
       paymentUrl += `/${Envs.crypto.ton.jettonWalletAddress}?amount=${amount * 1e6}&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs`;
     else
       paymentUrl += `/${Envs.crypto.ton.walletAddress}?amount=${amount * 1e9}`;
@@ -157,7 +157,7 @@ export class TonService {
       if (payloadOp === 0) message = payloadSlice.loadStringTail();
 
       return {
-        currency: CurrencyEnum.TON_USDT,
+        currency: CurrencyEnum.USD,
         type: 'Credit',
         amount: Number(jettonAmount) / 1e6,
         message,

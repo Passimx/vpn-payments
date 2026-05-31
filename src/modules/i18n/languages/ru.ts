@@ -158,6 +158,7 @@ export default {
   vpn_type_base_button: 'Обычный VPN',
   vpn_type_premium_button: 'Premium VPN (обход блокировок)',
   premium_tariff_label: 'Premium на {days} дней ({traffic})',
+  stars_invoice_title: 'Оплата через Telegram Stars',
 
   select_vpn_type_message:
     'Выберите тип VPN:\n\n' +

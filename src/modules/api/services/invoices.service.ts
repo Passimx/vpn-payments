@@ -24,7 +24,7 @@ export class InvoicesService {
   public getTonInvoice(
     userId: string,
     amount: number,
-    currency: CurrencyEnum.TON | CurrencyEnum.TON_USDT,
+    currency: CurrencyEnum.TON | CurrencyEnum.USD,
     app: AppWalletEnum,
   ) {
     return this.tonService.getTonInvoice(userId, amount, currency, app);

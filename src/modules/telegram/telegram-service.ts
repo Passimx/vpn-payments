@@ -78,6 +78,7 @@ export class TelegramService {
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
     this.bot.action('BTN_11', this.onBtn11);
+    this.bot.action('ON_STARS', this.onPayTelegramStars);
     this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
     this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
@@ -103,6 +104,9 @@ export class TelegramService {
     this.bot.action(/^AUTO_RENEW_TOGGLE:([\w-]+)$/, this.onAutoRenewToggle);
     this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
     this.bot.action(/^BUTTON_MONEY:([\d.,]+)$/, this.onSetButtonMoney);
+
+    this.bot.on('pre_checkout_query', this.onPreCheckoutQuery);
+    this.bot.on('successful_payment', this.onSuccessfulPayment);
     this.bot.on('text', this.onText);
 
     const userInfo = await this.bot.telegram.getMe();
@@ -230,6 +234,51 @@ export class TelegramService {
     if (!videoMessage) return;
 
     await this.setOpenAppButton(ctx);
+  };
+
+  onPreCheckoutQuery = async (ctx: Context) => {
+    await ctx.answerPreCheckoutQuery(true).catch(() => {});
+  };
+
+  onSuccessfulPayment = async (ctx: Context) => {
+    const user = await this.getUserByCtx(ctx);
+    const message = ctx.message as unknown as {
+      successful_payment: { total_amount: number; invoice_payload: string };
+    };
+    const payment = message.successful_payment;
+    const starsPaid = payment.total_amount;
+
+    await this.transactionsService.addBalance(
+      user.id,
+      starsPaid * 0.02,
+      CurrencyEnum.USD,
+    );
+  };
+
+  onPayTelegramStars = async (ctx: Context) => {
+    ctx.answerCbQuery();
+    const user = await this.getUserByCtx(ctx);
+
+    const amount = this.amountMap.get(user.telegramId!);
+    if (!amount) return;
+
+    const correctAmount = await this.transactionsService.convert(
+      amount,
+      this.t(user, 't11') as CurrencyEnum,
+      CurrencyEnum.USD,
+    );
+
+    const starRate = 0.02; // course for usd
+    const starsAmount = Math.ceil(correctAmount / starRate);
+
+    await ctx.replyWithInvoice({
+      title: this.t(user, 'stars_invoice_title'),
+      description: `${this.t(user, 'deposit_amount')} ${this.transactionsService.formatNumber(amount, this.t(user, 't10') as CurrencyEnum)}`,
+      payload: `deposit_stars_${user.id}_${Date.now()}`,
+      provider_token: '',
+      currency: 'XTR',
+      prices: [{ label: 'Telegram Stars', amount: starsAmount }],
+    });
   };
 
   onYookassa = async (ctx: Context) => {
@@ -896,7 +945,7 @@ export class TelegramService {
                 this.tonService.getTonInvoice(
                   user.id,
                   amount,
-                  CurrencyEnum.TON_USDT,
+                  CurrencyEnum.USD,
                   AppWalletEnum.MY_TON_WALLET,
                 ).data,
               ),
@@ -907,7 +956,7 @@ export class TelegramService {
                 this.tonService.getTonInvoice(
                   user.id,
                   amount,
-                  CurrencyEnum.TON_USDT,
+                  CurrencyEnum.USD,
                   AppWalletEnum.TON_KEEPER,
                 ).data,
               ),
@@ -918,7 +967,7 @@ export class TelegramService {
                 this.tonService.getTonInvoice(
                   user.id,
                   amount,
-                  CurrencyEnum.TON_USDT,
+                  CurrencyEnum.USD,
                   AppWalletEnum.TON_HUB,
                 ).data,
               ),
@@ -1882,6 +1931,7 @@ export class TelegramService {
           'ON_WECHAT',
         ),
       ],
+      [Markup.button.callback(`⭐ Telegram Stars`, 'ON_STARS')],
       [
         Markup.button.callback(
           `💎 ${this.t(user, 'ton_payment')} (+${Envs.crypto.allowance * 100}%)`,

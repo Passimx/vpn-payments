@@ -5,7 +5,7 @@ import { AppWalletEnum } from '../../../ton/enums/app-wallet.enum';
 
 export class GetTonInvoice extends GetInvoiceDto {
   @IsEnum(CurrencyEnum)
-  currency: CurrencyEnum.TON | CurrencyEnum.TON_USDT;
+  currency: CurrencyEnum.TON | CurrencyEnum.USD;
 
   @IsEnum(AppWalletEnum)
   app: AppWalletEnum;

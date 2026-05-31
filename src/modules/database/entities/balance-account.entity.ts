@@ -41,7 +41,7 @@ export class BalanceAccount {
   ton: number;
 
   @Column({
-    name: 'ton_usdt',
+    name: 'usd',
     type: 'numeric',
     default: 0,
     transformer: {
@@ -49,7 +49,7 @@ export class BalanceAccount {
       from: (value: string) => Number(value),
     },
   })
-  tonUsdt: number;
+  usd: number;
 
   @OneToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

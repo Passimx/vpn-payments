@@ -3,5 +3,4 @@ export enum CurrencyEnum {
   RUB = 'rub',
   USD = 'usd',
   TON = 'ton',
-  TON_USDT = 'ton_usdt',
 }
