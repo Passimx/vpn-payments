@@ -1,4 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  UpdateDateColumn,
+} from 'typeorm';
 import { UserKeyEntity } from './user-key.entity';
 import { ServerEntity } from './server.entity';
 
@@ -16,12 +22,8 @@ export class TrafficEntity {
   @Column({ name: 'down_link', type: 'bigint' })
   readonly downLink: number;
 
-  @Column({
-    type: 'timestamptz',
-    name: 'created_at',
-    primary: true,
-  })
-  readonly createdAt: Date;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  readonly updatedAt: Date;
 
   @ManyToOne(() => UserKeyEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'key_id' })

@@ -113,6 +113,7 @@ export default {
   start_date: 'Start date',
   key: 'Key',
   change_server: 'Change server country',
+  add_cascade: 'Add cascade connection',
   error_try_again_later: 'Server is temporarily unavailable',
 
   ru_payment: 'Russian Bank',

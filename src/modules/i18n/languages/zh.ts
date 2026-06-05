@@ -106,6 +106,7 @@ export default {
   start_date: '开始日期',
   key: '密钥',
   change_server: '更换服务器国家',
+  add_cascade: '添加级联连接',
   error_try_again_later: '服务器暂时不可用',
 
   ru_payment: '俄罗斯银行卡',
@@ -182,7 +183,6 @@ export default {
   login_from_web: '正在通过 Telegram 登录。\n请返回应用以完成登录。',
   t1: '余额不足',
   t2: '服务暂时不可用，请稍后再试。',
-  t10: '¥',
   t11: 'cny',
   t12: '点击量',
 };

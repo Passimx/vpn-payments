@@ -1,4 +1,11 @@
-import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { UserKeyEntity } from './user-key.entity';
 
 @Entity('servers')
@@ -23,6 +30,13 @@ export class ServerEntity {
 
   @Column({ name: 'for_cascade_inbound_tag', type: 'varchar', nullable: true })
   readonly forCascadeInboundTag: string | null;
+
+  @Column({ name: 'paired_exit_server_id', type: 'uuid', nullable: true })
+  readonly pairedExitServerId: string | null;
+
+  @ManyToOne(() => ServerEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'paired_exit_server_id' })
+  readonly pairedExitServer: ServerEntity | null;
 
   @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.server)
   readonly keys: UserKeyEntity[];

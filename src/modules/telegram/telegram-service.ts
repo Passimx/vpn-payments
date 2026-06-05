@@ -83,6 +83,7 @@ export class TelegramService {
     this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
     this.bot.action(/^DELETE_KEY:([\w-]+)$/, this.onDeleKey);
+    this.bot.action(/^ADD_CASCADE:([\w-]+)$/, this.onAddCascade);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ON_MY_REF_LINK', this.onMyRefLink);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
@@ -1401,6 +1402,44 @@ export class TelegramService {
     );
   };
 
+  onAddCascade = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
+    const keyId = (
+      (ctx.callbackQuery as { data?: string })?.data ?? ''
+    ).replace('ADD_CASCADE:', '');
+    const user = await this.getUserByCtx(ctx);
+
+    const vpnKey = await this.em.findOne(UserKeyEntity, {
+      where: { id: keyId, userId: user.id, protocol: 'xray', status: 'active' },
+      relations: ['server'],
+    });
+    if (!vpnKey) {
+      return ctx
+        .answerCbQuery(this.t(user, 'key_not_found'))
+        .catch(logger.error);
+    }
+
+    await ctx.answerCbQuery(this.t(user, 'processing')).catch(logger.error);
+
+    const newUri = await this.xrayService.migrateKeyToCascade(vpnKey.id);
+    if (!newUri) {
+      return ctx
+        .editMessageText(`❌ ${this.t(user, 'error_try_again_later')}`, {
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
+            [this.backToProfileButton(user)],
+          ]),
+        })
+        .catch(logger.error);
+    }
+
+    await this.showKeyCreatedScreen(
+      ctx,
+      newUri,
+      this.backToProfileButton(user),
+    );
+  };
+
   onKeyDetails = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
@@ -1529,6 +1568,19 @@ export class TelegramService {
         Markup.button.callback(
           `🌍 ${this.t(user, 'change_server')}`,
           `MIGRATE_SERVER:${vpnKey.id}`,
+        ),
+      ]);
+    }
+
+    if (
+      vpnKey.protocol === 'xray' &&
+      vpnKey.status === 'active' &&
+      !vpnKey.cascadeToServerId
+    ) {
+      buttons.push([
+        Markup.button.callback(
+          `🔗 ${this.t(user, 'add_cascade')}`,
+          `ADD_CASCADE:${vpnKey.id}`,
         ),
       ]);
     }

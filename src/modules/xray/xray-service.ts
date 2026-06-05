@@ -234,6 +234,76 @@ export class XrayService {
       : null;
   }
 
+  /** Выбирает RU-сервер с парным EU-выходом (наименьшая нагрузка). */
+  private async getRegularEntryServer(): Promise<ServerEntity | null> {
+    const row = await this.em
+      .createQueryBuilder(ServerEntity, 'servers')
+      .select('servers.id')
+      .where(
+        'servers.canDefaultCreateKey IS TRUE AND servers.paired_exit_server_id IS NOT NULL',
+      )
+      .addSelect('COUNT(keys.id)', 'count')
+      .leftJoin('servers.keys', 'keys', "keys.status = 'active'")
+      .groupBy('servers.id')
+      .orderBy('count', 'ASC')
+      .getOne();
+
+    return row
+      ? this.em.findOne(ServerEntity, { where: { id: row.id } })
+      : null;
+  }
+
+  /**
+   * Переносит существующий ключ (прямой EU) на RU-cascade сервер.
+   * Возвращает новый VLESS URI или null при ошибке.
+   */
+  public async migrateKeyToCascade(keyId: string): Promise<string | null> {
+    const keyEntity = await this.em.findOne(UserKeyEntity, {
+      where: { id: keyId, protocol: 'xray', status: 'active' },
+      relations: ['server', 'user'],
+    });
+    if (!keyEntity?.server || !keyEntity.user) return null;
+    if (keyEntity.cascadeToServerId) return null; // уже каскадный
+
+    const ruServer = await this.getRegularEntryServer();
+    if (!ruServer) return null;
+
+    const keyOpts = this.euCascadeOptsFromServer(ruServer);
+    if (!keyOpts) {
+      logger.error(
+        `[migrateKeyToCascade] у сервера ${ruServer.code} не задан forCascadeInboundTag/port`,
+      );
+      return null;
+    }
+
+    const newKey = await this.createKey(
+      keyEntity.id,
+      keyEntity.user,
+      ruServer,
+      keyOpts,
+    );
+    if (!newKey) return null;
+
+    await this.em.update(
+      UserKeyEntity,
+      { id: keyId },
+      {
+        serverId: ruServer.id,
+        cascadeToServerId: ruServer.pairedExitServerId,
+        key: newKey,
+      },
+    );
+
+    // Удаляем пользователя со старого EU-сервера с задержкой
+    const oldServer = keyEntity.server;
+    const oldInboundTag = await this.resolveRmuInboundTag(keyEntity);
+    setTimeout(() => {
+      void this.removeKey(oldServer, keyId, oldInboundTag);
+    }, 60_000);
+
+    return newKey;
+  }
+
   public async checkAlmostExpiredKeys() {
     const nowPlusOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
