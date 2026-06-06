@@ -187,7 +187,6 @@ export class AnalyticsService {
               countTrafficUsed: () => `count_traffic_used + ${stat.downlink}`,
             })
             .where('id = :keyId', { id: stat.id })
-            .andWhere('server_id = :serverId', { serverId: server.id })
             .execute();
 
           if (oldTraffic)

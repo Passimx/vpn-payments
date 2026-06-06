@@ -30,11 +30,11 @@ export class UserKeyEntity {
   @Column({ name: 'cascade_to_server_id', type: 'uuid', nullable: true })
   readonly cascadeToServerId: string | null;
 
-  @Column({ name: 'count_traffic_limit', type: 'bigint', nullable: true })
-  readonly countTrafficLimit: number | null;
+  @Column({ name: 'count_traffic_limit', type: 'bigint', default: 0 })
+  readonly countTrafficLimit: number;
 
-  @Column({ name: 'count_traffic_used', type: 'bigint', nullable: true })
-  readonly countTrafficUsed: number | null;
+  @Column({ name: 'count_traffic_used', type: 'bigint', default: 0 })
+  readonly countTrafficUsed: number;
 
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
