@@ -13,7 +13,6 @@ import { TelegramService } from '../telegram/telegram-service';
 import { UserEntity } from '../database/entities/user.entity';
 import { I18nService } from '../i18n/i18n.service';
 import { TariffEntity } from '../database/entities/tariff.entity';
-import { TrafficEntity } from '../database/entities/ traffic.entity';
 import { KeyTrafficType, TrafficType } from './types/user-traffic.type';
 import { logger } from '../../common/logger/logger';
 
@@ -303,13 +302,7 @@ export class XrayService {
       const limit = key.countTrafficLimit;
       if (limit == null || limit <= 0) continue;
 
-      const row = await this.em
-        .createQueryBuilder(TrafficEntity, 't')
-        .select('COALESCE(SUM(t.downLink), 0)', 'total')
-        .where('t.keyId = :kid', { kid: key.id })
-        .getRawOne<{ total: string | number }>();
-
-      const used = Number(row?.total ?? 0);
+      const used = Number(key.countTrafficUsed);
       if (used < limit) continue;
 
       try {
@@ -337,42 +330,27 @@ export class XrayService {
       if (!limit || limit <= 0) continue;
       if (!key.user?.telegramId) continue;
 
-      const row = await this.em
-        .createQueryBuilder(TrafficEntity, 't')
-        .select('COALESCE(SUM(t.downLink), 0)', 'used')
-        .where('t.keyId = :keyId', { keyId: key.id })
-        .getRawOne<{ used: string | number }>();
-
-      const used = Number(row?.used ?? 0);
+      const used = Number(key.countTrafficUsed);
       const left = Math.max(0, Number(limit) - Math.max(0, used));
       const leftRatio = left / Number(limit);
 
       // threshold: <=10%
       if (leftRatio > 0.1) continue;
 
-      await this.telegramService.sendMessageKeyTrafficLow(key.id, left, limit);
+      await this.telegramService.sendMessageKeyTrafficLow(key.id);
       await new Promise((r) => setTimeout(r, 100));
     }
   }
 
   // Статистика потребления трафика в формате `1,55 Gb / 5,00 Gb`.
-  public async getPremiumTrafficProgress(
-    keyId: string,
-    limitBytes: number | null | undefined,
-  ): Promise<string | null> {
-    if (!limitBytes || limitBytes <= 0) return null;
+  public getPremiumTrafficProgress(key: UserKeyEntity): string | null {
+    if (!key.countTrafficLimit) return null;
 
-    const row = await this.em
-      .createQueryBuilder(TrafficEntity, 't')
-      .select('COALESCE(SUM(t.downLink), 0)', 'used')
-      .where('t.keyId = :keyId', { keyId })
-      .getRawOne<{ used: string | number }>();
-
-    const usedBytes = Number(row?.used ?? 0);
+    const usedBytes = Number(key.countTrafficUsed);
     const toGb = (bytes: number) =>
-      (Math.max(bytes, 0) / 1024 / 1024 / 1024).toFixed(2).replace('.', ',');
-    const leftBytes = Math.max(0, Number(limitBytes) - Math.max(0, usedBytes));
-    return `${toGb(usedBytes)} Gb / ${toGb(limitBytes)} Gb (осталось ${toGb(leftBytes)} Gb)`;
+      (bytes / 1024 / 1024 / 1024).toFixed(2).replace('.', ',');
+    const leftBytes = Math.max(0, Number(key.countTrafficLimit) - usedBytes);
+    return `${toGb(usedBytes)} Gb / ${toGb(key.countTrafficLimit)} Gb (осталось ${toGb(leftBytes)} Gb)`;
   }
 
   public async syncActiveKeys(serverId?: string): Promise<number> {

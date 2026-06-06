@@ -83,7 +83,6 @@ export class TelegramService {
     this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
     this.bot.action(/^DELETE_KEY:([\w-]+)$/, this.onDeleKey);
-    this.bot.action(/^UPDATE_FP:([\w-]+)$/, this.onUpdateFp);
     this.bot.action('BTN_BALANCE', this.onBalance);
     this.bot.action('ON_MY_REF_LINK', this.onMyRefLink);
     this.bot.action('ADD_BALANCE', this.onAddBalance);
@@ -257,7 +256,7 @@ export class TelegramService {
   };
 
   onPayTelegramStars = async (ctx: Context) => {
-    ctx.answerCbQuery();
+    ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
 
     const amount = this.amountMap.get(user.telegramId!);
@@ -1456,25 +1455,6 @@ export class TelegramService {
     await this.onBtn1(ctx);
   };
 
-  onUpdateFp = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(logger.error);
-    const keyId = (
-      (ctx.callbackQuery as { data?: string })?.data ?? ''
-    ).replace('UPDATE_FP:', '');
-    const user = await this.getUserByCtx(ctx);
-    const vpnKey = await this.findUserKeyWithDetails(user.id, keyId);
-    if (!vpnKey) return;
-
-    await this.em.update(
-      UserKeyEntity,
-      { id: keyId },
-      { key: vpnKey.key.replace(/fp=chrome/g, 'fp=firefox') },
-    );
-
-    const updated = await this.findUserKeyWithDetails(user.id, keyId);
-    if (updated) await this.renderKeyDetails(ctx, user, updated);
-  };
-
   private findUserKeyWithDetails(userId: string, keyId: string) {
     return this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId },
@@ -1502,10 +1482,7 @@ export class TelegramService {
         day: '2-digit',
       });
 
-    const progress = await this.xrayService.getPremiumTrafficProgress(
-      vpnKey.id,
-      vpnKey.countTrafficLimit,
-    );
+    const progress = this.xrayService.getPremiumTrafficProgress(vpnKey);
     const trafficLine = progress
       ? `<b>${this.t(user, 'traffic')}:</b> ${progress}`
       : '';
@@ -1558,14 +1535,6 @@ export class TelegramService {
         Markup.button.callback(
           `🗑️ ${this.t(user, 'delete_key')}`,
           `DELETE_KEY:${vpnKey.id}`,
-        ),
-      ]);
-
-    if (vpnKey.key?.includes('fp=chrome'))
-      buttons.push([
-        Markup.button.callback(
-          `🔧 ${this.t(user, 'update_key')}`,
-          `UPDATE_FP:${vpnKey.id}`,
         ),
       ]);
 
@@ -1906,11 +1875,7 @@ export class TelegramService {
     );
   }
 
-  public async sendMessageKeyTrafficLow(
-    keyId: string,
-    leftBytes: number,
-    limitBytes: number,
-  ) {
+  public async sendMessageKeyTrafficLow(keyId: string) {
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { id: keyId },
       relations: ['user', 'server'],
@@ -1918,10 +1883,7 @@ export class TelegramService {
     const user = key.user;
     if (!user.telegramId) return;
 
-    const progress = await this.xrayService.getPremiumTrafficProgress(
-      keyId,
-      limitBytes,
-    );
+    const progress = this.xrayService.getPremiumTrafficProgress(key);
     if (!progress) return;
 
     const buttons = this.prepareKeysToButtons(user, [key]);
