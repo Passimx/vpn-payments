@@ -201,14 +201,20 @@ export class AnalyticsService {
               .andWhere('server_id = :serverId', { serverId: server.id })
               .andWhere("created_at = DATE(NOW() AT TIME ZONE 'Europe/Moscow')")
               .execute();
-          else
-            await this.em.insert(TrafficEntity, {
-              keyId: stat.id,
-              serverId: server.id,
-              upLink: stat.uplink,
-              downLink: stat.downlink,
-              createdAt: () => "DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
+          else {
+            const key = await this.em.findOne(UserKeyEntity, {
+              where: { id: stat.id },
             });
+
+            if (key)
+              await this.em.insert(TrafficEntity, {
+                keyId: stat.id,
+                serverId: server.id,
+                upLink: stat.uplink,
+                downLink: stat.downlink,
+                createdAt: () => "DATE(NOW() AT TIME ZONE 'Europe/Moscow')",
+              });
+          }
         } catch (e) {
           logger.error(
             `При получении трафика, не был найден ключь ${stat.id} с сервера ${server.id}`,
