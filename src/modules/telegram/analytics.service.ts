@@ -186,7 +186,7 @@ export class AnalyticsService {
             .set({
               countTrafficUsed: () => `count_traffic_used + ${stat.downlink}`,
             })
-            .where('key_id = :keyId', { keyId: stat.id })
+            .where('id = :keyId', { id: stat.id })
             .andWhere('server_id = :serverId', { serverId: server.id })
             .execute();
 
