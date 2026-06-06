@@ -1458,7 +1458,9 @@ export class TelegramService {
 
   onUpdateFp = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
-    const keyId = ((ctx.callbackQuery as { data?: string })?.data ?? '').replace('UPDATE_FP:', '');
+    const keyId = (
+      (ctx.callbackQuery as { data?: string })?.data ?? ''
+    ).replace('UPDATE_FP:', '');
     const user = await this.getUserByCtx(ctx);
     const vpnKey = await this.findUserKeyWithDetails(user.id, keyId);
     if (!vpnKey) return;
@@ -1561,7 +1563,10 @@ export class TelegramService {
 
     if (vpnKey.key?.includes('fp=chrome'))
       buttons.push([
-        Markup.button.callback(`🔧 ${this.t(user, 'update_key')}`, `UPDATE_FP:${vpnKey.id}`),
+        Markup.button.callback(
+          `🔧 ${this.t(user, 'update_key')}`,
+          `UPDATE_FP:${vpnKey.id}`,
+        ),
       ]);
 
     buttons.push([this.backToProfileButton(user)]);
