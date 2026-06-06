@@ -50,6 +50,7 @@ export default {
   select_tariff: 'Выберите тариф',
   select_country: 'Выберите страну сервера',
   extend_key: 'Продлить ключ',
+  update_key: 'Обновить ключ',
   until: 'До',
   days: 'дней',
   one_key_more: 'Ещё ключ',

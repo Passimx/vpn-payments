@@ -49,6 +49,7 @@ export default {
   select_tariff: 'Select tariff',
   select_country: 'Select server country',
   extend_key: 'Extend key',
+  update_key: 'Update key',
   until: 'Until',
   days: 'days',
   one_key_more: 'One more key',

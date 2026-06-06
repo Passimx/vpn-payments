@@ -48,6 +48,7 @@ export default {
   select_tariff: '选择套餐',
   select_country: '选择服务器国家',
   extend_key: '续期密钥',
+  update_key: '更新密钥',
   until: '至',
   days: '天',
   one_key_more: '再购买一个密钥',
