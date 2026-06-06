@@ -180,6 +180,16 @@ export class AnalyticsService {
             )
             .getOne();
 
+          await this.em
+            .createQueryBuilder()
+            .update(UserKeyEntity)
+            .set({
+              countTrafficUsed: () => `count_traffic_used + ${stat.downlink}`,
+            })
+            .where('key_id = :keyId', { keyId: stat.id })
+            .andWhere('server_id = :serverId', { serverId: server.id })
+            .execute();
+
           if (oldTraffic)
             await this.em
               .createQueryBuilder()

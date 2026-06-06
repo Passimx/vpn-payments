@@ -19,6 +19,10 @@ export class UserKeyDto {
 
   readonly autoRenewEnabled: boolean;
 
+  readonly countTrafficLimit: number | null;
+
+  readonly countTrafficUsed: number | null;
+
   constructor(payload: UserKeyDto) {
     Object.assign(this, payload);
   }
@@ -33,6 +37,8 @@ export class UserKeyDto {
       serverCode: key.server.code,
       serverId: key.server.id,
       autoRenewEnabled: key.autoRenewEnabled,
+      countTrafficLimit: key.countTrafficLimit,
+      countTrafficUsed: key.countTrafficUsed,
     });
   }
 }

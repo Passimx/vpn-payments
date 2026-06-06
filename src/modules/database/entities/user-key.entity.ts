@@ -33,6 +33,9 @@ export class UserKeyEntity {
   @Column({ name: 'count_traffic_limit', type: 'bigint', nullable: true })
   readonly countTrafficLimit: number | null;
 
+  @Column({ name: 'count_traffic_used', type: 'bigint', nullable: true })
+  readonly countTrafficUsed: number | null;
+
   @Column({ name: 'tariff_id', type: 'uuid' })
   readonly tariffId: string;
 
