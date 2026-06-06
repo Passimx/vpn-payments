@@ -501,7 +501,7 @@ export class XrayService {
     const result = await this.runCommands(server, commands);
     if (!result) return null;
     const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
-    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=chrome&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
   }
 
   private async runCommands(
