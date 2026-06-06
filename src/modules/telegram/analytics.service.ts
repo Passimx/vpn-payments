@@ -186,7 +186,7 @@ export class AnalyticsService {
             .set({
               countTrafficUsed: () => `count_traffic_used + ${stat.downlink}`,
             })
-            .where('id = :keyId', { id: stat.id })
+            .where('id = :id', { id: stat.id })
             .execute();
 
           if (oldTraffic)
