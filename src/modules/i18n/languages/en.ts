@@ -187,6 +187,8 @@ export default {
     "Earn 30% from your friends' top-ups during their first 90 days, plus 30% of the earnings of everyone they invite\nTap the link to copy it",
   need_to_reply: 'Reply to the message that needs to be sent',
   delete_key: 'Delete key',
+  add_happ: 'Add a configuration in the Happ app',
+  expired_key: 'Subscription expired ',
 
   login_from_web:
     'Logging in via Telegram.\nPlease return to the app to complete the process.',

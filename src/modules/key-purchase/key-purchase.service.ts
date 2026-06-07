@@ -336,7 +336,7 @@ export class KeyPurchaseService {
     }
   }
 
-  private t(payload: UserEntity | string, key: string) {
+  public t(payload: UserEntity | string, key: string) {
     let lang = 'en';
 
     if (typeof payload === 'string') lang = payload;

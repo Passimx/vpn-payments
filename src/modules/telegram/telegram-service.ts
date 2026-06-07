@@ -599,6 +599,12 @@ export class TelegramService {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           ...keyRows,
+          [
+            Markup.button.url(
+              this.t(user, 'add_happ'),
+              `happ://add/https://bot.passimx.ru/8721280199/keys-info/${user.id}`,
+            ),
+          ],
           [this.backToProfileButton(user)],
         ]),
       })

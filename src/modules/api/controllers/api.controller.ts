@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/requests/login.dto';
 import { UserId } from '../../../common/guards/user.decorator';
@@ -82,5 +91,12 @@ export class ApiController {
   @Post('create-account')
   createAccount(@Body() body: CreateAccountDto) {
     return this.authService.createAccount(body);
+  }
+
+  @Public()
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Get('keys-info/:id')
+  async getKeysInfo(@Param('id', ParseUUIDPipe) userId: string) {
+    return this.authService.getKeysInfo(userId);
   }
 }

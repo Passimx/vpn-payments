@@ -171,6 +171,32 @@ export class AuthService {
     );
   }
 
+  public async getKeysInfo(userId: string) {
+    const user = await this.em.findOneOrFail(UserEntity, {
+      where: { id: userId },
+    });
+
+    const keys = await this.em.find(UserKeyEntity, {
+      where: { userId: userId },
+    });
+
+    const keysString = keys
+      .map((key) => {
+        if (key.status === 'active') return key.key;
+
+        const result = key.key.split('#')[0];
+        return `${result}#${this.keyPurchaseService.t(user, 'expired_key')}`;
+      })
+      .join('\n');
+
+    return (
+      '#profile-title: 🌐PassimX VPN\n' +
+      '#profile-update-interval: 1\n' +
+      '#subscription-auto-update-enable: 1' +
+      keysString
+    );
+  }
+
   public async createAccount(body: CreateAccountDto) {
     const id = crypto.randomUUID().replace(/-/g, '');
     await this.em.insert(UserEntity, {
