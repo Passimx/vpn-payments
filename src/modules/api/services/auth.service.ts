@@ -192,7 +192,7 @@ export class AuthService {
     return (
       '#profile-title: 🌐PassimX VPN\n' +
       '#profile-update-interval: 1\n' +
-      '#subscription-auto-update-enable: 1' +
+      '#subscription-auto-update-enable: 1\n' +
       keysString
     );
   }

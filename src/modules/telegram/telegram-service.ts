@@ -602,7 +602,7 @@ export class TelegramService {
           [
             Markup.button.url(
               this.t(user, 'add_happ'),
-              `happ://add/https://bot.passimx.ru/8721280199/keys-info/${user.id}`,
+              `https://passimx.com/8721280199/keys-redirect/${user.id}`,
             ),
           ],
           [this.backToProfileButton(user)],
