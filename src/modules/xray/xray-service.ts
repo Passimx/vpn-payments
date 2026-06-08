@@ -21,11 +21,14 @@ type CreateXrayKeyOptions = { inboundTag?: string; linkPort?: number };
 const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
 const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour
-const SERVER_DEAD_TTL_MS = 5 * 60 * 1000;   // 5 min cooldown for unreachable servers
+const SERVER_DEAD_TTL_MS = 5 * 60 * 1000; // 5 min cooldown for unreachable servers
 
 @Injectable()
 export class XrayService implements OnModuleInit {
-  private readonly serverParamsCache = new Map<string, { data: string[] | null; fetchedAt: number }>();
+  private readonly serverParamsCache = new Map<
+    string,
+    { data: string[] | null; fetchedAt: number }
+  >();
 
   constructor(
     @Inject(forwardRef(() => TelegramService))
@@ -36,10 +39,16 @@ export class XrayService implements OnModuleInit {
 
   async onModuleInit() {
     logger.info('[XrayService] onModuleInit: warming server params cache...');
-    const servers = await this.em.find(ServerEntity, { where: { canDefaultCreateKey: true } });
-    logger.info(`[XrayService] found ${servers.length} servers to warm: ${servers.map((s) => s.code).join(', ')}`);
+    const servers = await this.em.find(ServerEntity, {
+      where: { canDefaultCreateKey: true },
+    });
+    logger.info(
+      `[XrayService] found ${servers.length} servers to warm: ${servers.map((s) => s.code).join(', ')}`,
+    );
     await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
-    logger.info(`[XrayService] cache warmed: ${this.serverParamsCache.size}/${servers.length} servers ready`);
+    logger.info(
+      `[XrayService] cache warmed: ${this.serverParamsCache.size}/${servers.length} servers ready`,
+    );
   }
 
   private async warmServerParamsCache(server: ServerEntity): Promise<void> {
@@ -52,11 +61,16 @@ export class XrayService implements OnModuleInit {
     ]);
     const ms = Date.now() - t;
     // Store result either way — null means "dead, skip for cooldown period"
-    this.serverParamsCache.set(server.id, { data: data ?? null, fetchedAt: Date.now() });
+    this.serverParamsCache.set(server.id, {
+      data: data ?? null,
+      fetchedAt: Date.now(),
+    });
     if (data) {
       logger.info(`[XrayService] ✅ cached ${server.code} in ${ms}ms`);
     } else {
-      logger.error(`[XrayService] ❌ failed to cache ${server.code} after ${ms}ms — will retry in 5min`);
+      logger.error(
+        `[XrayService] ❌ failed to cache ${server.code} after ${ms}ms — will retry in 5min`,
+      );
     }
   }
 
@@ -111,8 +125,10 @@ export class XrayService implements OnModuleInit {
         const allServers = await this.em.find(ServerEntity, {
           where: { canDefaultCreateKey: true },
         });
-        const otherServers = allServers.filter((s) => s.id !== server!.id);
-        await Promise.allSettled(otherServers.map((s) => this.createKey(uuid, user, s)));
+        const otherServers = allServers.filter((s) => s.id !== server.id);
+        await Promise.allSettled(
+          otherServers.map((s) => this.createKey(uuid, user, s)),
+        );
       }
 
       const expiresAt = new Date();
@@ -146,7 +162,9 @@ export class XrayService implements OnModuleInit {
       if (!removed) return;
     } else {
       const servers = await this.em.find(ServerEntity);
-      await Promise.allSettled(servers.map((s) => this.removeKey(s, keyId, 'vless-in')));
+      await Promise.allSettled(
+        servers.map((s) => this.removeKey(s, keyId, 'vless-in')),
+      );
     }
 
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
@@ -511,31 +529,43 @@ export class XrayService implements OnModuleInit {
       const ttl = cached.data ? SERVER_PARAMS_TTL_MS : SERVER_DEAD_TTL_MS;
       if (now - cached.fetchedAt < ttl) {
         if (!cached.data) {
-          logger.info(`[buildSubscriptionUri] ${server.code} → skipped (dead, cooldown active)`);
+          logger.info(
+            `[buildSubscriptionUri] ${server.code} → skipped (dead, cooldown active)`,
+          );
           return null;
         }
         logger.info(`[buildSubscriptionUri] ${server.code} → cache hit`);
         data = cached.data;
       } else {
-        logger.info(`[buildSubscriptionUri] ${server.code} → cache expired, fetching live...`);
+        logger.info(
+          `[buildSubscriptionUri] ${server.code} → cache expired, fetching live...`,
+        );
         data = await this.runCommands(server, [
           'cat /xray/data/public.key',
           'cat /xray/data/server.name',
           'cat /xray/data/server.port',
           'cat /xray/data/short_id.key',
         ]);
-        this.serverParamsCache.set(server.id, { data: data ?? null, fetchedAt: now });
+        this.serverParamsCache.set(server.id, {
+          data: data ?? null,
+          fetchedAt: now,
+        });
         if (!data) return null;
       }
     } else {
-      logger.info(`[buildSubscriptionUri] ${server.code} → no cache, fetching live...`);
+      logger.info(
+        `[buildSubscriptionUri] ${server.code} → no cache, fetching live...`,
+      );
       data = await this.runCommands(server, [
         'cat /xray/data/public.key',
         'cat /xray/data/server.name',
         'cat /xray/data/server.port',
         'cat /xray/data/short_id.key',
       ]);
-      this.serverParamsCache.set(server.id, { data: data ?? null, fetchedAt: now });
+      this.serverParamsCache.set(server.id, {
+        data: data ?? null,
+        fetchedAt: now,
+      });
       if (!data) return null;
     }
     if (!data) return null;
@@ -593,7 +623,11 @@ export class XrayService implements OnModuleInit {
       body: JSON.stringify({ commands }),
       headers: { 'Content-Type': 'application/json' },
       signal: abort.signal,
-    }).catch((e: Error) => { logger.error(`[runCommands] ${server.code} error: ${e.message}`); return null; })
+    })
+      .catch((e: Error) => {
+        logger.error(`[runCommands] ${server.code} error: ${e.message}`);
+        return null;
+      })
       .finally(() => clearTimeout(timer));
 
     if (!res) return null;

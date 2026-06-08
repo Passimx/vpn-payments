@@ -220,10 +220,15 @@ export class AuthService {
       where: { canDefaultCreateKey: true },
     });
     const results = await Promise.allSettled(
-      servers.map((s) => this.xrayService.buildSubscriptionUri(key.id, s, key.user)),
+      servers.map((s) =>
+        this.xrayService.buildSubscriptionUri(key.id, s, key.user),
+      ),
     );
     const uris = results
-      .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
+      .filter(
+        (r): r is PromiseFulfilledResult<string> =>
+          r.status === 'fulfilled' && !!r.value,
+      )
       .map((r) => r.value);
 
     const body =
