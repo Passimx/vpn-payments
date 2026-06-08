@@ -1114,10 +1114,12 @@ export class TelegramService {
     backButton: ReturnType<typeof Markup.button.callback>,
   ): Promise<void> {
     const user = await this.getUserByCtx(ctx);
+    const subLink = `https://passimx.com/8721280199/keys-info/${user.id}`;
     const text =
       `✅ <b>${this.t(user, 'key_created')}</b>\n\n` +
       `<b>📋 ${this.t(user, 'click_to_copy_key')}:</b>\n` +
       `<code>${uri}</code>\n\n` +
+      `🔗 <b>Ссылка подписки (happ / Hiddify):</b>\n<code>${subLink}</code>\n\n` +
       `${this.t(user, 'instruction_how_to_use_key')}.`;
 
     await ctx
@@ -1533,6 +1535,12 @@ export class TelegramService {
           `🌍 ${this.t(user, 'change_server')}`,
           `MIGRATE_SERVER:${vpnKey.id}`,
         ),
+      ]);
+      buttons.push([
+        Markup.button.url(
+          `📱 ${this.t(user, 'add_happ')}`,
+          `https://passimx.com/8721280199/keys-redirect/key/${vpnKey.id}`,
+        ) as unknown as ReturnType<typeof Markup.button.callback>,
       ]);
     }
 

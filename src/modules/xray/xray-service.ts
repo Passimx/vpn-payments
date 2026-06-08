@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import {
   EntityManager,
   IsNull,
@@ -20,14 +20,45 @@ type CreateXrayKeyOptions = { inboundTag?: string; linkPort?: number };
 
 const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
+const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour
+const SERVER_DEAD_TTL_MS = 5 * 60 * 1000;   // 5 min cooldown for unreachable servers
+
 @Injectable()
-export class XrayService {
+export class XrayService implements OnModuleInit {
+  private readonly serverParamsCache = new Map<string, { data: string[] | null; fetchedAt: number }>();
+
   constructor(
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
     private readonly i18nService: I18nService,
     private readonly em: EntityManager,
   ) {}
+
+  async onModuleInit() {
+    logger.info('[XrayService] onModuleInit: warming server params cache...');
+    const servers = await this.em.find(ServerEntity, { where: { canDefaultCreateKey: true } });
+    logger.info(`[XrayService] found ${servers.length} servers to warm: ${servers.map((s) => s.code).join(', ')}`);
+    await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
+    logger.info(`[XrayService] cache warmed: ${this.serverParamsCache.size}/${servers.length} servers ready`);
+  }
+
+  private async warmServerParamsCache(server: ServerEntity): Promise<void> {
+    const t = Date.now();
+    const data = await this.runCommands(server, [
+      'cat /xray/data/public.key',
+      'cat /xray/data/server.name',
+      'cat /xray/data/server.port',
+      'cat /xray/data/short_id.key',
+    ]);
+    const ms = Date.now() - t;
+    // Store result either way — null means "dead, skip for cooldown period"
+    this.serverParamsCache.set(server.id, { data: data ?? null, fetchedAt: Date.now() });
+    if (data) {
+      logger.info(`[XrayService] ✅ cached ${server.code} in ${ms}ms`);
+    } else {
+      logger.error(`[XrayService] ❌ failed to cache ${server.code} after ${ms}ms — will retry in 5min`);
+    }
+  }
 
   public async createXrayKey(
     user: UserEntity,
@@ -76,6 +107,14 @@ export class XrayService {
       const key = await this.createKey(uuid, user, server, keyOpts);
       if (!key) return;
 
+      if (!tariff.useCascade) {
+        const allServers = await this.em.find(ServerEntity, {
+          where: { canDefaultCreateKey: true },
+        });
+        const otherServers = allServers.filter((s) => s.id !== server!.id);
+        await Promise.allSettled(otherServers.map((s) => this.createKey(uuid, user, s)));
+      }
+
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
@@ -100,11 +139,15 @@ export class XrayService {
 
   public async deleteXrayKey(keyEntity: UserKeyEntity) {
     const keyId = keyEntity.id;
-    const server = keyEntity.server;
-    const inboundTag = await this.resolveRmuInboundTag(keyEntity);
 
-    const removed = await this.removeKey(server, keyId, inboundTag);
-    if (!removed) return;
+    if (keyEntity.cascadeToServerId) {
+      const inboundTag = await this.resolveRmuInboundTag(keyEntity);
+      const removed = await this.removeKey(keyEntity.server, keyId, inboundTag);
+      if (!removed) return;
+    } else {
+      const servers = await this.em.find(ServerEntity);
+      await Promise.allSettled(servers.map((s) => this.removeKey(s, keyId, 'vless-in')));
+    }
 
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
     return true;
@@ -116,6 +159,16 @@ export class XrayService {
       relations: ['server', 'user', 'cascadeToServer'],
     });
     if (!keyEntity || !keyEntity.server) return false;
+
+    if (!keyEntity.cascadeToServerId) {
+      const servers = await this.em.find(ServerEntity, {
+        where: { canDefaultCreateKey: true },
+      });
+      const results = await Promise.allSettled(
+        servers.map((s) => this.createKey(keyId, keyEntity.user, s)),
+      );
+      return results.some((r) => r.status === 'fulfilled' && r.value !== null);
+    }
 
     let keyOpts: CreateXrayKeyOptions | undefined;
     if (keyEntity.cascadeToServerId) {
@@ -446,6 +499,53 @@ export class XrayService {
     return !!payload;
   }
 
+  public async buildSubscriptionUri(
+    keyId: string,
+    server: ServerEntity,
+    user: UserEntity,
+  ): Promise<string | null> {
+    const cached = this.serverParamsCache.get(server.id);
+    const now = Date.now();
+    let data: string[] | null;
+    if (cached) {
+      const ttl = cached.data ? SERVER_PARAMS_TTL_MS : SERVER_DEAD_TTL_MS;
+      if (now - cached.fetchedAt < ttl) {
+        if (!cached.data) {
+          logger.info(`[buildSubscriptionUri] ${server.code} → skipped (dead, cooldown active)`);
+          return null;
+        }
+        logger.info(`[buildSubscriptionUri] ${server.code} → cache hit`);
+        data = cached.data;
+      } else {
+        logger.info(`[buildSubscriptionUri] ${server.code} → cache expired, fetching live...`);
+        data = await this.runCommands(server, [
+          'cat /xray/data/public.key',
+          'cat /xray/data/server.name',
+          'cat /xray/data/server.port',
+          'cat /xray/data/short_id.key',
+        ]);
+        this.serverParamsCache.set(server.id, { data: data ?? null, fetchedAt: now });
+        if (!data) return null;
+      }
+    } else {
+      logger.info(`[buildSubscriptionUri] ${server.code} → no cache, fetching live...`);
+      data = await this.runCommands(server, [
+        'cat /xray/data/public.key',
+        'cat /xray/data/server.name',
+        'cat /xray/data/server.port',
+        'cat /xray/data/short_id.key',
+      ]);
+      this.serverParamsCache.set(server.id, { data: data ?? null, fetchedAt: now });
+      if (!data) return null;
+    }
+    if (!data) return null;
+    const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
+    if (!/^\d+$/.test(defaultPort)) return null;
+
+    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${keyId.slice(0, 4)}...${keyId.slice(-4)}`;
+    return `vless://${keyId}@${server.host}:${defaultPort}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+  }
+
   private async createKey(
     id: string,
     user: UserEntity,
@@ -486,11 +586,15 @@ export class XrayService {
     server: ServerEntity,
     commands: string[],
   ): Promise<string[] | null> {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), 8000);
     const res = await fetch(`http://${server.host}:440/commands`, {
       method: 'POST',
       body: JSON.stringify({ commands }),
       headers: { 'Content-Type': 'application/json' },
-    }).catch(logger.error);
+      signal: abort.signal,
+    }).catch((e: Error) => { logger.error(`[runCommands] ${server.code} error: ${e.message}`); return null; })
+      .finally(() => clearTimeout(timer));
 
     if (!res) return null;
     if (![200, 201].includes(res.status)) {
