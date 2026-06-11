@@ -95,7 +95,7 @@ export class ApiController {
   }
 
   @Public()
-  @Get('keys-info/key/:keyId')
+  @Get('keys-info/:keyId')
   async getKeyInfo(@Param('keyId') keyId: string, @Res() res: Response) {
     const result = await this.authService.getKeyInfo(keyId);
     if (!result) return res.status(404).send('Not found');
@@ -108,7 +108,7 @@ export class ApiController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Get('keys-redirect/key/:keyId')
   getHappRedirectByKey(@Param('keyId') keyId: string, @Res() res: Response) {
-    const subUrl = `http://localhost:2000/keys-info/key/${keyId}`;
+    const subUrl = `https://passimx.com/8721280199/keys-info/${keyId}`;
     const targetDeeplink = `happ://add/${subUrl}`;
     const html = `
       <!DOCTYPE html>
@@ -139,54 +139,6 @@ export class ApiController {
       </body>
       </html>
     `;
-    return res.send(html);
-  }
-
-  @Public()
-  @Get('keys-info/:id')
-  async getKeysInfo(@Param('id') userId: string, @Res() res: Response) {
-    const { body, userinfo } = await this.authService.getKeysInfo(userId);
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    if (userinfo) res.setHeader('subscription-userinfo', userinfo);
-    return res.send(body);
-  }
-
-  @Public()
-  @Header('Content-Type', 'text/html; charset=utf-8')
-  @Get('keys-redirect/:id')
-  getHappRedirect(@Param('id') userId: string, @Res() res: Response) {
-    const targetDeeplink = `happ://add/https://passimx.com/8721280199/keys-info/${userId}`;
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Opening Happ...</title>
-        <script>
-          window.onload = function() {
-            window.location.href = "${targetDeeplink}";
-            
-            setTimeout(function() {
-              document.getElementById('fallback').style.display = 'block';
-            }, 1000);
-          }
-        </script>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding-top: 100px; color: #333; }
-          .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }
-        </style>
-      </head>
-      <body>
-        <p>Перенаправление в приложение Happ...</p>
-        <div id="fallback" style="display:none;">
-          <p>Если приложение не открылось автоматически, нажмите кнопку ниже:</p>
-          <a href="${targetDeeplink}" class="btn">Открыть Happ</a>
-        </div>
-      </body>
-      </html>
-    `;
-
     return res.send(html);
   }
 }

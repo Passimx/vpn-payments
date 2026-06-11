@@ -171,65 +171,35 @@ export class AuthService {
     );
   }
 
-  public async getKeysInfo(
-    userId: string,
-  ): Promise<{ body: string; userinfo: string | null }> {
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { id: userId },
-    });
-
-    const keys = await this.em.find(UserKeyEntity, {
-      where: { userId },
-    });
-
-    const uriLines: string[] = keys.map((key) => {
-      if (key.status === 'active') return key.key;
-      const base = key.key.split('#')[0];
-      return `${base}#${this.keyPurchaseService.t(user, 'expired_key')}`;
-    });
-
-    const body =
-      '#profile-title: 🌐PassimX VPN\n' +
-      '#profile-update-interval: 1\n' +
-      '#subscription-auto-update-enable: 1\n' +
-      uriLines.join('\n');
-
-    const activeKey = keys.find((k) => k.status === 'active');
-    let userinfo: string | null = null;
-    if (activeKey) {
-      const expire = Math.floor(new Date(activeKey.expiresAt).getTime() / 1000);
-      const download = Number(activeKey.countTrafficUsed ?? 0);
-      const limit = Number(activeKey.countTrafficLimit ?? 0);
-      const totalPart = limit > 0 ? `; total=${limit}` : '';
-      userinfo = `upload=0; download=${download}${totalPart}; expire=${expire}`;
-    }
-
-    return { body, userinfo };
-  }
-
   public async getKeyInfo(
     keyId: string,
   ): Promise<{ body: string; userinfo: string } | null> {
     const key = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId, status: 'active' },
+      where: { id: keyId },
       relations: ['user'],
     });
     if (!key) return null;
 
-    const servers = await this.em.find(ServerEntity, {
-      where: { canDefaultCreateKey: true },
-    });
-    const results = await Promise.allSettled(
-      servers.map((s) =>
-        this.xrayService.buildSubscriptionUri(key.id, s, key.user),
-      ),
-    );
-    const uris = results
-      .filter(
-        (r): r is PromiseFulfilledResult<string> =>
-          r.status === 'fulfilled' && !!r.value,
-      )
-      .map((r) => r.value);
+    let uris: string[];
+    if (key.status === 'active') {
+      const servers = await this.em.find(ServerEntity, {
+        where: { canDefaultCreateKey: true },
+      });
+      const results = await Promise.allSettled(
+        servers.map((s) =>
+          this.xrayService.buildSubscriptionUri(key.id, s, key.user),
+        ),
+      );
+      uris = results
+        .filter(
+          (r): r is PromiseFulfilledResult<string> =>
+            r.status === 'fulfilled' && !!r.value,
+        )
+        .map((r) => r.value);
+    } else {
+      const base = key.key.split('#')[0];
+      uris = [`${base}#${this.keyPurchaseService.t(key.user, 'expired_key')}`];
+    }
 
     const body =
       '#profile-title: 🌐PassimX VPN\n' +

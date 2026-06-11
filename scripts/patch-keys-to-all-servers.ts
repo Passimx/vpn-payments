@@ -1,49 +1,66 @@
 /**
  * Скрипт для патча существующих активных ключей:
- * регистрирует UUID каждого не-cascade ключа на всех серверах с canDefaultCreateKey=true.
- *
- * Запуск:
- *   npx ts-node scripts/patch-keys-to-all-servers.ts
- *
- * Скрипт идемпотентен — повторный запуск безопасен (xray api adu перезаписывает если уже есть).
+ * Запуск: npm run patch:keys
  */
 
 import 'reflect-metadata';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 import { DataSource } from 'typeorm';
 import { UserKeyEntity } from '../src/modules/database/entities/user-key.entity';
 import { ServerEntity } from '../src/modules/database/entities/server.entity';
 
+config({ path: resolve(__dirname, '../.env') });
+
+function getDatabaseUrl(): string {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+
+  const { PG_HOST, PG_PORT, PG_DATABASE, PG_USERNAME, PG_PASSWORD } =
+    process.env;
+  if (!PG_HOST || !PG_DATABASE || !PG_USERNAME) {
+    throw new Error(
+      'незаданы DATABASE_URL или PG_HOST, PG_DATABASE, PG_USERNAME, PG_PASSWORD',
+    );
+  }
+
+  const port = PG_PORT ?? '5459';
+  const password = encodeURIComponent(PG_PASSWORD ?? 'secrets');
+  return `postgresql://${PG_USERNAME}:${password}@${PG_HOST}:${port}/${PG_DATABASE}`;
+}
+
 const dataSource = new DataSource({
   type: 'postgres',
-  url: process.env.DATABASE_URL,
-  entities: [UserKeyEntity, ServerEntity],
+  url: getDatabaseUrl(),
+  entities: [resolve(__dirname, '../src/modules/database/entities/*.entity.{ts,js}')],
   synchronize: false,
 });
+
+const FETCH_TIMEOUT_MS = 60_000; // 1 минута
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response | null> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...init, signal: abort.signal })
+    .catch(() => null)
+    .finally(() => clearTimeout(timer));
+}
 
 async function registerOnServer(
   server: ServerEntity,
   keyId: string,
 ): Promise<boolean> {
-  const commands = [
-    'cat /xray/data/server.port',
-    `mkdir -p /xray/data/users`,
-    `echo '{"inbounds":[{"tag":"vless-in","listen":"0.0.0.0","port":PORT_PLACEHOLDER,"protocol":"vless","settings":{"clients":[{"id":"${keyId}","email":"${keyId}","flow":"xtls-rprx-vision","level":0}],"decryption":"none"}}]}' > /xray/data/users/${keyId}.json`,
-    `xray api adu --server=127.0.0.1:10085 /xray/data/users/${keyId}.json`,
-  ];
-
-  // Получаем порт и регистрируем
-  const portRes = await fetch(`http://${server.host}:440/commands`, {
+  const portRes = await fetchWithTimeout(`http://${server.host}:440/commands`, {
     method: 'POST',
     body: JSON.stringify({ commands: ['cat /xray/data/server.port'] }),
     headers: { 'Content-Type': 'application/json' },
-  }).catch(() => null);
+  });
 
   if (!portRes?.ok) return false;
   const [port] = (await portRes.json()) as string[];
   const defaultPort = port.trim();
   if (!/^\d+$/.test(defaultPort)) return false;
 
-  const regRes = await fetch(`http://${server.host}:440/commands`, {
+  const regRes = await fetchWithTimeout(`http://${server.host}:440/commands`, {
     method: 'POST',
     body: JSON.stringify({
       commands: [
@@ -53,7 +70,7 @@ async function registerOnServer(
       ],
     }),
     headers: { 'Content-Type': 'application/json' },
-  }).catch(() => null);
+  });
 
   return !!regRes?.ok;
 }

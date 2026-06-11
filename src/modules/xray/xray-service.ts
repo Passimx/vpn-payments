@@ -20,8 +20,13 @@ type CreateXrayKeyOptions = { inboundTag?: string; linkPort?: number };
 
 const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
-const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour
-const SERVER_DEAD_TTL_MS = 5 * 60 * 1000; // 5 min cooldown for unreachable servers
+const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour — success and failure
+const SERVER_PARAM_COMMANDS = [
+  'cat /xray/data/public.key',
+  'cat /xray/data/server.name',
+  'cat /xray/data/server.port',
+  'cat /xray/data/short_id.key',
+];
 
 @Injectable()
 export class XrayService implements OnModuleInit {
@@ -38,40 +43,64 @@ export class XrayService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    logger.info('[XrayService] onModuleInit: warming server params cache...');
     const servers = await this.em.find(ServerEntity, {
       where: { canDefaultCreateKey: true },
     });
-    logger.info(
-      `[XrayService] found ${servers.length} servers to warm: ${servers.map((s) => s.code).join(', ')}`,
-    );
     await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
-    logger.info(
-      `[XrayService] cache warmed: ${this.serverParamsCache.size}/${servers.length} servers ready`,
-    );
+    const ok = [...this.serverParamsCache.values()].filter(
+      (c) => c.data,
+    ).length;
+    logger.info(`[XrayService] server params cache: ${ok}/${servers.length}`);
   }
 
   private async warmServerParamsCache(server: ServerEntity): Promise<void> {
     const t = Date.now();
-    const data = await this.runCommands(server, [
-      'cat /xray/data/public.key',
-      'cat /xray/data/server.name',
-      'cat /xray/data/server.port',
-      'cat /xray/data/short_id.key',
-    ]);
-    const ms = Date.now() - t;
-    // Store result either way — null means "dead, skip for cooldown period"
+    const data = await this.fetchServerParams(server);
     this.serverParamsCache.set(server.id, {
       data: data ?? null,
       fetchedAt: Date.now(),
     });
+    const ms = Date.now() - t;
     if (data) {
       logger.info(`[XrayService] ✅ cached ${server.code} in ${ms}ms`);
     } else {
       logger.error(
-        `[XrayService] ❌ failed to cache ${server.code} after ${ms}ms — will retry in 5min`,
+        `[XrayService] ❌ failed to cache ${server.code} after ${ms}ms`,
       );
     }
+  }
+
+  private fetchServerParams(server: ServerEntity) {
+    return this.runCommands(server, SERVER_PARAM_COMMANDS);
+  }
+
+  private async getServerParams(
+    server: ServerEntity,
+  ): Promise<string[] | null> {
+    const cached = this.serverParamsCache.get(server.id);
+    const now = Date.now();
+    if (cached && now - cached.fetchedAt < SERVER_PARAMS_TTL_MS) {
+      return cached.data;
+    }
+    const data = await this.fetchServerParams(server);
+    this.serverParamsCache.set(server.id, {
+      data: data ?? null,
+      fetchedAt: now,
+    });
+    return data;
+  }
+
+  private formatVlessUri(
+    id: string,
+    server: ServerEntity,
+    user: UserEntity,
+    publicKey: string,
+    sni: string,
+    port: string,
+    shortId: string,
+  ): string {
+    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
+    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
   }
 
   public async createXrayKey(
@@ -230,14 +259,14 @@ export class XrayService implements OnModuleInit {
     });
     if (!keyEntity || !keyEntity.server) return null;
 
-    const oldServer = keyEntity.server;
+    // const oldServer = keyEntity.server;
     const newServer = await this.em.findOne(ServerEntity, {
       where: { id: serverId, canCreateKey: true },
     });
 
     if (!newServer) return null;
 
-    const inboundTagForOldHost = await this.resolveRmuInboundTag(keyEntity);
+    // const inboundTagForOldHost = await this.resolveRmuInboundTag(keyEntity);
 
     const key = await this.createKey(keyId, keyEntity.user, newServer);
     if (!key) return null;
@@ -253,18 +282,17 @@ export class XrayService implements OnModuleInit {
       },
     );
 
-    const checkAndDeleteKey = async () => {
-      const userKey = await this.em.findOne(UserKeyEntity, {
-        where: { id: keyId, serverId: oldServer.id },
-      });
-
-      if (!userKey)
-        await this.removeKey(oldServer, keyId, inboundTagForOldHost);
-    };
-
-    setTimeout(() => {
-      void checkAndDeleteKey();
-    }, 60 * 1000);
+    //Закоментировал на время, чтобы при смене сервера в боте не удалялись ключи
+    // const checkAndDeleteKey = async () => {
+    //   const userKey = await this.em.findOne(UserKeyEntity, {
+    //     where: { id: keyId, serverId: oldServer.id },
+    //   });
+    //   if (!userKey)
+    //     await this.removeKey(oldServer, keyId, inboundTagForOldHost);
+    // };
+    // setTimeout(() => {
+    //   void checkAndDeleteKey();
+    // }, 60 * 1000);
 
     return key;
   }
@@ -522,58 +550,19 @@ export class XrayService implements OnModuleInit {
     server: ServerEntity,
     user: UserEntity,
   ): Promise<string | null> {
-    const cached = this.serverParamsCache.get(server.id);
-    const now = Date.now();
-    let data: string[] | null;
-    if (cached) {
-      const ttl = cached.data ? SERVER_PARAMS_TTL_MS : SERVER_DEAD_TTL_MS;
-      if (now - cached.fetchedAt < ttl) {
-        if (!cached.data) {
-          logger.info(
-            `[buildSubscriptionUri] ${server.code} → skipped (dead, cooldown active)`,
-          );
-          return null;
-        }
-        logger.info(`[buildSubscriptionUri] ${server.code} → cache hit`);
-        data = cached.data;
-      } else {
-        logger.info(
-          `[buildSubscriptionUri] ${server.code} → cache expired, fetching live...`,
-        );
-        data = await this.runCommands(server, [
-          'cat /xray/data/public.key',
-          'cat /xray/data/server.name',
-          'cat /xray/data/server.port',
-          'cat /xray/data/short_id.key',
-        ]);
-        this.serverParamsCache.set(server.id, {
-          data: data ?? null,
-          fetchedAt: now,
-        });
-        if (!data) return null;
-      }
-    } else {
-      logger.info(
-        `[buildSubscriptionUri] ${server.code} → no cache, fetching live...`,
-      );
-      data = await this.runCommands(server, [
-        'cat /xray/data/public.key',
-        'cat /xray/data/server.name',
-        'cat /xray/data/server.port',
-        'cat /xray/data/short_id.key',
-      ]);
-      this.serverParamsCache.set(server.id, {
-        data: data ?? null,
-        fetchedAt: now,
-      });
-      if (!data) return null;
-    }
+    const data = await this.getServerParams(server);
     if (!data) return null;
     const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
     if (!/^\d+$/.test(defaultPort)) return null;
-
-    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${keyId.slice(0, 4)}...${keyId.slice(-4)}`;
-    return `vless://${keyId}@${server.host}:${defaultPort}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+    return this.formatVlessUri(
+      keyId,
+      server,
+      user,
+      publicKey,
+      sni,
+      defaultPort,
+      shortId,
+    );
   }
 
   private async createKey(
@@ -582,14 +571,7 @@ export class XrayService implements OnModuleInit {
     server: ServerEntity,
     options?: CreateXrayKeyOptions,
   ): Promise<string | null> {
-    const dataCommands = [
-      'cat /xray/data/public.key',
-      'cat /xray/data/server.name',
-      'cat /xray/data/server.port',
-      'cat /xray/data/short_id.key',
-    ];
-
-    const data = await this.runCommands(server, dataCommands);
+    const data = await this.fetchServerParams(server);
     if (!data) return null;
     const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
 
@@ -608,8 +590,7 @@ export class XrayService implements OnModuleInit {
     ];
     const result = await this.runCommands(server, commands);
     if (!result) return null;
-    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
-    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+    return this.formatVlessUri(id, server, user, publicKey, sni, port, shortId);
   }
 
   private async runCommands(
