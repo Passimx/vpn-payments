@@ -95,17 +95,21 @@ export class ApiController {
   }
 
   @Public()
-  @Header('Content-Type', 'text/plain; charset=utf-8')
-  @Get('keys-info/:id')
-  async getKeysInfo(@Param('id') userId: string) {
-    return this.authService.getKeysInfo(userId);
+  @Get('keys-info/:keyId')
+  async getKeyInfo(@Param('keyId') keyId: string, @Res() res: Response) {
+    const result = await this.authService.getKeyInfo(keyId);
+    if (!result) return res.status(404).send('Not found');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('subscription-userinfo', result.userinfo);
+    return res.send(result.body);
   }
 
   @Public()
   @Header('Content-Type', 'text/html; charset=utf-8')
-  @Get('keys-redirect/:id')
-  getHappRedirect(@Param('id') userId: string, @Res() res: Response) {
-    const targetDeeplink = `happ://add/https://passimx.com/8721280199/keys-info/${userId}`;
+  @Get('keys-redirect/key/:keyId')
+  getHappRedirectByKey(@Param('keyId') keyId: string, @Res() res: Response) {
+    const subUrl = `https://passimx.com/8721280199/keys-info/${keyId}`;
+    const targetDeeplink = `happ://add/${subUrl}`;
     const html = `
       <!DOCTYPE html>
       <html>
@@ -116,7 +120,6 @@ export class ApiController {
         <script>
           window.onload = function() {
             window.location.href = "${targetDeeplink}";
-            
             setTimeout(function() {
               document.getElementById('fallback').style.display = 'block';
             }, 1000);
@@ -136,7 +139,6 @@ export class ApiController {
       </body>
       </html>
     `;
-
     return res.send(html);
   }
 }

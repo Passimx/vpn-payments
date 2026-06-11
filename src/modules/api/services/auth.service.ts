@@ -171,30 +171,49 @@ export class AuthService {
     );
   }
 
-  public async getKeysInfo(userId: string) {
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { id: userId },
+  public async getKeyInfo(
+    keyId: string,
+  ): Promise<{ body: string; userinfo: string } | null> {
+    const key = await this.em.findOne(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['user'],
     });
+    if (!key) return null;
 
-    const keys = await this.em.find(UserKeyEntity, {
-      where: { userId: userId },
-    });
+    let uris: string[];
+    if (key.status === 'active') {
+      const servers = await this.em.find(ServerEntity, {
+        where: { canDefaultCreateKey: true },
+      });
+      const results = await Promise.allSettled(
+        servers.map((s) =>
+          this.xrayService.buildSubscriptionUri(key.id, s, key.user),
+        ),
+      );
+      uris = results
+        .filter(
+          (r): r is PromiseFulfilledResult<string> =>
+            r.status === 'fulfilled' && !!r.value,
+        )
+        .map((r) => r.value);
+    } else {
+      const base = key.key.split('#')[0];
+      uris = [`${base}#${this.keyPurchaseService.t(key.user, 'expired_key')}`];
+    }
 
-    const keysString = keys
-      .map((key) => {
-        if (key.status === 'active') return key.key;
-
-        const result = key.key.split('#')[0];
-        return `${result}#${this.keyPurchaseService.t(user, 'expired_key')}`;
-      })
-      .join('\n');
-
-    return (
+    const body =
       '#profile-title: 🌐PassimX VPN\n' +
-      '#profile-update-interval: 1\n' +
+      '#profile-update-interval: 12\n' +
       '#subscription-auto-update-enable: 1\n' +
-      keysString
-    );
+      uris.join('\n');
+
+    const expire = Math.floor(new Date(key.expiresAt).getTime() / 1000);
+    const download = Number(key.countTrafficUsed ?? 0);
+    const limit = Number(key.countTrafficLimit ?? 0);
+    const totalPart = limit > 0 ? `; total=${limit}` : '';
+    const userinfo = `upload=0; download=${download}${totalPart}; expire=${expire}`;
+
+    return { body, userinfo };
   }
 
   public async createAccount(body: CreateAccountDto) {

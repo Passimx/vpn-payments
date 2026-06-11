@@ -599,12 +599,6 @@ export class TelegramService {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           ...keyRows,
-          [
-            Markup.button.url(
-              this.t(user, 'add_happ'),
-              `https://passimx.com/8721280199/keys-redirect/${user.id}`,
-            ),
-          ],
           [this.backToProfileButton(user)],
         ]),
       })
@@ -1111,19 +1105,46 @@ export class TelegramService {
   private async showKeyCreatedScreen(
     ctx: Context,
     uri: string,
+    keyId: string,
     backButton: ReturnType<typeof Markup.button.callback>,
   ): Promise<void> {
     const user = await this.getUserByCtx(ctx);
-    const text =
+    const vpnKey = await this.em.findOne(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['tariff'],
+    });
+    const showHapp = !vpnKey?.tariff?.useCascade;
+
+    const subLink = `https://passimx.com/8721280199/keys-info/${keyId}`;
+    let text =
       `✅ <b>${this.t(user, 'key_created')}</b>\n\n` +
       `<b>📋 ${this.t(user, 'click_to_copy_key')}:</b>\n` +
       `<code>${uri}</code>\n\n` +
       `${this.t(user, 'instruction_how_to_use_key')}.`;
 
+    if (showHapp) {
+      text +=
+        `\n\n🔗 <b>${this.t(user, 'subscription_link_happ')}:</b>\n` +
+        `<code>${subLink}</code>\n\n` +
+        `${this.t(user, 'instruction_happ_auto')}`;
+    }
+
+    const happRow = showHapp
+      ? [
+          [
+            Markup.button.url(
+              this.t(user, 'add_happ'),
+              `https://passimx.com/8721280199/keys-redirect/key/${keyId}`,
+            ),
+          ],
+        ]
+      : [];
+
     await ctx
       .editMessageText(text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
+          ...happRow,
           [
             Markup.button.url('📱 Android', this.downloadLinks.android),
             Markup.button.url('🍎 iOS', this.downloadLinks.ios),
@@ -1282,6 +1303,7 @@ export class TelegramService {
         await this.showKeyCreatedScreen(
           ctx,
           result.data.uri,
+          result.data.keyId,
           this.backToProfileButton(user),
         );
     }
@@ -1403,6 +1425,7 @@ export class TelegramService {
     await this.showKeyCreatedScreen(
       ctx,
       newUri,
+      vpnKey.id,
       this.backToProfileButton(user),
     );
   };
@@ -1533,6 +1556,12 @@ export class TelegramService {
           `🌍 ${this.t(user, 'change_server')}`,
           `MIGRATE_SERVER:${vpnKey.id}`,
         ),
+      ]);
+      buttons.push([
+        Markup.button.url(
+          this.t(user, 'add_happ'),
+          `https://passimx.com/8721280199/keys-redirect/key/${vpnKey.id}`,
+        ) as unknown as ReturnType<typeof Markup.button.callback>,
       ]);
     }
 

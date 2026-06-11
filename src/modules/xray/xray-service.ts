@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import {
   EntityManager,
   IsNull,
@@ -20,14 +20,88 @@ type CreateXrayKeyOptions = { inboundTag?: string; linkPort?: number };
 
 const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
+const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour — success and failure
+const SERVER_PARAM_COMMANDS = [
+  'cat /xray/data/public.key',
+  'cat /xray/data/server.name',
+  'cat /xray/data/server.port',
+  'cat /xray/data/short_id.key',
+];
+
 @Injectable()
-export class XrayService {
+export class XrayService implements OnModuleInit {
+  private readonly serverParamsCache = new Map<
+    string,
+    { data: string[] | null; fetchedAt: number }
+  >();
+
   constructor(
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
     private readonly i18nService: I18nService,
     private readonly em: EntityManager,
   ) {}
+
+  async onModuleInit() {
+    const servers = await this.em.find(ServerEntity, {
+      where: { canDefaultCreateKey: true },
+    });
+    await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
+    const ok = [...this.serverParamsCache.values()].filter(
+      (c) => c.data,
+    ).length;
+    logger.info(`[XrayService] server params cache: ${ok}/${servers.length}`);
+  }
+
+  private async warmServerParamsCache(server: ServerEntity): Promise<void> {
+    const t = Date.now();
+    const data = await this.fetchServerParams(server);
+    this.serverParamsCache.set(server.id, {
+      data: data ?? null,
+      fetchedAt: Date.now(),
+    });
+    const ms = Date.now() - t;
+    if (data) {
+      logger.info(`[XrayService] ✅ cached ${server.code} in ${ms}ms`);
+    } else {
+      logger.error(
+        `[XrayService] ❌ failed to cache ${server.code} after ${ms}ms`,
+      );
+    }
+  }
+
+  private fetchServerParams(server: ServerEntity) {
+    return this.runCommands(server, SERVER_PARAM_COMMANDS);
+  }
+
+  private async getServerParams(
+    server: ServerEntity,
+  ): Promise<string[] | null> {
+    const cached = this.serverParamsCache.get(server.id);
+    const now = Date.now();
+    if (cached && now - cached.fetchedAt < SERVER_PARAMS_TTL_MS) {
+      return cached.data;
+    }
+    const data = await this.fetchServerParams(server);
+    this.serverParamsCache.set(server.id, {
+      data: data ?? null,
+      fetchedAt: now,
+    });
+    return data;
+  }
+
+  private formatVlessUri(
+    id: string,
+    server: ServerEntity,
+    user: UserEntity,
+    publicKey: string,
+    sni: string,
+    port: string,
+    shortId: string,
+  ): string {
+    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
+    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+  }
 
   public async createXrayKey(
     user: UserEntity,
@@ -76,6 +150,16 @@ export class XrayService {
       const key = await this.createKey(uuid, user, server, keyOpts);
       if (!key) return;
 
+      if (!tariff.useCascade) {
+        const allServers = await this.em.find(ServerEntity, {
+          where: { canDefaultCreateKey: true },
+        });
+        const otherServers = allServers.filter((s) => s.id !== server.id);
+        await Promise.allSettled(
+          otherServers.map((s) => this.createKey(uuid, user, s)),
+        );
+      }
+
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
@@ -100,11 +184,17 @@ export class XrayService {
 
   public async deleteXrayKey(keyEntity: UserKeyEntity) {
     const keyId = keyEntity.id;
-    const server = keyEntity.server;
-    const inboundTag = await this.resolveRmuInboundTag(keyEntity);
 
-    const removed = await this.removeKey(server, keyId, inboundTag);
-    if (!removed) return;
+    if (keyEntity.cascadeToServerId) {
+      const inboundTag = await this.resolveRmuInboundTag(keyEntity);
+      const removed = await this.removeKey(keyEntity.server, keyId, inboundTag);
+      if (!removed) return;
+    } else {
+      const servers = await this.em.find(ServerEntity);
+      await Promise.allSettled(
+        servers.map((s) => this.removeKey(s, keyId, 'vless-in')),
+      );
+    }
 
     await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
     return true;
@@ -116,6 +206,16 @@ export class XrayService {
       relations: ['server', 'user', 'cascadeToServer'],
     });
     if (!keyEntity || !keyEntity.server) return false;
+
+    if (!keyEntity.cascadeToServerId) {
+      const servers = await this.em.find(ServerEntity, {
+        where: { canDefaultCreateKey: true },
+      });
+      const results = await Promise.allSettled(
+        servers.map((s) => this.createKey(keyId, keyEntity.user, s)),
+      );
+      return results.some((r) => r.status === 'fulfilled' && r.value !== null);
+    }
 
     let keyOpts: CreateXrayKeyOptions | undefined;
     if (keyEntity.cascadeToServerId) {
@@ -159,14 +259,14 @@ export class XrayService {
     });
     if (!keyEntity || !keyEntity.server) return null;
 
-    const oldServer = keyEntity.server;
+    // const oldServer = keyEntity.server;
     const newServer = await this.em.findOne(ServerEntity, {
       where: { id: serverId, canCreateKey: true },
     });
 
     if (!newServer) return null;
 
-    const inboundTagForOldHost = await this.resolveRmuInboundTag(keyEntity);
+    // const inboundTagForOldHost = await this.resolveRmuInboundTag(keyEntity);
 
     const key = await this.createKey(keyId, keyEntity.user, newServer);
     if (!key) return null;
@@ -182,18 +282,17 @@ export class XrayService {
       },
     );
 
-    const checkAndDeleteKey = async () => {
-      const userKey = await this.em.findOne(UserKeyEntity, {
-        where: { id: keyId, serverId: oldServer.id },
-      });
-
-      if (!userKey)
-        await this.removeKey(oldServer, keyId, inboundTagForOldHost);
-    };
-
-    setTimeout(() => {
-      void checkAndDeleteKey();
-    }, 60 * 1000);
+    //Закоментировал на время, чтобы при смене сервера в боте не удалялись ключи
+    // const checkAndDeleteKey = async () => {
+    //   const userKey = await this.em.findOne(UserKeyEntity, {
+    //     where: { id: keyId, serverId: oldServer.id },
+    //   });
+    //   if (!userKey)
+    //     await this.removeKey(oldServer, keyId, inboundTagForOldHost);
+    // };
+    // setTimeout(() => {
+    //   void checkAndDeleteKey();
+    // }, 60 * 1000);
 
     return key;
   }
@@ -446,20 +545,33 @@ export class XrayService {
     return !!payload;
   }
 
+  public async buildSubscriptionUri(
+    keyId: string,
+    server: ServerEntity,
+    user: UserEntity,
+  ): Promise<string | null> {
+    const data = await this.getServerParams(server);
+    if (!data) return null;
+    const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
+    if (!/^\d+$/.test(defaultPort)) return null;
+    return this.formatVlessUri(
+      keyId,
+      server,
+      user,
+      publicKey,
+      sni,
+      defaultPort,
+      shortId,
+    );
+  }
+
   private async createKey(
     id: string,
     user: UserEntity,
     server: ServerEntity,
     options?: CreateXrayKeyOptions,
   ): Promise<string | null> {
-    const dataCommands = [
-      'cat /xray/data/public.key',
-      'cat /xray/data/server.name',
-      'cat /xray/data/server.port',
-      'cat /xray/data/short_id.key',
-    ];
-
-    const data = await this.runCommands(server, dataCommands);
+    const data = await this.fetchServerParams(server);
     if (!data) return null;
     const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
 
@@ -478,19 +590,26 @@ export class XrayService {
     ];
     const result = await this.runCommands(server, commands);
     if (!result) return null;
-    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
-    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+    return this.formatVlessUri(id, server, user, publicKey, sni, port, shortId);
   }
 
   private async runCommands(
     server: ServerEntity,
     commands: string[],
   ): Promise<string[] | null> {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), 8000);
     const res = await fetch(`http://${server.host}:440/commands`, {
       method: 'POST',
       body: JSON.stringify({ commands }),
       headers: { 'Content-Type': 'application/json' },
-    }).catch(logger.error);
+      signal: abort.signal,
+    })
+      .catch((e: Error) => {
+        logger.error(`[runCommands] ${server.code} error: ${e.message}`);
+        return null;
+      })
+      .finally(() => clearTimeout(timer));
 
     if (!res) return null;
     if (![200, 201].includes(res.status)) {

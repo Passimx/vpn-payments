@@ -1,1 +1,1 @@
-export type PurchaseResult = { uri: string };
+export type PurchaseResult = { uri: string; keyId: string };
