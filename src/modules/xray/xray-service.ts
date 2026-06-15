@@ -1,4 +1,11 @@
-import { forwardRef, Inject, Injectable, OnModuleInit, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  OnModuleInit,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   EntityManager,
   IsNull,
@@ -486,7 +493,9 @@ export class XrayService implements OnModuleInit {
   public async patchActiveKeysToServer(
     serverId: string,
   ): Promise<PatchServerKeysResult> {
-    const server = await this.em.findOne(ServerEntity, { where: { id: serverId } });
+    const server = await this.em.findOne(ServerEntity, {
+      where: { id: serverId },
+    });
     if (!server) {
       throw new NotFoundException(`Server ${serverId} not found`);
     }
@@ -534,7 +543,9 @@ export class XrayService implements OnModuleInit {
       where: [{ code: dto.code }, { host: dto.host }],
     });
     if (existing) {
-      throw new ConflictException('Server with this code or host already exists');
+      throw new ConflictException(
+        'Server with this code or host already exists',
+      );
     }
 
     const server = await this.em.save(
