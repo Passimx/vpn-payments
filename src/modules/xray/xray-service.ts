@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, OnModuleInit, ConflictException, NotFoundException } from '@nestjs/common';
 import {
   EntityManager,
   IsNull,
@@ -15,6 +15,11 @@ import { I18nService } from '../i18n/i18n.service';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { KeyTrafficType, TrafficType } from './types/user-traffic.type';
 import { logger } from '../../common/logger/logger';
+import { CreateServerDto } from './dto/create-server.dto';
+import {
+  CreateServerResult,
+  PatchServerKeysResult,
+} from './types/patch-server-keys-result.type';
 
 type CreateXrayKeyOptions = { inboundTag?: string; linkPort?: number };
 
@@ -476,6 +481,88 @@ export class XrayService implements OnModuleInit {
     }
 
     return successCount;
+  }
+
+  public async patchActiveKeysToServer(
+    serverId: string,
+  ): Promise<PatchServerKeysResult> {
+    const server = await this.em.findOne(ServerEntity, { where: { id: serverId } });
+    if (!server) {
+      throw new NotFoundException(`Server ${serverId} not found`);
+    }
+
+    const keys = await this.em.find(UserKeyEntity, {
+      where: { protocol: 'xray', status: 'active' },
+      relations: ['user'],
+    });
+    const nonCascadeKeys = keys.filter((k) => !k.cascadeToServerId);
+
+    let ok = 0;
+    let fail = 0;
+
+    for (const key of nonCascadeKeys) {
+      if (!key.user) {
+        fail++;
+        continue;
+      }
+
+      const uri = await this.createKey(key.id, key.user, server);
+      if (uri) {
+        ok++;
+        logger.info(
+          `[patchActiveKeysToServer] ✅ key ${key.id.slice(0, 8)} → ${server.code}`,
+        );
+      } else {
+        fail++;
+        logger.error(
+          `[patchActiveKeysToServer] ❌ key ${key.id.slice(0, 8)} → ${server.code}`,
+        );
+      }
+    }
+
+    return {
+      serverId: server.id,
+      serverCode: server.code,
+      keysTotal: nonCascadeKeys.length,
+      ok,
+      fail,
+    };
+  }
+
+  public async createServer(dto: CreateServerDto): Promise<CreateServerResult> {
+    const existing = await this.em.findOne(ServerEntity, {
+      where: [{ code: dto.code }, { host: dto.host }],
+    });
+    if (existing) {
+      throw new ConflictException('Server with this code or host already exists');
+    }
+
+    const server = await this.em.save(
+      this.em.create(ServerEntity, {
+        host: dto.host,
+        code: dto.code,
+        canDefaultCreateKey: dto.canDefaultCreateKey ?? false,
+        canCreateKey: dto.canCreateKey ?? false,
+        port: dto.port ?? null,
+        forCascadeInboundTag: dto.forCascadeInboundTag ?? null,
+      }),
+    );
+
+    await this.warmServerParamsCache(server);
+    const patch = await this.patchActiveKeysToServer(server.id);
+
+    return {
+      server: {
+        id: server.id,
+        host: server.host,
+        code: server.code,
+        canDefaultCreateKey: server.canDefaultCreateKey,
+        canCreateKey: server.canCreateKey,
+        port: server.port,
+        forCascadeInboundTag: server.forCascadeInboundTag,
+      },
+      patch,
+    };
   }
 
   public async getStats(
