@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
@@ -35,14 +35,15 @@ export class KeyPurchaseService {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
+    const manager = qr.manager;
 
     try {
-      const user = await qr.manager.findOneOrFail(UserEntity, {
+      const user = await manager.findOneOrFail(UserEntity, {
         where: { id: userId },
         lock: { mode: 'pessimistic_write' },
       });
 
-      const tariff = await qr.manager.findOneOrFail(TariffEntity, {
+      const tariff = await manager.findOneOrFail(TariffEntity, {
         where: { id: tariffId, active: true },
       });
 
@@ -78,7 +79,7 @@ export class KeyPurchaseService {
         userId,
         finalPrice,
         CurrencyEnum.RUB,
-        qr.manager,
+        manager,
       );
 
       if (!result) return new DataResponse(this.t(user, 't1'));
@@ -91,12 +92,12 @@ export class KeyPurchaseService {
 
       if (protocol === 'xray') {
         const amKey = await this.xrayService.createXrayKey(user, tariff.id);
-        if (!amKey) return new DataResponse('error');
+        if (!amKey) throw new BadRequestException('Invalid Xray key');
 
         createdKeyId = amKey.id;
         vpnUri = amKey.key;
 
-        await qr.manager.insert(UserKeyEntity, amKey);
+        await manager.insert(UserKeyEntity, amKey);
       } else {
         const username = crypto.randomUUID().replace(/-/g, '');
 
@@ -115,7 +116,7 @@ export class KeyPurchaseService {
         vpnUri = uriResult.uri;
         createdKeyId = crypto.randomUUID().replace(/-/g, '');
 
-        await qr.manager.insert(UserKeyEntity, {
+        await manager.insert(UserKeyEntity, {
           id: createdKeyId,
           key: vpnUri,
           protocol: 'hysteria',
@@ -126,14 +127,14 @@ export class KeyPurchaseService {
         });
       }
 
-      await qr.manager.insert(PaymentsEntity, {
+      await manager.insert(PaymentsEntity, {
         userId: user.id,
         amount: finalPrice,
         tariffId: tariff.id,
         vpnKeyId: createdKeyId,
       });
       if (appliedPromo) {
-        await qr.manager.insert(PromoUsageEntity, {
+        await manager.insert(PromoUsageEntity, {
           userId: user.id,
           promoCodeId: appliedPromo.id,
         });
