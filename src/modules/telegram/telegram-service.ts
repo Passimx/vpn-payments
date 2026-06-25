@@ -59,11 +59,13 @@ export class TelegramService {
     this.bot = new Telegraf(Envs.telegram.botToken);
     this.bot.catch(logger.error);
 
-    const archiver = new Archiver({
-      apiKey: Envs.telegram.archiverApiKey,
-      endpoint: Envs.telegram.archiverEndpoint,
-    });
-    archiver.listen(this.bot);
+    if (Envs.telegram.archiverEndpoint) {
+      const archiver = new Archiver({
+        apiKey: Envs.telegram.archiverApiKey,
+        endpoint: Envs.telegram.archiverEndpoint,
+      });
+      archiver.listen(this.bot);
+    }
 
     this.bot.command('stats', this.analyticsService.sendAnalytics);
     this.bot.command('loginFromWeb', this.loginFromWeb);

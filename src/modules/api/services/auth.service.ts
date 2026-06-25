@@ -183,7 +183,7 @@ export class AuthService {
     let uris: string[];
     if (key.status === 'active') {
       const servers = await this.em.find(ServerEntity, {
-        where: { canDefaultCreateKey: true },
+        where: { canCreateKey: true, code: Not('white') },
       });
       const results = await Promise.allSettled(
         servers.map((s) =>

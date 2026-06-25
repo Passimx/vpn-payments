@@ -56,7 +56,7 @@ export class XrayService implements OnModuleInit {
 
   async onModuleInit() {
     const servers = await this.em.find(ServerEntity, {
-      where: { canDefaultCreateKey: true },
+      where: { canCreateKey: true, code: Not('white') },
     });
     await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
     const ok = [...this.serverParamsCache.values()].filter(
@@ -164,7 +164,7 @@ export class XrayService implements OnModuleInit {
 
       if (!tariff.useCascade) {
         const allServers = await this.em.find(ServerEntity, {
-          where: { canDefaultCreateKey: true },
+          where: { canCreateKey: true, code: Not('white') },
         });
         const otherServers = allServers.filter((s) => s.id !== server.id);
         await Promise.allSettled(
@@ -221,7 +221,7 @@ export class XrayService implements OnModuleInit {
 
     if (!keyEntity.cascadeToServerId) {
       const servers = await this.em.find(ServerEntity, {
-        where: { canDefaultCreateKey: true },
+        where: { canCreateKey: true, code: Not('white') },
       });
       const results = await Promise.allSettled(
         servers.map((s) => this.createKey(keyId, keyEntity.user, s)),
