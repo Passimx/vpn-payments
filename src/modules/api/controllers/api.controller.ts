@@ -108,7 +108,7 @@ export class ApiController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Get('keys-redirect/key/:keyId')
   getHappRedirectByKey(@Param('keyId') keyId: string, @Res() res: Response) {
-    const subUrl = `http://passimx.com/8721280199/keys-info/${keyId}`;
+    const subUrl = `https://passimx.com/8721280199/keys-info/${keyId}`;
     const targetDeeplink = `incy://add/${subUrl}`;
     const html = `
       <!DOCTYPE html>
