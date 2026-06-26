@@ -109,14 +109,14 @@ export class ApiController {
   @Get('keys-redirect/key/:keyId')
   getHappRedirectByKey(@Param('keyId') keyId: string, @Res() res: Response) {
     const subUrl = `https://passimx.com/8721280199/keys-info/${keyId}`;
-    const targetDeeplink = `happ://add/${subUrl}`;
+    const targetDeeplink = `incy://add/${subUrl}`;
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Opening Happ...</title>
+        <title>Opening INCY...</title>
         <script>
           window.onload = function() {
             window.location.href = "${targetDeeplink}";
@@ -131,10 +131,10 @@ export class ApiController {
         </style>
       </head>
       <body>
-        <p>Перенаправление в приложение Happ...</p>
+        <p>Перенаправление в приложение INCY...</p>
         <div id="fallback" style="display:none;">
           <p>Если приложение не открылось автоматически, нажмите кнопку ниже:</p>
-          <a href="${targetDeeplink}" class="btn">Открыть Happ</a>
+          <a href="${targetDeeplink}" class="btn">Открыть INCY</a>
         </div>
       </body>
       </html>

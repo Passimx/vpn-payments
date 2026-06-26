@@ -21,7 +21,9 @@ export const Envs = {
       ? String(process.env.TELEGRAM_BOT_WEB_URL)
       : undefined,
     archiverApiKey: String(process.env.TELEGRAM_ARCHIVER_APIKEY),
-    archiverEndpoint: String(process.env.TELEGRAM_ARCHIVER_ENDPOINT),
+    archiverEndpoint: process.env.TELEGRAM_ARCHIVER_ENDPOINT?.length
+      ? String(process.env.TELEGRAM_ARCHIVER_ENDPOINT)
+      : undefined,
     autoRenewBaseTariffId: 'f8860386-bb14-470b-a957-3998d10b417d',
     autoRenewPremiumTariffId: '1a412ac9-e902-4644-8523-ca9e661838bb',
   },

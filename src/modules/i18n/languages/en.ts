@@ -187,10 +187,10 @@ export default {
     "Earn 30% from your friends' top-ups during their first 90 days, plus 30% of the earnings of everyone they invite\nTap the link to copy it",
   need_to_reply: 'Reply to the message that needs to be sent',
   delete_key: 'Delete key',
-  subscription_link_happ: 'Subscription link (Happ)',
+  subscription_link_happ: 'Subscription link (INCY)',
   instruction_happ_auto:
-    'If you have Happ installed, tap the button below — the app will open and configure everything automatically.',
-  add_happ: '⚡ Add configuration in Happ',
+    'If you have INCY installed, tap the button below — the app will open and configure everything automatically.',
+  add_happ: '⚡ Add configuration in INCY',
   expired_key: 'Subscription expired ',
 
   login_from_web:
