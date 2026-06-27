@@ -175,6 +175,7 @@ export class AuthService {
         key.user,
       );
       if (!result) return null;
+      title += result;
     } else title += ` (${this.keyPurchaseService.t(key.user, 'expired_key')})`;
 
     title += '\n';
