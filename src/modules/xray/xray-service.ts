@@ -111,7 +111,9 @@ export class XrayService implements OnModuleInit {
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
       if (tariff.useCascade) {
-        const eu = await this.getServer();
+        const eu = await manager.findOne(ServerEntity, {
+          where: { canDefaultCreateKey: true },
+        });
         if (!eu) {
           logger.error('Второй сервер для каскадного соединения не был найден');
           return;
@@ -205,24 +207,6 @@ export class XrayService implements OnModuleInit {
     if (!id) return Promise.resolve(null);
     if (key.cascadeToServer) return Promise.resolve(key.cascadeToServer);
     return this.em.findOne(ServerEntity, { where: { id } });
-  }
-
-  private async getServer() {
-    const server = await this.em
-      .createQueryBuilder(ServerEntity, 'servers')
-      .select('servers.id')
-      .where('servers.canDefaultCreateKey IS TRUE')
-      .addSelect('COUNT(keys.id)', 'count')
-      .leftJoin('servers.keys', 'keys', "keys.status = 'active'")
-      .groupBy('servers.id')
-      .orderBy('count', 'ASC')
-      .getOne();
-
-    return server
-      ? this.em.findOne(ServerEntity, {
-          where: { id: server.id },
-        })
-      : null;
   }
 
   public async checkAlmostExpiredKeys() {
