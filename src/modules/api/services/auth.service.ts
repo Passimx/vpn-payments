@@ -168,14 +168,14 @@ export class AuthService {
     });
     if (!key) return null;
 
-    const uris: string = '';
+    let uris: string = '';
     if (key.status === 'active') {
       const result = await this.xrayService.buildSubscriptionUri(
         key.id,
         key.user,
       );
       if (!result) return null;
-      title += result;
+      uris += result;
     } else title += ` (${this.keyPurchaseService.t(key.user, 'expired_key')})`;
 
     const body =
