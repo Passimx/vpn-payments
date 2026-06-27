@@ -556,7 +556,7 @@ export class XrayService implements OnModuleInit {
     const key = await manager.findOne(UserKeyEntity, { where: { id: keyId } });
     if (!key) return [];
 
-    if (key.cascadeToServer)
+    if (key.cascadeToServerId)
       return manager.find(ServerEntity, {
         where: { canCreateKey: true, code: 'white' },
       });

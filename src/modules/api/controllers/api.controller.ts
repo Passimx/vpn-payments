@@ -22,13 +22,18 @@ import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { CreateAccountDto } from '../dto/requests/create-account.dto';
 import { Envs } from '../../../common/env/envs';
+import { I18nService } from '../../i18n/i18n.service';
+import { EntityManager } from 'typeorm';
+import { UserKeyEntity } from '../../database/entities/user-key.entity';
 
 @Controller()
 @UseGuards(AuthGuard)
 export class ApiController {
   constructor(
     private readonly authService: AuthService,
+    private readonly i18nService: I18nService,
     private readonly transactionsService: TransactionsService,
+    private readonly em: EntityManager,
   ) {}
 
   @Public()
@@ -102,11 +107,17 @@ export class ApiController {
   @Public()
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Get('keys-redirect/:app/:keyId')
-  getHappRedirectByKey(
+  async getHappRedirectByKey(
     @Param('app') app: string,
     @Param('keyId') keyId: string,
     @Res() res: Response,
   ) {
+    const key = await this.em.findOneOrFail(UserKeyEntity, {
+      where: { id: keyId },
+      relations: ['user'],
+    });
+    const lang = key.user.languageCode;
+
     const subUrl = `${Envs.main.appUrl}/keys-info/${keyId}`;
     const targetDeeplink = `${app}://add/${subUrl}`;
     const html = `
@@ -115,7 +126,7 @@ export class ApiController {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Opening INCY...</title>
+        <title>${app}</title>
         <script>
           window.onload = function() {
             window.location.href = "${targetDeeplink}";
@@ -130,10 +141,10 @@ export class ApiController {
         </style>
       </head>
       <body>
-        <p>Перенаправление в приложение INCY...</p>
+        <p>${this.i18nService.t(lang, 't17')}...</p>
         <div id="fallback" style="display:none;">
-          <p>Если приложение не открылось автоматически, нажмите кнопку ниже:</p>
-          <a href="${targetDeeplink}" class="btn">Открыть INCY</a>
+          <p>${this.i18nService.t(lang, 't18')}:</p>
+          <a href="${targetDeeplink}" class="btn">${this.i18nService.t(lang, 'open_app_button')}</a>
         </div>
       </body>
       </html>

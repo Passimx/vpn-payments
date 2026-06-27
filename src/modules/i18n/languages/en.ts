@@ -215,4 +215,6 @@ export default {
     'Phone: 9999999999\n\n' +
     'If you have any questions, please contact <a href="tg://user?id=8604571553">support</a> 🙏',
   t16: 'Subscription link',
+  t17: 'Redirecting to the app',
+  t18: 'If the app did not open automatically, click the button below',
 };

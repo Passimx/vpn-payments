@@ -11,6 +11,7 @@ import { WechatModule } from '../wechat/wechat.module';
 import { TonModule } from '../ton/ton.module';
 import { KeyPurchaseModule } from '../key-purchase/key-purchase.module';
 import { XrayModule } from '../xray/xray.module';
+import { I18nModule } from '../i18n/i18n.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { XrayModule } from '../xray/xray.module';
     TonModule,
     KeyPurchaseModule,
     XrayModule,
+    I18nModule,
   ],
   providers: [AuthService, InvoicesService],
   controllers: [ApiController, InvoicesController],
