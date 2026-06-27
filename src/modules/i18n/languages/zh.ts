@@ -179,7 +179,6 @@ export default {
     '好友注册前90天内，您可以获得其充值金额的 30% 作为奖励。此外，您还将获得他们所邀请成员收益的 30%.\n点击链接即可复制',
   need_to_reply: '回复需要群发的消息',
   delete_key: '删除',
-  add_happ: '⚡ 在 Happ 中添加配置',
   expired_key: '您的订阅已过期 ',
 
   login_from_web: '正在通过 Telegram 登录。\n请返回应用以完成登录。',
@@ -205,6 +204,6 @@ export default {
     '地区 (Region)：巴甫洛达尔 (Pavlodar)\n' +
     '邮编 (Postcode)：101000\n' +
     '电话 (Phone)：9999999999</blockquote>\n\n' +
-    '如有任何疑问，请联系<a href="tg://user?id=3a18c7f2fa6b4b4ab557940684f7b9fc">技术支持</a> 🙏',
+    '如有任何疑问，请联系<a href="tg://user?id=8604571553">技术支持</a> 🙏',
   t16: '订阅链接',
 };

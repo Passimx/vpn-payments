@@ -18,7 +18,6 @@ import { DataResponse } from '../dto/responses/data-response.dto';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
-import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { CreateAccountDto } from '../dto/requests/create-account.dto';
@@ -64,11 +63,6 @@ export class ApiController {
     return this.authService.getServers();
   }
 
-  @Post('change-server')
-  changeServer(@UserId() userId: string, @Body() body: ChangeServerDto) {
-    return this.authService.changeServer(userId, body);
-  }
-
   @Post('change-auto-renew')
   changeAutoRenew(@UserId() userId: string, @Body() body: KeyIdDto) {
     return this.authService.changeAutoRenew(userId, body);
@@ -107,10 +101,14 @@ export class ApiController {
 
   @Public()
   @Header('Content-Type', 'text/html; charset=utf-8')
-  @Get('keys-redirect/key/:keyId')
-  getHappRedirectByKey(@Param('keyId') keyId: string, @Res() res: Response) {
+  @Get('keys-redirect/:app/:keyId')
+  getHappRedirectByKey(
+    @Param('app') app: string,
+    @Param('keyId') keyId: string,
+    @Res() res: Response,
+  ) {
     const subUrl = `${Envs.main.appUrl}/keys-info/${keyId}`;
-    const targetDeeplink = `happ://add/${subUrl}`;
+    const targetDeeplink = `${app}://add/${subUrl}`;
     const html = `
       <!DOCTYPE html>
       <html>

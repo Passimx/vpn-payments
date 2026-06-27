@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager, Not } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -12,7 +12,6 @@ import { TransactionsService } from '../transactions/transactions.service';
 import path from 'node:path';
 import { I18nService } from '../i18n/i18n.service';
 import { XrayService } from '../xray/xray-service';
-import { ServerEntity } from '../database/entities/server.entity';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { AnalyticsService } from './analytics.service';
 import { Archiver } from '@passimx/archiver';
@@ -84,8 +83,6 @@ export class TelegramService {
     this.bot.action(/^BTN_12:([\w-]+)$/, this.onBtn12);
     this.bot.action('BTN_13', this.onBtn13);
     this.bot.action('ON_STARS', this.onPayTelegramStars);
-    this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
-    this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
     this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
     this.bot.action(/^DELETE_KEY:([\w-]+)$/, this.onDeleKey);
     this.bot.action('BTN_BALANCE', this.onBalance);
@@ -624,7 +621,7 @@ export class TelegramService {
 
     const keys = await this.em.find(UserKeyEntity, {
       where: { userId: user.id },
-      relations: ['tariff', 'server'],
+      relations: ['tariff'],
       order: { createdAt: 'DESC' },
     });
 
@@ -1373,84 +1370,6 @@ export class TelegramService {
     await this.askPromoCode(ctx, `RENEW:${keyId}`);
   };
 
-  onMigrateServer = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(logger.error);
-    const user = await this.getUserByCtx(ctx);
-    const keyId = (
-      (ctx.callbackQuery as { data?: string })?.data ?? ''
-    ).replace('MIGRATE_SERVER:', '');
-
-    await this.getUserByCtx(ctx);
-
-    const key = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId },
-    });
-    if (!key) {
-      return ctx
-        .answerCbQuery(this.t(user, 'key_not_found'))
-        .catch(logger.error);
-    }
-    const servers = await this.em.find(ServerEntity, {
-      where: { canCreateKey: true, id: Not(key.serverId), code: Not('white') },
-    });
-
-    const kb = Markup.inlineKeyboard([
-      ...servers.map((server) => [
-        Markup.button.callback(
-          `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)}`,
-          `MSC:${keyId}:${server.code}`,
-        ),
-      ]),
-
-      [this.backToProfileButton(user)],
-    ]);
-
-    await ctx
-      .editMessageText(`${this.t(user, 'select_country')}:`, kb)
-      .catch(logger.error);
-  };
-
-  onMigrateServerCountry = async (ctx: Context) => {
-    const [, keyId, code] = (
-      (ctx.callbackQuery as { data?: string })?.data ?? ''
-    ).split(':');
-    const user = await this.getUserByCtx(ctx);
-    const vpnKey = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId, userId: user.id, protocol: 'xray', status: 'active' },
-      relations: ['server'],
-    });
-    const server = await this.em.findOneOrFail(ServerEntity, {
-      where: { code },
-    });
-
-    if (!vpnKey?.server) {
-      return ctx
-        .answerCbQuery(this.t(user, 'key_not_found'))
-        .catch(logger.error);
-    }
-    await ctx.answerCbQuery(this.t(user, 'processing')).catch(logger.error);
-    const newUri = await this.xrayService.migrateXrayKeyToAnotherServer(
-      vpnKey.id,
-      server.id,
-    );
-    if (!newUri) {
-      return ctx
-        .editMessageText(`❌ ${this.t(user, 'error_try_again_later')}`, {
-          ...Markup.inlineKeyboard([
-            [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
-            [this.backToProfileButton(user)],
-          ]),
-        })
-        .catch(logger.error);
-    }
-
-    await this.showKeyCreatedScreen(
-      ctx,
-      vpnKey.id,
-      this.backToProfileButton(user),
-    );
-  };
-
   onKeyDetails = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
@@ -1508,7 +1427,7 @@ export class TelegramService {
   private findUserKeyWithDetails(userId: string, keyId: string) {
     return this.em.findOne(UserKeyEntity, {
       where: { id: keyId, userId },
-      relations: ['tariff', 'server'],
+      relations: ['tariff'],
     });
   }
 
@@ -1558,24 +1477,27 @@ export class TelegramService {
       ),
     ]);
 
-    if (
-      vpnKey.protocol === 'xray' &&
-      vpnKey.status === 'active' &&
-      !vpnKey.tariff.useCascade
-    ) {
-      buttons.push([
-        Markup.button.callback(
-          `🌍 ${this.t(user, 'change_server')}`,
-          `MIGRATE_SERVER:${vpnKey.id}`,
-        ),
-      ]);
-      buttons.push([
-        Markup.button.url(
-          this.t(user, 'add_happ'),
-          `${Envs.main.appUrl}/keys-redirect/key/${vpnKey.id}`,
-        ) as unknown as ReturnType<typeof Markup.button.callback>,
-      ]);
-    }
+    buttons.push([
+      Markup.button.url(
+        'HAPP',
+        `${Envs.main.appUrl}/keys-redirect/happ/${vpnKey.id}`,
+      ) as unknown as ReturnType<typeof Markup.button.callback>,
+      Markup.button.url(
+        'V2RayTun',
+        `${Envs.main.appUrl}/keys-redirect/v2RayTun/${vpnKey.id}`,
+      ) as unknown as ReturnType<typeof Markup.button.callback>,
+    ]);
+
+    buttons.push([
+      Markup.button.url(
+        this.t(user, 'INCY'),
+        `${Envs.main.appUrl}/keys-redirect/incy/${vpnKey.id}`,
+      ) as unknown as ReturnType<typeof Markup.button.callback>,
+      Markup.button.url(
+        'Hiddify',
+        `${Envs.main.appUrl}/keys-redirect/hiddify/${vpnKey.id}`,
+      ) as unknown as ReturnType<typeof Markup.button.callback>,
+    ]);
 
     if (vpnKey.status === 'expired')
       buttons.push([
@@ -1880,7 +1802,7 @@ export class TelegramService {
   public async sendMessageKeyExpired(keyId: string) {
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['user', 'server'],
+      relations: ['user'],
     });
     const user = key.user;
     if (!user.telegramId) return;
@@ -1902,7 +1824,7 @@ export class TelegramService {
   public async sendMessageKeyTrafficLimitExceeded(keyId: string) {
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['user', 'server'],
+      relations: ['user'],
     });
     const user = key.user;
     if (!user.telegramId) return;
@@ -2049,7 +1971,7 @@ export class TelegramService {
   }
 
   private prepareKeysToButtons(user: UserEntity, keys: UserKeyEntity[]) {
-    return keys.map(({ id, expiresAt, status, server }, index) => {
+    return keys.map(({ id, expiresAt, status }, index) => {
       const expires = new Date(expiresAt).toLocaleDateString('ru-RU', {
         year: 'numeric',
         month: '2-digit',
@@ -2057,7 +1979,7 @@ export class TelegramService {
       });
 
       const labelParts = [
-        `${index + 1}) [${this.t(user, `${server.code}_name`)}]`,
+        `${index + 1})`,
         this.t(user, status),
         `${this.t(user, 'until')}: ${expires}`,
       ];

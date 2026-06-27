@@ -11,7 +11,6 @@ import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { KeyPurchaseService } from '../../key-purchase/key-purchase.service';
 import { ServerEntity } from '../../database/entities/server.entity';
 import { GetServerDto } from '../dto/responses/get-server.dto';
-import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { XrayService } from '../../xray/xray-service';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
@@ -115,20 +114,6 @@ export class AuthService {
       })
       .where({ id: keyId, userId })
       .execute();
-
-    return this.getUser(userId);
-  }
-
-  public async changeServer(
-    userId: string,
-    body: ChangeServerDto,
-  ): Promise<DataResponse<string | UserResponseDto>> {
-    const response = await this.xrayService.migrateXrayKeyToAnotherServer(
-      body.keyId,
-      body.serverId,
-    );
-
-    if (!response) return new DataResponse('error');
 
     return this.getUser(userId);
   }

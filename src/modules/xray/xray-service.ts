@@ -257,58 +257,6 @@ export class XrayService implements OnModuleInit {
     return !!key;
   }
 
-  public async migrateXrayKeyToAnotherServer(
-    keyId: string,
-    serverId: string,
-  ): Promise<string | null> {
-    const keyEntity = await this.em.findOne(UserKeyEntity, {
-      where: {
-        id: keyId,
-        protocol: 'xray',
-        status: 'active',
-      },
-      relations: ['server', 'user'],
-    });
-    if (!keyEntity || !keyEntity.server) return null;
-
-    // const oldServer = keyEntity.server;
-    const newServer = await this.em.findOne(ServerEntity, {
-      where: { id: serverId, canCreateKey: true },
-    });
-
-    if (!newServer) return null;
-
-    // const inboundTagForOldHost = await this.resolveRmuInboundTag(keyEntity);
-
-    const key = await this.createKey(keyId, keyEntity.user, newServer);
-    if (!key) return null;
-
-    await this.em.update(
-      UserKeyEntity,
-      {
-        id: keyId,
-      },
-      {
-        serverId: newServer.id,
-        key,
-      },
-    );
-
-    //Закоментировал на время, чтобы при смене сервера в боте не удалялись ключи
-    // const checkAndDeleteKey = async () => {
-    //   const userKey = await this.em.findOne(UserKeyEntity, {
-    //     where: { id: keyId, serverId: oldServer.id },
-    //   });
-    //   if (!userKey)
-    //     await this.removeKey(oldServer, keyId, inboundTagForOldHost);
-    // };
-    // setTimeout(() => {
-    //   void checkAndDeleteKey();
-    // }, 60 * 1000);
-
-    return key;
-  }
-
   private euCascadeOptsFromServer(
     eu: ServerEntity,
   ): CreateXrayKeyOptions | null {
