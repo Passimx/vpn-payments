@@ -187,10 +187,7 @@ export default {
     "Earn 30% from your friends' top-ups during their first 90 days, plus 30% of the earnings of everyone they invite\nTap the link to copy it",
   need_to_reply: 'Reply to the message that needs to be sent',
   delete_key: 'Delete key',
-  subscription_link_happ: 'Subscription link (INCY)',
-  instruction_happ_auto:
-    'If you have INCY installed, tap the button below — the app will open and configure everything automatically.',
-  add_happ: '⚡ Add configuration in INCY',
+  add_happ: '⚡ Add configuration in Happ',
   expired_key: 'Subscription expired ',
 
   login_from_web:
@@ -200,4 +197,23 @@ export default {
   t10: '$',
   t11: 'usd',
   t12: 'Click-throughs',
+  t13: 'Select device',
+  t14: 'If the app is not available in the App Store',
+  t15:
+    'Instructions for changing the region\n\n' +
+    '• Settings → Apple ID\n' +
+    '• Media & Purchases\n' +
+    '• Country/Region\n' +
+    '• Change Country or Region\n' +
+    '• Select the desired country and save the changes (e.g., Kazakhstan)\n' +
+    '• If you are prompted for a payment method, select "None".\n' +
+    '• Enter any name, address, and phone number. These details are a formality and are not verified\n\n' +
+    'Payment method: None\n' +
+    'Street: Nur-Sultan\n' +
+    'City/Town: Nur-Sultan\n' +
+    'Region: Pavlodar\n' +
+    'Postcode: 101000\n' +
+    'Phone: 9999999999\n\n' +
+    'If you have any questions, please contact support 🙏',
+  t16: 'Subscription link',
 };

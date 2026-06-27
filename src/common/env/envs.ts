@@ -7,6 +7,7 @@ export const Envs = {
   main: {
     appPort: Number(process.env.APP_PORT ?? 2000),
     jwtSecret: String(process.env.JWT_SECRET),
+    appUrl: 'https://passimx.com/8721280199',
   },
   database: {
     host: process.env.PG_HOST,

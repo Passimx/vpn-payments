@@ -22,6 +22,7 @@ import { ChangeServerDto } from '../dto/requests/change-server.dto';
 import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { CreateAccountDto } from '../dto/requests/create-account.dto';
+import { Envs } from '../../../common/env/envs';
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -108,8 +109,8 @@ export class ApiController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Get('keys-redirect/key/:keyId')
   getHappRedirectByKey(@Param('keyId') keyId: string, @Res() res: Response) {
-    const subUrl = `https://passimx.com/8721280199/keys-info/${keyId}`;
-    const targetDeeplink = `incy://add/${subUrl}`;
+    const subUrl = `${Envs.main.appUrl}/keys-info/${keyId}`;
+    const targetDeeplink = `happ://add/${subUrl}`;
     const html = `
       <!DOCTYPE html>
       <html>

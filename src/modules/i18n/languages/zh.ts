@@ -179,10 +179,7 @@ export default {
     '好友注册前90天内，您可以获得其充值金额的 30% 作为奖励。此外，您还将获得他们所邀请成员收益的 30%.\n点击链接即可复制',
   need_to_reply: '回复需要群发的消息',
   delete_key: '删除',
-  subscription_link_happ: '订阅链接（INCY）',
-  instruction_happ_auto:
-    '如果已安装 INCY，请点击下方按钮，应用将自动打开并完成配置。',
-  add_happ: '⚡ 在 INCY 中添加配置',
+  add_happ: '⚡ 在 Happ 中添加配置',
   expired_key: '您的订阅已过期 ',
 
   login_from_web: '正在通过 Telegram 登录。\n请返回应用以完成登录。',
@@ -191,4 +188,23 @@ export default {
   t10: '¥',
   t11: 'cny',
   t12: '点击量',
+  t13: '选择设备',
+  t14: '如果应用在 App Store 中不可用',
+  t15:
+    '更改地区指南\n\n' +
+    '<blockquote>• 设置 → Apple ID\n' +
+    '• 媒体与购买项目\n' +
+    '• 国家/地区\n' +
+    '• 更改国家或地区\n' +
+    '• 选择所需国家并保存更改（例如：哈萨克斯坦）\n' +
+    '• 如果系统提示选择付款方式，请选择“无”。\n' +
+    '• 填写任意姓名、地址和电话，这些信息仅为形式，不会进行验证\n\n' +
+    '付款方式：None\n' +
+    '街道 (Street)：努尔苏丹 (Nur-Sultan)\n' +
+    '城市 (City/Town)：努尔苏丹 (Nur-Sultan)\n' +
+    '地区 (Region)：巴甫洛达尔 (Pavlodar)\n' +
+    '邮编 (Postcode)：101000\n' +
+    '电话 (Phone)：9999999999</blockquote>\n\n' +
+    '如有任何疑问，请联系<a href="tg://user?id=3a18c7f2fa6b4b4ab557940684f7b9fc">技术支持</a> 🙏',
+  t16: '订阅链接',
 };

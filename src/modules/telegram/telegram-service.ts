@@ -24,6 +24,7 @@ import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { ResendMessageType } from './types/resend-message.type';
 import { TonService } from '../ton/ton.service';
 import { AppWalletEnum } from '../ton/enums/app-wallet.enum';
+import { DownloadLinksType, KeyEnum } from './types/download-links.type';
 
 let resendMessageData: ResendMessageType | undefined;
 
@@ -80,6 +81,8 @@ export class TelegramService {
     this.bot.action('BTN_8', this.onBtn8);
     this.bot.action('BTN_9', this.onBtn9);
     this.bot.action('BTN_11', this.onBtn11);
+    this.bot.action(/^BTN_12:([\w-]+)$/, this.onBtn12);
+    this.bot.action('BTN_13', this.onBtn13);
     this.bot.action('ON_STARS', this.onPayTelegramStars);
     this.bot.action(/^MIGRATE_SERVER:([\w-]+)$/, this.onMigrateServer);
     this.bot.action(/^MSC:.+$/, this.onMigrateServerCountry);
@@ -198,13 +201,20 @@ export class TelegramService {
   private backToTariffsButton = (user: UserEntity) =>
     Markup.button.callback(`⬅️ ${this.t(user, 'to_the_tariffs')}`, 'BTN_9');
 
-  private readonly downloadLinks = {
-    mac: 'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_macos.pkg',
-    windows:
-      'https://github.com/amnezia-vpn/amnezia-client/releases/download/4.8.12.9/AmneziaVPN_4.8.12.9_x64.exe',
-    android:
-      'https://play.google.com/store/apps/details?id=org.amnezia.vpn&utm_source=amnezia.org&utm_campaign=organic&utm_medium=referral',
-    ios: 'https://apps.apple.com/ru/app/defaultvpn/id6744725017',
+  private readonly downloadLinks: DownloadLinksType = {
+    ios: {
+      happ: 'https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973',
+      hiddify: 'https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532',
+      incy: 'https://apps.apple.com/us/app/incy/id6756943388',
+      v2RayTun: 'https://apps.apple.com/kz/app/v2raytun/id6476628951',
+    },
+    android: {
+      happ: 'https://play.google.com/store/apps/details?id=com.happproxy',
+      hiddify: 'https://play.google.com/store/search?q=hiddify&c=apps&hl=en',
+      incy: 'https://play.google.com/store/apps/details?id=llc.itdev.incy',
+      v2RayTun:
+        'https://play.google.com/store/apps/details?id=com.v2raytun.android',
+    },
   };
 
   onStart = async (ctx: Context) => {
@@ -390,7 +400,7 @@ export class TelegramService {
         [Markup.button.callback('🇺🇲 English', 'ON_SET_LANGUAGE:en')],
         [Markup.button.callback('🇨🇳 中文', 'ON_SET_LANGUAGE:zh')],
         [Markup.button.callback('🇷🇺 Русский', 'ON_SET_LANGUAGE:ru')],
-        [this.backToProfileButton(user)],
+        [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_2')],
       ]),
     );
   };
@@ -540,21 +550,57 @@ export class TelegramService {
       .catch(logger.error);
   };
 
+  onBtn13 = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
+    const user = await this.getUserByCtx(ctx);
+
+    await ctx.editMessageText(this.t(user, 't15'), {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_4')],
+      ]),
+    });
+  };
+
+  onBtn12 = async (ctx: Context) => {
+    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
+    const key = data.replace('BTN_12:', '') as keyof DownloadLinksType;
+
+    ctx.answerCbQuery().catch(logger.error);
+    const user = await this.getUserByCtx(ctx);
+    await ctx.editMessageText(`📲 ${this.t(user, 'app_links')}`, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.url('HAPP', this.downloadLinks[key].happ),
+          Markup.button.url('Hiddify', this.downloadLinks[key].hiddify),
+        ],
+        [
+          Markup.button.url('v2RayTun', this.downloadLinks[key].v2RayTun),
+          Markup.button.url('INCY', this.downloadLinks[key].incy),
+        ],
+        key === KeyEnum.IOS
+          ? [Markup.button.callback(this.t(user, 't14'), 'BTN_13')]
+          : [],
+        [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_4')],
+      ]),
+    });
+  };
+
   onBtn4 = async (ctx: Context) => {
     ctx.answerCbQuery().catch(logger.error);
     const user = await this.getUserByCtx(ctx);
-    const instructionText = `📲 <b>${this.t(user, 'app_links')}:</b>`;
     await ctx
-      .editMessageText(instructionText, {
+      .editMessageText(`${this.t(user, 't13')}:`, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.url('📱 Android', this.downloadLinks.android),
-            Markup.button.url('🍎 iOS', this.downloadLinks.ios),
+            Markup.button.callback('📱 Android', `BTN_12:${KeyEnum.ANDROID}`),
+            Markup.button.callback('🍎 iOS', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
-            Markup.button.url('💻 Windows', this.downloadLinks.windows),
-            Markup.button.url('🍏 Mac', this.downloadLinks.mac),
+            Markup.button.callback('💻 Windows', `BTN_12:${KeyEnum.ANDROID}`),
+            Markup.button.callback('🍏 Mac', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
             Markup.button.callback(
@@ -1106,54 +1152,29 @@ export class TelegramService {
 
   private async showKeyCreatedScreen(
     ctx: Context,
-    uri: string,
     keyId: string,
     backButton: ReturnType<typeof Markup.button.callback>,
   ): Promise<void> {
     const user = await this.getUserByCtx(ctx);
-    const vpnKey = await this.em.findOne(UserKeyEntity, {
-      where: { id: keyId },
-      relations: ['tariff'],
-    });
-    const showHapp = !vpnKey?.tariff?.useCascade;
 
-    const subLink = `https://passimx.com/8721280199/keys-info/${keyId}`;
-    let text =
+    const subLink = `${Envs.main.appUrl}/keys-info/${keyId}`;
+    const text =
       `✅ <b>${this.t(user, 'key_created')}</b>\n\n` +
       `<b>📋 ${this.t(user, 'click_to_copy_key')}:</b>\n` +
-      `<code>${uri}</code>\n\n` +
+      `<code>${subLink}</code>\n\n` +
       `${this.t(user, 'instruction_how_to_use_key')}.`;
-
-    if (showHapp) {
-      text +=
-        `\n\n🔗 <b>${this.t(user, 'subscription_link_happ')}:</b>\n` +
-        `<code>${subLink}</code>\n\n` +
-        `${this.t(user, 'instruction_happ_auto')}`;
-    }
-
-    const happRow = showHapp
-      ? [
-          [
-            Markup.button.url(
-              this.t(user, 'add_happ'),
-              `https://passimx.com/8721280199/keys-redirect/key/${keyId}`,
-            ),
-          ],
-        ]
-      : [];
 
     await ctx
       .editMessageText(text, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          ...happRow,
           [
-            Markup.button.url('📱 Android', this.downloadLinks.android),
-            Markup.button.url('🍎 iOS', this.downloadLinks.ios),
+            Markup.button.callback('📱 Android', `BTN_12:${KeyEnum.ANDROID}`),
+            Markup.button.callback('🍎 iOS', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
-            Markup.button.url('💻 Windows', this.downloadLinks.windows),
-            Markup.button.url('🍏 Mac', this.downloadLinks.mac),
+            Markup.button.callback('💻 Windows', `BTN_12:${KeyEnum.ANDROID}`),
+            Markup.button.callback('🍏 Mac', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
             Markup.button.callback(
@@ -1304,7 +1325,6 @@ export class TelegramService {
       if (typeof result.data !== 'string')
         await this.showKeyCreatedScreen(
           ctx,
-          result.data.uri,
           result.data.keyId,
           this.backToProfileButton(user),
         );
@@ -1426,7 +1446,6 @@ export class TelegramService {
 
     await this.showKeyCreatedScreen(
       ctx,
-      newUri,
       vpnKey.id,
       this.backToProfileButton(user),
     );
@@ -1498,13 +1517,6 @@ export class TelegramService {
     user: UserEntity,
     vpnKey: UserKeyEntity,
   ) {
-    const created =
-      vpnKey.createdAt &&
-      new Date(vpnKey.createdAt).toLocaleDateString('ru-RU', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
     const expires =
       vpnKey.expiresAt &&
       new Date(vpnKey.expiresAt).toLocaleDateString('ru-RU', {
@@ -1522,13 +1534,11 @@ export class TelegramService {
       `🔑 <b>${this.t(user, 'my_keys')}</b>\n`,
       `<b>ID:</b> ${vpnKey.id}`,
       `<b>${this.t(user, 'status')}:</b> ${this.t(user, vpnKey.status)}`,
-      created ? `<b>${this.t(user, 'start_date')}:</b> ${created}` : '',
       expires ? `<b>${this.t(user, 'until')}:</b> ${expires}` : '',
       `<b>${this.t(user, 'auto_renew')}:</b> ${vpnKey.autoRenewEnabled ? this.t(user, 'enabled') : this.t(user, 'disabled')}`,
       trafficLine,
-      `<b>${this.t(user, 'country')}:</b> ${this.t(user, `${vpnKey.server.code}_name`)}`,
-      `<b>${this.t(user, 'key')}:</b> `,
-      `<code>${vpnKey.key}</code>`,
+      `<b>${this.t(user, 't16')}:</b>\n`,
+      `<code>${Envs.main.appUrl}/keys-info/${vpnKey.id}</code>`,
     ].filter(Boolean);
 
     const buttons: ReturnType<typeof Markup.button.callback>[][] = [];
@@ -1562,7 +1572,7 @@ export class TelegramService {
       buttons.push([
         Markup.button.url(
           this.t(user, 'add_happ'),
-          `https://passimx.com/8721280199/keys-redirect/key/${vpnKey.id}`,
+          `${Envs.main.appUrl}/keys-redirect/key/${vpnKey.id}`,
         ) as unknown as ReturnType<typeof Markup.button.callback>,
       ]);
     }
