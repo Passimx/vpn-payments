@@ -1507,7 +1507,9 @@ export class TelegramService {
         ),
       ]);
 
-    buttons.push([this.backToProfileButton(user)]);
+    buttons.push([
+      Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_5'),
+    ]);
 
     await ctx
       .editMessageText(lines.join('\n'), {
