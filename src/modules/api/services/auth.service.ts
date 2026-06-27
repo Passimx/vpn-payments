@@ -178,10 +178,8 @@ export class AuthService {
       title += result;
     } else title += ` (${this.keyPurchaseService.t(key.user, 'expired_key')})`;
 
-    title += '\n';
-
     const body =
-      `#profile-title: ${title}` +
+      `#profile-title: ${title}\n` +
       '#profile-update-interval: 12\n' +
       '#subscription-auto-update-enable: 1\n' +
       uris;
