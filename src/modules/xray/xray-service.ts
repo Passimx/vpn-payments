@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   forwardRef,
   Inject,
@@ -7,10 +8,10 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import {
+  DataSource,
   EntityManager,
   IsNull,
   LessThanOrEqual,
-  MoreThanOrEqual,
   Not,
 } from 'typeorm';
 import { ServerEntity } from '../database/entities/server.entity';
@@ -23,12 +24,7 @@ import { TariffEntity } from '../database/entities/tariff.entity';
 import { KeyTrafficType, TrafficType } from './types/user-traffic.type';
 import { logger } from '../../common/logger/logger';
 import { CreateServerDto } from './dto/create-server.dto';
-import {
-  CreateServerResult,
-  PatchServerKeysResult,
-} from './types/patch-server-keys-result.type';
-
-type CreateXrayKeyOptions = { inboundTag?: string; linkPort?: number };
+import { CreateXrayKeyOptions } from './types/create-xray-key-options.type';
 
 const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
@@ -52,6 +48,7 @@ export class XrayService implements OnModuleInit {
     private readonly telegramService: TelegramService,
     private readonly i18nService: I18nService,
     private readonly em: EntityManager,
+    private readonly dataSource: DataSource,
   ) {}
 
   async onModuleInit() {
@@ -102,159 +99,95 @@ export class XrayService implements OnModuleInit {
     return data;
   }
 
-  private formatVlessUri(
-    id: string,
-    server: ServerEntity,
-    user: UserEntity,
-    publicKey: string,
-    sni: string,
-    port: string,
-    shortId: string,
-  ): string {
-    const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)} ID ${id.slice(0, 4)}...${id.slice(-4)}`;
-    return `vless://${id}@${server.host}:${port}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
-  }
-
   public async createXrayKey(
     user: UserEntity,
-    tariffId: string,
-    options?: CreateXrayKeyOptions,
-  ) {
+    tariff: TariffEntity,
+    manager: EntityManager,
+  ): Promise<UserKeyEntity | undefined> {
     try {
-      const tariff = await this.em.findOneOrFail(TariffEntity, {
-        where: { id: tariffId },
-      });
-
       let cascadeToServerId: string | null = null;
-      let server: ServerEntity | null;
-      let keyOpts = options;
+      const uuid = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
       if (tariff.useCascade) {
-        server = await this.em.findOne(ServerEntity, {
-          where: { code: 'white' },
-        });
-        if (!server) {
-          logger.error(`Первый сервер(российский) не был найден`);
-          return;
-        }
         const eu = await this.getServer();
         if (!eu) {
           logger.error('Второй сервер для каскадного соединения не был найден');
           return;
         }
-        if (keyOpts === undefined) {
-          const fromEu = this.euCascadeOptsFromServer(eu);
-          if (!fromEu) {
-            logger.error(
-              `Каскад: у EU-сервера (${eu.code}) в servers задайте forCascadeInboundTag и port`,
-            );
-            return;
-          }
-          keyOpts = fromEu;
-        }
         cascadeToServerId = eu.id;
-      } else {
-        server = await this.getServer();
-        if (!server) return;
       }
 
-      const uuid = crypto.randomUUID();
-      const key = await this.createKey(uuid, user, server, keyOpts);
-      if (!key) return;
-
-      if (!tariff.useCascade) {
-        const allServers = await this.em.find(ServerEntity, {
-          where: { canCreateKey: true, code: Not('white') },
-        });
-        const otherServers = allServers.filter((s) => s.id !== server.id);
-        await Promise.allSettled(
-          otherServers.map((s) => this.createKey(uuid, user, s)),
-        );
-      }
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
-
-      return {
+      const key = {
         id: uuid,
         userId: user.id,
-        serverId: server.id,
-        countTrafficLimit: tariff.trafficLimit ?? null,
-        key,
+        countTrafficLimit: tariff.trafficLimit,
         protocol: 'xray',
-        tariffId,
-        createdAt: new Date(),
+        tariffId: tariff.id,
         expiresAt,
-        status: 'active',
         cascadeToServerId,
       } as UserKeyEntity;
+
+      await manager.insert(UserKeyEntity, key);
+
+      const servers = await this.getServersByKey(uuid, manager);
+
+      for (const server of servers) {
+        const result = await this.createKey(key, server);
+        if (!result)
+          throw new BadRequestException(`Unable to create key: ${server.id}`);
+      }
+
+      return key;
     } catch (error) {
       console.error(error);
-      return undefined;
+      return;
     }
   }
 
-  public async deleteXrayKey(keyEntity: UserKeyEntity) {
+  public async deleteXrayKey(
+    keyEntity: UserKeyEntity,
+    manager: EntityManager = this.em,
+  ) {
     const keyId = keyEntity.id;
+    let inboundTag: string;
 
-    if (keyEntity.cascadeToServerId) {
-      const inboundTag = await this.resolveRmuInboundTag(keyEntity);
-      const removed = await this.removeKey(keyEntity.server, keyId, inboundTag);
-      if (!removed) return;
-    } else {
-      const servers = await this.em.find(ServerEntity);
-      await Promise.allSettled(
-        servers.map((s) => this.removeKey(s, keyId, 'vless-in')),
-      );
+    if (keyEntity.cascadeToServerId)
+      inboundTag = await this.resolveRmuInboundTag(keyEntity);
+    else inboundTag = 'vless-in';
+
+    const servers = await this.getServersByKey(keyId);
+
+    for (const server of servers) {
+      const removed = await this.removeKey(keyId, server, inboundTag);
+      if (!removed) return false;
     }
 
-    await this.em.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
+    await manager.update(UserKeyEntity, { id: keyId }, { status: 'expired' });
     return true;
   }
 
-  public async reactivateXrayKey(keyId: string): Promise<boolean> {
-    const keyEntity = await this.em.findOne(UserKeyEntity, {
+  public async reactivateXrayKey(
+    keyId: string,
+    manager: EntityManager = this.em,
+  ): Promise<boolean> {
+    let result = true;
+    const keyEntity = await manager.findOne(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['server', 'user', 'cascadeToServer'],
+      relations: ['user', 'cascadeToServer'],
     });
-    if (!keyEntity || !keyEntity.server) return false;
 
-    if (!keyEntity.cascadeToServerId) {
-      const servers = await this.em.find(ServerEntity, {
-        where: { canCreateKey: true, code: Not('white') },
-      });
-      const results = await Promise.allSettled(
-        servers.map((s) => this.createKey(keyId, keyEntity.user, s)),
-      );
-      return results.some((r) => r.status === 'fulfilled' && r.value !== null);
+    if (!keyEntity) return false;
+
+    const servers = await this.getServersByKey(keyId);
+
+    for (const server of servers) {
+      const isCreated = await this.createKey(keyEntity, server);
+      if (!isCreated) result = false;
     }
 
-    let keyOpts: CreateXrayKeyOptions | undefined;
-    if (keyEntity.cascadeToServerId) {
-      const eu = await this.getCascadeEuServer(keyEntity);
-      if (!eu) {
-        logger.error(
-          `[reactivateXrayKey] ключ ${keyId}: не найден EU (cascade_to_server_id)`,
-        );
-        return false;
-      }
-      const fromEu = this.euCascadeOptsFromServer(eu);
-      if (!fromEu) {
-        logger.error(
-          `[reactivateXrayKey] ключ ${keyId}: у EU (${eu.code}) задайте forCascadeInboundTag и port`,
-        );
-        return false;
-      }
-      keyOpts = fromEu;
-    }
-
-    const key = await this.createKey(
-      keyId,
-      keyEntity.user,
-      keyEntity.server,
-      keyOpts,
-    );
-    return !!key;
+    return result;
   }
 
   private euCascadeOptsFromServer(
@@ -321,7 +254,7 @@ export class XrayService implements OnModuleInit {
         status: 'active',
         expiresAt: LessThanOrEqual(now),
       },
-      relations: ['server', 'user', 'cascadeToServer'],
+      relations: ['user', 'cascadeToServer'],
     });
 
     for (const key of expiredKeys) {
@@ -346,7 +279,6 @@ export class XrayService implements OnModuleInit {
   public async checkPremiumTrafficLimitExceeded(): Promise<void> {
     const keys = await this.em
       .createQueryBuilder(UserKeyEntity, 'k')
-      .innerJoinAndSelect('k.server', 'server')
       .leftJoinAndSelect('k.cascadeToServer', 'cascadeToServer')
       .where(
         'k.protocol = :p AND k.status = :st AND k.countTrafficLimit IS NOT NULL',
@@ -412,116 +344,62 @@ export class XrayService implements OnModuleInit {
     return `${toGb(usedBytes)} Gb / ${toGb(key.countTrafficLimit)} Gb (осталось ${toGb(leftBytes)} Gb)`;
   }
 
-  public async syncActiveKeys(serverId?: string): Promise<number> {
-    const now = new Date();
-
-    const activeKeys = await this.em.find(UserKeyEntity, {
+  public async patchActiveKeysToServer(
+    server: ServerEntity,
+    manager: EntityManager = this.em,
+  ) {
+    const keys = await manager.find(UserKeyEntity, {
       where: {
         protocol: 'xray',
         status: 'active',
-        expiresAt: MoreThanOrEqual(now),
-        serverId: serverId ? serverId : undefined,
+        cascadeToServerId: server.code === 'white' ? Not(IsNull()) : IsNull(),
       },
-    });
-
-    let successCount = 0;
-
-    for (const key of activeKeys) {
-      try {
-        const ok = await this.reactivateXrayKey(key.id);
-        if (ok) successCount += 1;
-      } catch (e) {
-        console.error('Ошибка при восстановлении ключа', key.id, e);
-      }
-    }
-
-    return successCount;
-  }
-
-  public async patchActiveKeysToServer(
-    serverId: string,
-  ): Promise<PatchServerKeysResult> {
-    const server = await this.em.findOne(ServerEntity, {
-      where: { id: serverId },
-    });
-    if (!server) {
-      throw new NotFoundException(`Server ${serverId} not found`);
-    }
-
-    const keys = await this.em.find(UserKeyEntity, {
-      where: { protocol: 'xray', status: 'active' },
       relations: ['user'],
     });
-    const nonCascadeKeys = keys.filter((k) => !k.cascadeToServerId);
 
-    let ok = 0;
-    let fail = 0;
-
-    for (const key of nonCascadeKeys) {
-      if (!key.user) {
-        fail++;
-        continue;
-      }
-
-      const uri = await this.createKey(key.id, key.user, server);
-      if (uri) {
-        ok++;
-        logger.info(
-          `[patchActiveKeysToServer] ✅ key ${key.id.slice(0, 8)} → ${server.code}`,
-        );
-      } else {
-        fail++;
-        logger.error(
-          `[patchActiveKeysToServer] ❌ key ${key.id.slice(0, 8)} → ${server.code}`,
-        );
-      }
+    for (const key of keys) {
+      const result = await this.createKey(key, server);
+      if (!result) throw new NotFoundException(`Server ${server.id} not found`);
     }
-
-    return {
-      serverId: server.id,
-      serverCode: server.code,
-      keysTotal: nonCascadeKeys.length,
-      ok,
-      fail,
-    };
   }
 
-  public async createServer(dto: CreateServerDto): Promise<CreateServerResult> {
-    const existing = await this.em.findOne(ServerEntity, {
-      where: [{ code: dto.code }, { host: dto.host }],
-    });
-    if (existing) {
-      throw new ConflictException(
-        'Server with this code or host already exists',
+  public async createServer(dto: CreateServerDto) {
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+    const manager = qr.manager;
+
+    try {
+      const existing = await manager.findOne(ServerEntity, {
+        where: [{ code: dto.code }, { host: dto.host }],
+      });
+      if (existing)
+        throw new ConflictException(
+          'Server with this code or host already exists',
+        );
+
+      const server = await manager.save(
+        manager.create(ServerEntity, {
+          host: dto.host,
+          code: dto.code,
+          canDefaultCreateKey: dto.canDefaultCreateKey ?? false,
+          canCreateKey: dto.canCreateKey ?? false,
+          port: dto.port ?? null,
+          forCascadeInboundTag: dto.forCascadeInboundTag ?? null,
+        }),
       );
+
+      await this.warmServerParamsCache(server);
+      await this.patchActiveKeysToServer(server, manager);
+
+      return server;
+    } catch (e) {
+      await qr.rollbackTransaction();
+      console.error(e);
+      return null;
+    } finally {
+      await qr.release();
     }
-
-    const server = await this.em.save(
-      this.em.create(ServerEntity, {
-        host: dto.host,
-        code: dto.code,
-        canDefaultCreateKey: dto.canDefaultCreateKey ?? false,
-        canCreateKey: dto.canCreateKey ?? false,
-        port: dto.port ?? null,
-        forCascadeInboundTag: dto.forCascadeInboundTag ?? null,
-      }),
-    );
-
-    await this.warmServerParamsCache(server);
-    const patch = await this.patchActiveKeysToServer(server.id);
-
-    return {
-      server: {
-        id: server.id,
-        host: server.host,
-        code: server.code,
-        canDefaultCreateKey: server.canDefaultCreateKey,
-        canCreateKey: server.canCreateKey,
-        port: server.port,
-        forCascadeInboundTag: server.forCascadeInboundTag,
-      },
-      patch,
-    };
   }
 
   public async getStats(
@@ -578,8 +456,8 @@ export class XrayService implements OnModuleInit {
   }
 
   private async removeKey(
-    server: ServerEntity,
     id: string,
+    server: ServerEntity,
     inboundTag: string,
   ): Promise<boolean> {
     const commands = [
@@ -587,47 +465,69 @@ export class XrayService implements OnModuleInit {
       `rm -R /xray/data/users/${id}.json`,
     ];
 
-    const payload = await this.runCommands(server, commands);
-    return !!payload;
+    const result = await this.runCommands(server, commands);
+
+    return !!result;
   }
 
   public async buildSubscriptionUri(
     keyId: string,
-    server: ServerEntity,
     user: UserEntity,
   ): Promise<string | null> {
-    const data = await this.getServerParams(server);
-    if (!data) return null;
-    const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
-    if (!/^\d+$/.test(defaultPort)) return null;
-    return this.formatVlessUri(
-      keyId,
-      server,
-      user,
-      publicKey,
-      sni,
-      defaultPort,
-      shortId,
-    );
+    const servers = await this.getServersByKey(keyId);
+    const keys: string[] = [];
+
+    for (const server of servers) {
+      const data = await this.getServerParams(server);
+      if (!data) break;
+
+      const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
+      if (!/^\d+$/.test(defaultPort)) break;
+
+      const keyName = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)}`;
+      const key = `vless://${keyId}@${server.host}:${defaultPort}?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision#${encodeURIComponent(keyName)}`;
+      keys.push(key);
+    }
+
+    return keys.join('\n');
   }
 
   private async createKey(
-    id: string,
-    user: UserEntity,
+    keyEntity: UserKeyEntity,
     server: ServerEntity,
-    options?: CreateXrayKeyOptions,
-  ): Promise<string | null> {
+  ): Promise<boolean> {
+    let options: CreateXrayKeyOptions | undefined;
+    if (keyEntity.cascadeToServerId) {
+      const eu = await this.getCascadeEuServer(keyEntity);
+      if (!eu) {
+        logger.error(
+          `[reactivateXrayKey] ключ ${keyEntity.id}: не найден EU (cascade_to_server_id)`,
+        );
+        return false;
+      }
+      const fromEu = this.euCascadeOptsFromServer(eu);
+      if (!fromEu) {
+        logger.error(
+          `[reactivateXrayKey] ключ ${keyEntity.id}: у EU (${eu.code}) задайте forCascadeInboundTag и port`,
+        );
+        return false;
+      }
+      options = fromEu;
+    }
+
     const data = await this.fetchServerParams(server);
-    if (!data) return null;
-    const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
+    if (!data) return false;
+
+    const defaultPort = data.map((v) => v.trim())[2];
 
     const inboundTag = options?.inboundTag ?? 'vless-in';
     if (!VALID_INBOUND_TAG_RE.test(inboundTag)) {
       logger.error(`[createKey] недопустимый inboundTag "${inboundTag}"`);
-      return null;
+      return false;
     }
+    const id = keyEntity.id;
     const port = String(options?.linkPort ?? defaultPort).trim();
-    if (!/^\d+$/.test(port)) return null;
+    if (!/^\d+$/.test(port)) return false;
 
     const commands = [
       `mkdir -p /xray/data/users`,
@@ -635,8 +535,8 @@ export class XrayService implements OnModuleInit {
       `xray api adu --server=127.0.0.1:10085 /xray/data/users/${id}.json`,
     ];
     const result = await this.runCommands(server, commands);
-    if (!result) return null;
-    return this.formatVlessUri(id, server, user, publicKey, sni, port, shortId);
+
+    return !!result;
   }
 
   private async runCommands(
@@ -663,6 +563,23 @@ export class XrayService implements OnModuleInit {
       return null;
     }
     return (await res.json()) as string[];
+  }
+
+  private async getServersByKey(
+    keyId: string,
+    manager: EntityManager = this.em,
+  ): Promise<ServerEntity[]> {
+    const key = await manager.findOne(UserKeyEntity, { where: { id: keyId } });
+    if (!key) return [];
+
+    if (key.cascadeToServer)
+      return manager.find(ServerEntity, {
+        where: { canCreateKey: true, code: 'white' },
+      });
+
+    return manager.find(ServerEntity, {
+      where: { canCreateKey: true, code: Not('white') },
+    });
   }
 
   private t(ctx: UserEntity | string, key: string) {

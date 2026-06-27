@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { CreateServerDto } from './dto/create-server.dto';
 import { XrayService } from './xray-service';
 
@@ -9,16 +9,5 @@ export class XrayController {
   @Post('servers')
   createServer(@Body() body: CreateServerDto) {
     return this.xrayService.createServer(body);
-  }
-
-  @Post('servers/:serverId/patch-keys')
-  patchServerKeys(@Param('serverId') serverId: string) {
-    return this.xrayService.patchActiveKeysToServer(serverId);
-  }
-
-  @Post('backup-keys')
-  async syncXrayKeys(@Query('serverId') serverId?: string) {
-    const synced = await this.xrayService.syncActiveKeys(serverId);
-    return { synced };
   }
 }

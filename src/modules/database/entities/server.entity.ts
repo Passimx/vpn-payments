@@ -24,9 +24,6 @@ export class ServerEntity {
   @Column({ name: 'for_cascade_inbound_tag', type: 'varchar', nullable: true })
   readonly forCascadeInboundTag: string | null;
 
-  @OneToMany(() => UserKeyEntity, (userKeyEntity) => userKeyEntity.server)
-  readonly keys: UserKeyEntity[];
-
   @OneToMany(
     () => UserKeyEntity,
     (userKeyEntity) => userKeyEntity.cascadeToServer,

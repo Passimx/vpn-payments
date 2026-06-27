@@ -5,17 +5,11 @@ import { BalanceAccount } from '../../../database/entities/balance-account.entit
 export class UserKeyDto {
   readonly id: string;
 
-  readonly key: string;
-
   readonly expiresAt: Date;
 
   readonly createdAt: Date;
 
   readonly status: string;
-
-  readonly serverCode: string;
-
-  readonly serverId: string;
 
   readonly autoRenewEnabled: boolean;
 
@@ -30,12 +24,9 @@ export class UserKeyDto {
   public static getFromUserKey(key: UserKeyEntity) {
     return new UserKeyDto({
       id: key.id,
-      key: key.key,
       expiresAt: key.expiresAt,
       createdAt: key.createdAt,
       status: key.status,
-      serverCode: key.server.code,
-      serverId: key.server.id,
       autoRenewEnabled: key.autoRenewEnabled,
       countTrafficLimit: key.countTrafficLimit,
       countTrafficUsed: key.countTrafficUsed,

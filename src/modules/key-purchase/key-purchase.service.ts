@@ -88,16 +88,16 @@ export class KeyPurchaseService {
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
       let createdKeyId: string;
-      let vpnUri: string;
 
       if (protocol === 'xray') {
-        const amKey = await this.xrayService.createXrayKey(user, tariff.id);
+        const amKey = await this.xrayService.createXrayKey(
+          user,
+          tariff,
+          manager,
+        );
         if (!amKey) throw new BadRequestException('Invalid Xray key');
 
         createdKeyId = amKey.id;
-        vpnUri = amKey.key;
-
-        await manager.insert(UserKeyEntity, amKey);
       } else {
         const username = crypto.randomUUID().replace(/-/g, '');
 
@@ -113,12 +113,10 @@ export class KeyPurchaseService {
         if (!uriResult.success || !uriResult.uri)
           return new DataResponse('error');
 
-        vpnUri = uriResult.uri;
         createdKeyId = crypto.randomUUID().replace(/-/g, '');
 
         await manager.insert(UserKeyEntity, {
           id: createdKeyId,
-          key: vpnUri,
           protocol: 'hysteria',
           userId: user.id,
           tariffId: tariff.id,
@@ -142,7 +140,7 @@ export class KeyPurchaseService {
 
       await qr.commitTransaction();
 
-      return new DataResponse({ uri: vpnUri, keyId: createdKeyId });
+      return new DataResponse({ keyId: createdKeyId });
     } catch (e) {
       await qr.rollbackTransaction();
       const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -214,23 +212,31 @@ export class KeyPurchaseService {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
+    const manager = qr.manager;
+
+    const returnFunc = async (
+      payload: DataResponse<string | PriceWithPromoResult>,
+    ) => {
+      await qr.rollbackTransaction();
+      return payload;
+    };
 
     try {
-      const user = await qr.manager.findOneOrFail(UserEntity, {
+      const user = await manager.findOneOrFail(UserEntity, {
         where: { id: userId },
         lock: { mode: 'pessimistic_write' },
       });
 
-      const vpnKey = await qr.manager.findOne(UserKeyEntity, {
+      const vpnKey = await manager.findOne(UserKeyEntity, {
         where: { id: keyId, userId: user.id },
         relations: ['tariff'],
       });
-      if (!vpnKey) return new DataResponse('key_not_found');
+      if (!vpnKey) return returnFunc(new DataResponse('key_not_found'));
 
       if (!vpnKey.tariffId || !vpnKey.tariff)
-        return new DataResponse('tariff_not_found');
+        return returnFunc(new DataResponse('tariff_not_found'));
 
-      const tariff = await qr.manager.findOneOrFail(TariffEntity, {
+      const tariff = await manager.findOneOrFail(TariffEntity, {
         where: { id: tariffId, active: true },
       });
 
@@ -251,26 +257,27 @@ export class KeyPurchaseService {
           effectivePromoCode,
         );
         if (!priceResult.success || typeof priceResult.data === 'string')
-          return priceResult;
+          return returnFunc(priceResult);
 
         finalPrice = priceResult.data.finalPrice;
         appliedPromo = priceResult.data.appliedPromo;
       }
 
-      if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
+      if (finalPrice === 0 && !appliedPromo)
+        return returnFunc(new DataResponse('error'));
 
       const result = await this.transactionsService.decreaseBalance(
         userId,
         finalPrice,
         CurrencyEnum.RUB,
-        qr.manager,
+        manager,
       );
 
-      if (!result) return new DataResponse('t1');
+      if (!result) return returnFunc(new DataResponse('t1'));
 
       if (vpnKey.protocol === 'hysteria') {
         const isConnected = await this.blitzService.checkConnection();
-        if (!isConnected) return new DataResponse('t2');
+        if (!isConnected) return returnFunc(new DataResponse('t2'));
 
         const editResult = await this.blitzService.editUser({
           userId: vpnKey.userId,
@@ -278,10 +285,10 @@ export class KeyPurchaseService {
           renewCreationDate: true,
         });
 
-        if (!editResult.success) return new DataResponse('error');
+        if (!editResult.success) return returnFunc(new DataResponse('error'));
       } else if (vpnKey.protocol === 'xray') {
         const reactivated = await this.xrayService.reactivateXrayKey(vpnKey.id);
-        if (!reactivated) return new DataResponse('error');
+        if (!reactivated) return returnFunc(new DataResponse('error'));
       }
 
       const base = new Date(vpnKey.expiresAt);
@@ -305,14 +312,14 @@ export class KeyPurchaseService {
           `COALESCE(count_traffic_limit, 0) + ${countTrafficLimitDelta}`;
       }
 
-      await qr.manager
+      await manager
         .createQueryBuilder()
         .update(UserKeyEntity)
         .set(updatePayload)
         .where('id = :id', { id: vpnKey.id })
         .execute();
 
-      await qr.manager.insert(PaymentsEntity, {
+      await manager.insert(PaymentsEntity, {
         userId: user.id,
         amount: finalPrice,
         tariffId: tariff.id,
@@ -320,7 +327,7 @@ export class KeyPurchaseService {
       });
 
       if (appliedPromo) {
-        await qr.manager.insert(PromoUsageEntity, {
+        await manager.insert(PromoUsageEntity, {
           userId: user.id,
           promoCodeId: appliedPromo.id,
         });
@@ -330,8 +337,7 @@ export class KeyPurchaseService {
       return new DataResponse(vpnKey.id, true);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      await qr.rollbackTransaction();
-      return new DataResponse('error');
+      return returnFunc(new DataResponse('error'));
     } finally {
       await qr.release();
     }

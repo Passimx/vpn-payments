@@ -18,6 +18,7 @@ import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { RefInfoDto, RefInfoUserItemDto } from '../dto/responses/ref-info.dto';
 import { BalanceAccount } from '../../database/entities/balance-account.entity';
 import { CreateAccountDto } from '../dto/requests/create-account.dto';
+import { StringsUtil } from '../../../common/utils/strings.util';
 
 @Injectable()
 export class AuthService {
@@ -159,38 +160,28 @@ export class AuthService {
   public async getKeyInfo(
     keyId: string,
   ): Promise<{ body: string; userinfo: string } | null> {
+    let title = `🌐PassimX VPN (ID ${StringsUtil.getShortName(keyId)})`;
+
     const key = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId },
       relations: ['user'],
     });
     if (!key) return null;
 
-    let uris: string[];
+    const uris: string = '';
     if (key.status === 'active') {
-      const servers = await this.em.find(ServerEntity, {
-        where: { canCreateKey: true, code: Not('white') },
-      });
-      const results = await Promise.allSettled(
-        servers.map((s) =>
-          this.xrayService.buildSubscriptionUri(key.id, s, key.user),
-        ),
+      const result = await this.xrayService.buildSubscriptionUri(
+        key.id,
+        key.user,
       );
-      uris = results
-        .filter(
-          (r): r is PromiseFulfilledResult<string> =>
-            r.status === 'fulfilled' && !!r.value,
-        )
-        .map((r) => r.value);
-    } else {
-      const base = key.key.split('#')[0];
-      uris = [`${base}#${this.keyPurchaseService.t(key.user, 'expired_key')}`];
-    }
+      if (!result) return null;
+    } else title += ` (${this.keyPurchaseService.t(key.user, 'expired_key')})`;
 
     const body =
-      '#profile-title: 🌐PassimX VPN\n' +
+      `#profile-title: ${title}` +
       '#profile-update-interval: 12\n' +
       '#subscription-auto-update-enable: 1\n' +
-      uris.join('\n');
+      uris;
 
     const expire = Math.floor(new Date(key.expiresAt).getTime() / 1000);
     const download = Number(key.countTrafficUsed ?? 0);

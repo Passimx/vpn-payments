@@ -16,8 +16,8 @@ export class TariffEntity {
   @Column({ name: 'price', type: 'numeric' })
   readonly price: number;
 
-  @Column({ name: 'traffic_limit', type: 'bigint', nullable: true })
-  readonly trafficLimit?: number | null;
+  @Column({ name: 'traffic_limit', type: 'bigint' })
+  readonly trafficLimit: number;
 
   @Column({ name: 'use_cascade', type: 'boolean', default: false })
   readonly useCascade: boolean;

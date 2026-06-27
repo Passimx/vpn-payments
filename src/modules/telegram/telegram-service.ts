@@ -1847,7 +1847,7 @@ export class TelegramService {
   public async sendMessageKeyTrafficLow(keyId: string) {
     const key = await this.em.findOneOrFail(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['user', 'server'],
+      relations: ['user'],
     });
     const user = key.user;
     if (!user.telegramId) return;

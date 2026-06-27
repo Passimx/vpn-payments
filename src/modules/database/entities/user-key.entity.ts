@@ -15,17 +15,11 @@ export class UserKeyEntity {
   @Column({ name: 'id', type: 'varchar', primary: true })
   readonly id: string;
 
-  @Column({ name: 'key', type: 'varchar' })
-  readonly key: string;
-
   @Column({ name: 'protocol', type: 'varchar' })
   readonly protocol: 'xray' | 'hysteria';
 
   @Column({ name: 'user_id', type: 'uuid' })
   readonly userId: string;
-
-  @Column({ name: 'server_id', type: 'uuid' })
-  readonly serverId: string;
 
   @Column({ name: 'cascade_to_server_id', type: 'uuid', nullable: true })
   readonly cascadeToServerId: string | null;
@@ -62,10 +56,6 @@ export class UserKeyEntity {
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   readonly user: UserEntity;
-
-  @ManyToOne(() => ServerEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'server_id' })
-  readonly server: ServerEntity;
 
   @ManyToOne(() => ServerEntity, {
     nullable: true,
