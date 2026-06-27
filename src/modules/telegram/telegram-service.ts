@@ -1479,23 +1479,23 @@ export class TelegramService {
 
     buttons.push([
       Markup.button.url(
-        'HAPP',
-        `${Envs.main.appUrl}/keys-redirect/happ/${vpnKey.id}`,
+        'Hiddify',
+        `${Envs.main.appUrl}/keys-redirect/hiddify/${vpnKey.id}`,
       ) as unknown as ReturnType<typeof Markup.button.callback>,
       Markup.button.url(
-        'V2RayTun',
-        `${Envs.main.appUrl}/keys-redirect/v2RayTun/${vpnKey.id}`,
+        'HAPP',
+        `${Envs.main.appUrl}/keys-redirect/happ/${vpnKey.id}`,
       ) as unknown as ReturnType<typeof Markup.button.callback>,
     ]);
 
     buttons.push([
       Markup.button.url(
-        this.t(user, 'INCY'),
-        `${Envs.main.appUrl}/keys-redirect/incy/${vpnKey.id}`,
+        'V2RayTun',
+        `${Envs.main.appUrl}/keys-redirect/v2RayTun/${vpnKey.id}`,
       ) as unknown as ReturnType<typeof Markup.button.callback>,
       Markup.button.url(
-        'Hiddify',
-        `${Envs.main.appUrl}/keys-redirect/hiddify/${vpnKey.id}`,
+        this.t(user, 'INCY'),
+        `${Envs.main.appUrl}/keys-redirect/incy/${vpnKey.id}`,
       ) as unknown as ReturnType<typeof Markup.button.callback>,
     ]);
 
