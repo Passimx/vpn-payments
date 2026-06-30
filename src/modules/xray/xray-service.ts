@@ -335,15 +335,29 @@ export class XrayService implements OnModuleInit {
     manager: EntityManager = this.em,
   ) {
     const isWhite = server.code === 'white';
-    const keys = await manager.find(UserKeyEntity, {
-      where: {
-        protocol: 'xray',
-        status: 'active',
-        cascadeToServerId: isWhite ? Not(IsNull()) : IsNull(),
-      },
-      relations: ['user'],
-    });
+    const isCdn = this.isCdnServer(server);
 
+    let keysQuery = manager
+      .createQueryBuilder(UserKeyEntity, 'k')
+      .innerJoinAndSelect('k.user', 'user')
+      .innerJoin('k.tariff', 't')
+      .where('k.protocol = :p AND k.status = :st', { p: 'xray', st: 'active' });
+
+    if (isWhite) {
+      keysQuery = keysQuery.andWhere('k.cascadeToServerId IS NOT NULL');
+    } else if (isCdn) {
+      keysQuery = keysQuery.andWhere(
+        'k.cascadeToServerId IS NULL AND t.kind = :kind',
+        { kind: 'cdn' },
+      );
+    } else {
+      keysQuery = keysQuery.andWhere(
+        'k.cascadeToServerId IS NULL AND t.kind = :kind',
+        { kind: 'base' },
+      );
+    }
+
+    const keys = await keysQuery.getMany();
     const exits = isWhite ? await this.getCascadeExitServers(manager) : [];
 
     for (const key of keys) {
@@ -469,7 +483,7 @@ export class XrayService implements OnModuleInit {
         if (!host.cdnDomain) continue;
         const country = host.code.replace(/^vip-/, '');
         const label = `${this.t(user, `${country}_flag`)} ${this.t(user, `${country}_name`)} ${this.t(user, 'vip')}`;
-        uris.push(this.buildVipXhttpUri(keyId, host.cdnDomain, label));
+        uris.push(this.buildCdnXhttpUri(keyId, host.cdnDomain, label));
         continue;
       }
 
@@ -519,7 +533,7 @@ export class XrayService implements OnModuleInit {
     },
   };
 
-  private buildVipXhttpUri(
+  private buildCdnXhttpUri(
     keyId: string,
     cdnDomain: string,
     label: string,
@@ -642,11 +656,11 @@ export class XrayService implements OnModuleInit {
     key: UserKeyEntity,
     manager: EntityManager = this.em,
   ): Promise<{ host: ServerEntity; exit?: ServerEntity }[]> {
-    // VIP тариф: ключ только на VIP серверы, без каскадных выходов.
+    // CDN тариф: ключ только на VIP/CDN серверы, без каскадных выходов.
     const tariff = await manager.findOne(TariffEntity, {
       where: { id: key.tariffId },
     });
-    if (tariff?.kind === 'vip') {
+    if (tariff?.kind === 'cdn') {
       const vipHosts = await manager.find(ServerEntity, {
         where: { canCreateKey: true, cdnDomain: Not(IsNull()) },
       });

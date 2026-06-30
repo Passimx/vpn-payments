@@ -1,4 +1,4 @@
-export default {
+﻿export default {
   language_native: 'English',
   language_native_flag: '🇺🇲',
   description:
@@ -55,8 +55,7 @@ export default {
   one_key_more: 'One more key',
   key_created: 'Key created',
   instruction_how_to_use_key:
-    'How to use: Click the link (key) above → open AmneziaVPN/(for iOS DefaultVPN) → tap the icon ' +
-    ' → Tap Paste/Insert. If you do not have the application, click the button for your OS below',
+    'How to use: Tap the link (key) above → open your VPN client (Happ, INCY, v2RayTun or Hiddify) → tap (+) → tap "Paste" or "Add" → paste your link (key). If you don\'t have the app — tap the button for your OS below',
   enter_correct_number: 'Enter a number, for example 100',
   balance: 'Balance',
   buy: 'Buy',
@@ -158,8 +157,8 @@ export default {
   white_flag: '🌐',
   vip: 'VIP',
   vpn_type_base_button: 'Regular VPN',
-  vpn_type_premium_button: 'Cascade VPN (anti-blocking)',
-  vpn_type_vip_button: 'VIP VPN',
+  vpn_type_premium_button: 'Cascade VPN',
+  vpn_type_vip_button: 'VIP VPN (Anti-blocking)',
   premium_tariff_label: 'Cascade for {days} days ({traffic})',
   stars_invoice_title: 'Payment via Telegram Stars',
 
@@ -169,12 +168,16 @@ export default {
     'A reliable workhorse: stable access without traffic limits.\n' +
     'Great for everyday use.\n\n' +
     '🛡️ Cascade tariff\n' +
-    'It works:\n' +
-    '- Works under blockings\n' +
-    '- At factories\n' +
+    '- Works with both Russian and international sites\n' +
+    '- Cascade connection method\n\n' +
+    '⚡️ VIP tariff\n' +
+    'Works everywhere, always:\n' +
+    '- Under the heaviest blocks\n' +
     '- During allowlists/whitelists\n' +
-    'It has a traffic limit — so it’s recommended to buy it together with the regular VPN tariff.\n\n' +
-    'ℹ️ Before buying, we recommend checking whether bypassing blocks works using a trial (free) key.',
+    '- At factories\n' +
+    '- In parking zones\n\n' +
+    'The Cascade and VIP tariffs have a traffic limit — it\'s recommended to use them alongside a Base tariff.\n' +
+    'ℹ️ Before buying, we recommend checking bypass with a trial (free) key.',
 
   tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',

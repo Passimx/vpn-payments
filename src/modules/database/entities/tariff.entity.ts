@@ -5,7 +5,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-export type TariffKind = 'base' | 'cascade' | 'vip';
+export type TariffKind = 'base' | 'cascade' | 'cdn';
 
 @Entity({ name: 'tariffs' })
 export class TariffEntity {

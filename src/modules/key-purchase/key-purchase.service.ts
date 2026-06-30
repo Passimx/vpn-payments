@@ -53,7 +53,9 @@ export class KeyPurchaseService {
         finalPrice === 0
           ? tariff.kind === 'cascade'
             ? 'PREMIUM_TRIAL'
-            : 'TRIAL'
+            : tariff.kind === 'cdn'
+              ? 'VIP_TRIAL'
+              : 'TRIAL'
           : undefined;
       const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 
@@ -246,7 +248,9 @@ export class KeyPurchaseService {
         finalPrice === 0
           ? tariff.kind === 'cascade'
             ? 'PREMIUM_TRIAL'
-            : 'TRIAL'
+            : tariff.kind === 'cdn'
+              ? 'VIP_TRIAL'
+              : 'TRIAL'
           : undefined;
       const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 

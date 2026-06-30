@@ -794,7 +794,7 @@ export class TelegramService {
     ctx: Context,
     user: UserEntity,
     backButtonRow: ReturnType<typeof Markup.button.callback>[],
-    kind: 'base' | 'premium' | 'vip' = 'base',
+    kind: 'base' | 'premium' | 'cdn' = 'base',
   ): Promise<void> {
     const tariffButtons = await this.tariffsButtons(user, kind);
     const balance = await this.transactionsService.getUserTotalBalance(
@@ -1090,7 +1090,7 @@ export class TelegramService {
       ctx,
       user,
       [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_9')],
-      'vip',
+      'cdn',
     );
   };
 
@@ -1373,8 +1373,8 @@ export class TelegramService {
     const renewKind =
       vpnKey.tariff.kind === 'cascade'
         ? 'premium'
-        : vpnKey.tariff.kind === 'vip'
-          ? 'vip'
+        : vpnKey.tariff.kind === 'cdn'
+          ? 'cdn'
           : 'base';
     await this.showActiveTariffsList(
       ctx,
@@ -1935,13 +1935,13 @@ export class TelegramService {
 
   private async tariffsButtons(
     user: UserEntity,
-    kind: 'base' | 'premium' | 'vip',
+    kind: 'base' | 'premium' | 'cdn',
   ) {
     const where =
       kind === 'premium'
         ? { active: true, kind: 'cascade' as const }
-        : kind === 'vip'
-          ? { active: true, kind: 'vip' as const }
+        : kind === 'cdn'
+          ? { active: true, kind: 'cdn' as const }
           : { active: true, kind: 'base' as const };
 
     const filteredList = await this.em.find(TariffEntity, {
@@ -1949,7 +1949,12 @@ export class TelegramService {
       order: { price: 'ASC' },
     });
 
-    const trialPromoCode = kind === 'premium' ? 'PREMIUM_TRIAL' : 'TRIAL';
+    const trialPromoCode =
+      kind === 'premium'
+        ? 'PREMIUM_TRIAL'
+        : kind === 'cdn'
+          ? 'VIP_TRIAL'
+          : 'TRIAL';
     const hasUsedTrialPromo = await this.em
       .createQueryBuilder(PromoUsageEntity, 'usage')
       .innerJoin('usage.promoCode', 'promo')

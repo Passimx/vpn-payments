@@ -54,7 +54,7 @@ export default {
   one_key_more: '再购买一个密钥',
   key_created: '密钥已创建',
   instruction_how_to_use_key:
-    '使用方法：点击上方链接（密钥）→ 打开 AmneziaVPN /（iOS 使用 DefaultVPN）→ 点击图标 → 点击“粘贴 / Insert”。如果没有安装应用，请点击下方对应系统按钮下载',
+    '使用方法：点击上方链接（密钥）→ 打开 VPN 客户端（Happ、INCY、v2RayTun 或 Hiddify）→ 点击（+）→ 点击「粘贴」或「添加」→ 粘贴您的链接（密钥）。如果没有安装应用，请点击下方对应系统的按钮',
   enter_correct_number: '请输入数字，例如 100',
   balance: '余额',
   buy: '购买',
@@ -150,8 +150,8 @@ export default {
   white_flag: '🌐',
   vip: 'VIP',
   vpn_type_base_button: '普通 VPN',
-  vpn_type_premium_button: '级联 VPN（强封锁可用）',
-  vpn_type_vip_button: 'VIP VPN',
+  vpn_type_premium_button: '级联 VPN',
+  vpn_type_vip_button: 'VIP VPN（绕过封锁）',
   premium_tariff_label: '级联套餐 {days} 天（{traffic}）',
   stars_invoice_title: '通过 Telegram Stars 进行支付',
 
@@ -161,11 +161,15 @@ export default {
     '稳定可靠：无流量限制的访问。\n' +
     '适合日常使用。\n\n' +
     '🛡️ 级联套餐\n' +
-    '它在这种情况下工作：\n' +
-    '- 在封锁环境下可用\n' +
-    '- 工厂/厂区网络\n' +
+    '- 同时适用于俄罗斯及境外网站\n' +
+    '- 级联连接方式\n\n' +
+    '⚡️ VIP 套餐\n' +
+    '随时随地可用：\n' +
+    '- 在最严格的封锁环境下\n' +
     '- 白名单期间\n' +
-    '它有流量限制，所以建议同时购买普通 VPN 套餐。\n\n' +
+    '- 工厂/厂区网络\n' +
+    '- 停车场网络\n\n' +
+    '级联套餐和 VIP 套餐均有流量限制，建议同时购买基础套餐。\n' +
     'ℹ️ 购买前，建议先使用试用（免费）密钥测试是否可以绕过封锁。',
 
   tariff_1: '试用（1天）',
