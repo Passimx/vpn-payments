@@ -146,11 +146,13 @@ export default {
   se_flag: '🇸🇪',
   kz_name: '哈萨克斯坦',
   kz_flag: '🇰🇿',
-  white_name: '高级套餐',
+  white_name: '级联',
   white_flag: '🌐',
+  vip: 'VIP',
   vpn_type_base_button: '普通 VPN',
-  vpn_type_premium_button: 'Premium VPN（强封锁可用）',
-  premium_tariff_label: 'Premium 套餐 {days} 天（{traffic}）',
+  vpn_type_premium_button: '级联 VPN（强封锁可用）',
+  vpn_type_vip_button: 'VIP VPN',
+  premium_tariff_label: '级联套餐 {days} 天（{traffic}）',
   stars_invoice_title: '通过 Telegram Stars 进行支付',
 
   select_vpn_type_message:
@@ -158,7 +160,7 @@ export default {
     '🚚 基础套餐\n' +
     '稳定可靠：无流量限制的访问。\n' +
     '适合日常使用。\n\n' +
-    '🛡️ Premium 套餐\n' +
+    '🛡️ 级联套餐\n' +
     '它在这种情况下工作：\n' +
     '- 在封锁环境下可用\n' +
     '- 工厂/厂区网络\n' +

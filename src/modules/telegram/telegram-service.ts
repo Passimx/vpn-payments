@@ -101,6 +101,7 @@ export class TelegramService {
     this.bot.action(/^BUY_HYST:[\w-]+$/, this.onBuyTariff);
     this.bot.action('TARIFFS_BASE', this.onTariffsBase);
     this.bot.action('TARIFFS_PREMIUM', this.onTariffsPremium);
+    this.bot.action('TARIFFS_VIP', this.onTariffsVip);
     this.bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
     this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
     this.bot.action(/^AUTO_RENEW_TOGGLE:([\w-]+)$/, this.onAutoRenewToggle);
@@ -793,7 +794,7 @@ export class TelegramService {
     ctx: Context,
     user: UserEntity,
     backButtonRow: ReturnType<typeof Markup.button.callback>[],
-    kind: 'base' | 'premium' = 'base',
+    kind: 'base' | 'premium' | 'vip' = 'base',
   ): Promise<void> {
     const tariffButtons = await this.tariffsButtons(user, kind);
     const balance = await this.transactionsService.getUserTotalBalance(
@@ -1048,6 +1049,12 @@ export class TelegramService {
               'TARIFFS_PREMIUM',
             ),
           ],
+          [
+            Markup.button.callback(
+              this.t(user, 'vpn_type_vip_button'),
+              'TARIFFS_VIP',
+            ),
+          ],
           [this.backToProfileButton(user)],
         ]),
       })
@@ -1072,6 +1079,18 @@ export class TelegramService {
       user,
       [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_9')],
       'premium',
+    );
+  };
+
+  onTariffsVip = async (ctx: Context) => {
+    ctx.answerCbQuery().catch(logger.error);
+    const user = await this.getUserByCtx(ctx);
+    if (!user) return;
+    await this.showActiveTariffsList(
+      ctx,
+      user,
+      [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_9')],
+      'vip',
     );
   };
 
@@ -1114,7 +1133,7 @@ export class TelegramService {
           .catch(logger.error);
         return;
       }
-      if (renewKey.tariff.useCascade !== tariff.useCascade) {
+      if (renewKey.tariff.kind !== tariff.kind) {
         await ctx
           .answerCbQuery(this.t(user, 'mismatched_tariff_for_renew'))
           .catch(logger.error);
@@ -1351,7 +1370,12 @@ export class TelegramService {
       this.pendingRenewTariffId.delete(telegramId);
     }
 
-    const renewKind = vpnKey.tariff.useCascade ? 'premium' : 'base';
+    const renewKind =
+      vpnKey.tariff.kind === 'cascade'
+        ? 'premium'
+        : vpnKey.tariff.kind === 'vip'
+          ? 'vip'
+          : 'base';
     await this.showActiveTariffsList(
       ctx,
       user,
@@ -1909,11 +1933,16 @@ export class TelegramService {
     return { text, extra };
   };
 
-  private async tariffsButtons(user: UserEntity, kind: 'base' | 'premium') {
+  private async tariffsButtons(
+    user: UserEntity,
+    kind: 'base' | 'premium' | 'vip',
+  ) {
     const where =
       kind === 'premium'
-        ? { active: true, useCascade: true }
-        : { active: true, useCascade: false };
+        ? { active: true, kind: 'cascade' as const }
+        : kind === 'vip'
+          ? { active: true, kind: 'vip' as const }
+          : { active: true, kind: 'base' as const };
 
     const filteredList = await this.em.find(TariffEntity, {
       where,
@@ -1959,7 +1988,7 @@ export class TelegramService {
   private formatTariffLabel(lang: string | undefined, t: TariffEntity): string {
     const limitBytes = t.trafficLimit ?? null;
     if (limitBytes) {
-      if (t.useCascade) {
+      if (t.kind === 'cascade') {
         const template = this.t(lang ?? 'ru', 'premium_tariff_label');
         return template
           .replace('{days}', String(t.expirationDays))

@@ -154,11 +154,13 @@ export default {
   se_flag: '🇸🇪',
   kz_name: 'Казахстан',
   kz_flag: '🇰🇿',
-  white_name: 'Премиум',
+  white_name: 'Каскадный',
   white_flag: '🌐',
+  vip: 'VIP',
   vpn_type_base_button: 'Обычный VPN',
-  vpn_type_premium_button: 'Premium VPN (обход блокировок)',
-  premium_tariff_label: 'Premium на {days} дней ({traffic})',
+  vpn_type_premium_button: 'Каскадный VPN (обход блокировок)',
+  vpn_type_vip_button: 'VIP VPN (Яндекс CDN)',
+  premium_tariff_label: 'Каскадный на {days} дней ({traffic})',
   stars_invoice_title: 'Оплата через Telegram Stars',
 
   select_vpn_type_message:
@@ -166,7 +168,7 @@ export default {
     '🚚 Обычный тариф\n' +
     'Это рабочая лошадка: стабильный доступ без ограничения трафика.\n' +
     'Подходит для ежедневного использования.\n\n' +
-    '🛡️ Premium тариф\n' +
+    '🛡️ Каскадный тариф\n' +
     'Работает при: \n' +
     '- Работает при блокировках\n' +
     '- На заводах\n' +

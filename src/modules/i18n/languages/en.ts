@@ -154,11 +154,13 @@ export default {
   se_flag: '🇸🇪',
   kz_name: 'Kazakhstan',
   kz_flag: '🇰🇿',
-  white_name: 'Premium',
+  white_name: 'Cascade',
   white_flag: '🌐',
+  vip: 'VIP',
   vpn_type_base_button: 'Regular VPN',
-  vpn_type_premium_button: 'Premium VPN (anti-blocking)',
-  premium_tariff_label: 'Premium for {days} days ({traffic})',
+  vpn_type_premium_button: 'Cascade VPN (anti-blocking)',
+  vpn_type_vip_button: 'VIP VPN',
+  premium_tariff_label: 'Cascade for {days} days ({traffic})',
   stars_invoice_title: 'Payment via Telegram Stars',
 
   select_vpn_type_message:
@@ -166,7 +168,7 @@ export default {
     '🚚 Base tariff\n' +
     'A reliable workhorse: stable access without traffic limits.\n' +
     'Great for everyday use.\n\n' +
-    '🛡️ Premium tariff\n' +
+    '🛡️ Cascade tariff\n' +
     'It works:\n' +
     '- Works under blockings\n' +
     '- At factories\n' +

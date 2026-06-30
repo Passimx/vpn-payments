@@ -5,6 +5,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+export type TariffKind = 'base' | 'cascade' | 'vip';
+
 @Entity({ name: 'tariffs' })
 export class TariffEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -19,8 +21,8 @@ export class TariffEntity {
   @Column({ name: 'traffic_limit', type: 'bigint' })
   readonly trafficLimit: number;
 
-  @Column({ name: 'use_cascade', type: 'boolean', default: false })
-  readonly useCascade: boolean;
+  @Column({ name: 'kind', type: 'varchar', default: 'base' })
+  readonly kind: TariffKind;
 
   @Column({ name: 'active', type: 'boolean', default: true })
   readonly active: boolean;
