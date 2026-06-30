@@ -176,7 +176,7 @@
     '- During allowlists/whitelists\n' +
     '- At factories\n' +
     '- In parking zones\n\n' +
-    'The Cascade and VIP tariffs have a traffic limit — it\'s recommended to use them alongside a Base tariff.\n' +
+    "The Cascade and VIP tariffs have a traffic limit — it's recommended to use them alongside a Base tariff.\n" +
     'ℹ️ Before buying, we recommend checking bypass with a trial (free) key.',
 
   tariff_1: 'Trial (1 day)',
