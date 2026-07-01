@@ -1043,12 +1043,13 @@ export class TelegramService {
               'TARIFFS_BASE',
             ),
           ],
-          [
-            Markup.button.callback(
-              this.t(user, 'vpn_type_premium_button'),
-              'TARIFFS_PREMIUM',
-            ),
-          ],
+          // Каскадный ключ временно скрыт из покупки через бота (оставлен код на будущее).
+          // [
+          //   Markup.button.callback(
+          //     this.t(user, 'vpn_type_premium_button'),
+          //     'TARIFFS_PREMIUM',
+          //   ),
+          // ],
           [
             Markup.button.callback(
               this.t(user, 'vpn_type_vip_button'),
@@ -1371,7 +1372,7 @@ export class TelegramService {
     }
 
     const renewKind =
-      vpnKey.tariff.kind === 'cascade'
+      vpnKey.cascadeToServerId != null || vpnKey.tariff.kind === 'cascade'
         ? 'premium'
         : vpnKey.tariff.kind === 'cdn'
           ? 'cdn'

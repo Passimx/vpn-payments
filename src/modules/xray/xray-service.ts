@@ -55,17 +55,12 @@ export class XrayService implements OnModuleInit {
     const servers = await this.em.find(ServerEntity, {
       where: { canCreateKey: true, code: Not('white') },
     });
-    //  VIP серверов нет потребности в кешрование, это нужно только для каскадных ключей.
-    const realityServers = servers.filter((s) => !this.isCdnServer(s));
-    await Promise.allSettled(
-      realityServers.map((s) => this.warmServerParamsCache(s)),
-    );
+    // Прогреваем reality-параметры всех серверов (совмещённый сервер = reality + CDN).
+    await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
     const ok = [...this.serverParamsCache.values()].filter(
       (c) => c.data,
     ).length;
-    logger.info(
-      `[XrayService] server params cache: ${ok}/${realityServers.length}`,
-    );
+    logger.info(`[XrayService] server params cache: ${ok}/${servers.length}`);
   }
 
   private async warmServerParamsCache(server: ServerEntity): Promise<void> {
@@ -141,8 +136,8 @@ export class XrayService implements OnModuleInit {
 
       const targets = await this.getKeyTargets(key, manager);
 
-      for (const { host, exit } of targets) {
-        const result = await this.createKey(key, host, exit);
+      for (const { host, exit, isCdn } of targets) {
+        const result = await this.createKey(key, host, exit, isCdn);
         if (!result)
           throw new BadRequestException(`Unable to create key: ${host.id}`);
       }
@@ -161,8 +156,8 @@ export class XrayService implements OnModuleInit {
     const keyId = keyEntity.id;
     const targets = await this.getKeyTargets(keyEntity);
 
-    for (const { host, exit } of targets) {
-      const inboundTag = this.isCdnServer(host)
+    for (const { host, exit, isCdn } of targets) {
+      const inboundTag = isCdn
         ? 'xhttp-cdn'
         : exit
           ? (this.euCascadeOptsFromServer(exit)?.inboundTag ?? 'vless-in')
@@ -189,8 +184,8 @@ export class XrayService implements OnModuleInit {
 
     const targets = await this.getKeyTargets(keyEntity, manager);
 
-    for (const { host, exit } of targets) {
-      const isCreated = await this.createKey(keyEntity, host, exit);
+    for (const { host, exit, isCdn } of targets) {
+      const isCreated = await this.createKey(keyEntity, host, exit, isCdn);
       if (!isCreated) result = false;
     }
 
@@ -337,40 +332,53 @@ export class XrayService implements OnModuleInit {
     const isWhite = server.code === 'white';
     const isCdn = this.isCdnServer(server);
 
-    let keysQuery = manager
-      .createQueryBuilder(UserKeyEntity, 'k')
-      .innerJoinAndSelect('k.user', 'user')
-      .innerJoin('k.tariff', 't')
-      .where('k.protocol = :p AND k.status = :st', { p: 'xray', st: 'active' });
+    // Активные некаскадные ключи заданного типа тарифа.
+    const activeKeysByKind = (kind: 'base' | 'cdn') =>
+      manager
+        .createQueryBuilder(UserKeyEntity, 'k')
+        .innerJoinAndSelect('k.user', 'user')
+        .innerJoin('k.tariff', 't')
+        .where('k.protocol = :p AND k.status = :st', {
+          p: 'xray',
+          st: 'active',
+        })
+        .andWhere('k.cascadeToServerId IS NULL AND t.kind = :kind', { kind })
+        .getMany();
 
+    const notFound = () => {
+      throw new NotFoundException(`Server ${server.id} not found`);
+    };
+
+    // white — входной сервер каскада: восстанавливаем каскадные ключи на выходы.
     if (isWhite) {
-      keysQuery = keysQuery.andWhere('k.cascadeToServerId IS NOT NULL');
-    } else if (isCdn) {
-      keysQuery = keysQuery.andWhere(
-        'k.cascadeToServerId IS NULL AND t.kind = :kind',
-        { kind: 'cdn' },
-      );
-    } else {
-      keysQuery = keysQuery.andWhere(
-        'k.cascadeToServerId IS NULL AND t.kind = :kind',
-        { kind: 'base' },
-      );
+      const cascadeKeys = await manager
+        .createQueryBuilder(UserKeyEntity, 'k')
+        .innerJoinAndSelect('k.user', 'user')
+        .where('k.protocol = :p AND k.status = :st', {
+          p: 'xray',
+          st: 'active',
+        })
+        .andWhere('k.cascadeToServerId IS NOT NULL')
+        .getMany();
+      const exits = await this.getCascadeExitServers(manager);
+      for (const key of cascadeKeys) {
+        for (const exit of exits) {
+          if (!(await this.createKey(key, server, exit, false))) notFound();
+        }
+      }
+      return;
     }
 
-    const keys = await keysQuery.getMany();
-    const exits = isWhite ? await this.getCascadeExitServers(manager) : [];
+    // Совмещённый сервер: восстанавливаем base (reality) и, если есть cdnDomain, VIP (xhttp).
+    const baseKeys = await activeKeysByKind('base');
+    for (const key of baseKeys) {
+      if (!(await this.createKey(key, server, undefined, false))) notFound();
+    }
 
-    for (const key of keys) {
-      if (isWhite) {
-        for (const exit of exits) {
-          const result = await this.createKey(key, server, exit);
-          if (!result)
-            throw new NotFoundException(`Server ${server.id} not found`);
-        }
-      } else {
-        const result = await this.createKey(key, server);
-        if (!result)
-          throw new NotFoundException(`Server ${server.id} not found`);
+    if (isCdn) {
+      const cdnKeys = await activeKeysByKind('cdn');
+      for (const key of cdnKeys) {
+        if (!(await this.createKey(key, server, undefined, true))) notFound();
       }
     }
   }
@@ -477,9 +485,9 @@ export class XrayService implements OnModuleInit {
     const targets = await this.getKeyTargets(key);
     const uris: string[] = [];
 
-    for (const { host, exit } of targets) {
+    for (const { host, exit, isCdn } of targets) {
       // VIP сервера
-      if (this.isCdnServer(host)) {
+      if (isCdn) {
         if (!host.cdnDomain) continue;
         const country = host.code.replace(/^vip-/, '');
         const label = `${this.t(user, `${country}_flag`)} ${this.t(user, `${country}_name`)} ${this.t(user, 'vip')}`;
@@ -553,9 +561,10 @@ export class XrayService implements OnModuleInit {
     keyEntity: UserKeyEntity,
     host: ServerEntity,
     exit?: ServerEntity,
+    isCdn = false,
   ): Promise<boolean> {
-    // VIP создаём пользователя на xhttp-инбаунде.
-    if (this.isCdnServer(host)) {
+    // VIP (определяет тип тарифа, а не сервер).
+    if (isCdn) {
       const inboundTag = 'xhttp-cdn';
       const port = String(host.port ?? '').trim();
       if (!/^\d+$/.test(port)) {
@@ -645,17 +654,14 @@ export class XrayService implements OnModuleInit {
     const servers = await manager.find(ServerEntity, {
       where: { canCreateKey: true, code: Not('white') },
     });
-    // VIP серверы не должны попадать в каскадные выходы.
-    return servers.filter(
-      (s) => this.euCascadeOptsFromServer(s) !== null && !this.isCdnServer(s),
-    );
+    return servers.filter((s) => this.euCascadeOptsFromServer(s) !== null);
   }
 
   // `host` = white (входной сервер), `exit` = (европейский сервер). Для обычного ключа, все что white серверы.
   private async getKeyTargets(
     key: UserKeyEntity,
     manager: EntityManager = this.em,
-  ): Promise<{ host: ServerEntity; exit?: ServerEntity }[]> {
+  ): Promise<{ host: ServerEntity; exit?: ServerEntity; isCdn?: boolean }[]> {
     // CDN тариф: ключ только на VIP/CDN серверы, без каскадных выходов.
     const tariff = await manager.findOne(TariffEntity, {
       where: { id: key.tariffId },
@@ -664,7 +670,7 @@ export class XrayService implements OnModuleInit {
       const vipHosts = await manager.find(ServerEntity, {
         where: { canCreateKey: true, cdnDomain: Not(IsNull()) },
       });
-      return vipHosts.map((host) => ({ host }));
+      return vipHosts.map((host) => ({ host, isCdn: true }));
     }
 
     if (key.cascadeToServerId) {

@@ -167,20 +167,23 @@
     '🚚 Base tariff\n' +
     'A reliable workhorse: stable access without traffic limits.\n' +
     'Great for everyday use.\n\n' +
-    '🛡️ Cascade tariff\n' +
-    '- Works with both Russian and international sites\n' +
-    '- Cascade connection method\n\n' +
+    // Описание каскадного тарифа временно скрыто (каскад убран из покупки через бота).
+    // '🛡️ Cascade tariff\n' +
+    // '- Works with both Russian and international sites\n' +
+    // '- Cascade connection method\n\n' +
     '⚡️ VIP tariff\n' +
     'Works everywhere, always:\n' +
     '- Under the heaviest blocks\n' +
     '- During allowlists/whitelists\n' +
     '- At factories\n' +
     '- In parking zones\n\n' +
-    "The Cascade and VIP tariffs have a traffic limit — it's recommended to use them alongside a Base tariff.\n" +
+    "The VIP tariff has a traffic limit — it's recommended to use it alongside a Base tariff.\n" +
     'ℹ️ Before buying, we recommend checking bypass with a trial (free) key.',
 
   tariff_1: 'Trial (1 day)',
   tariff_3: 'Trial (3 days)',
+  tariff_7: '7 days',
+  tariff_14: '14 days',
   tariff_30: '30 days',
   tariff_60: '60 days',
   tariff_90: '90 days',
