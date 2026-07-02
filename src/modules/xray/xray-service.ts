@@ -684,8 +684,7 @@ export class XrayService implements OnModuleInit {
     const hosts = await manager.find(ServerEntity, {
       where: { canCreateKey: true, code: Not('white') },
     });
-    // Не добавляем VIP серверы в обычные (не VIP) ключи.
-    return hosts.filter((h) => !this.isCdnServer(h)).map((host) => ({ host }));
+    return hosts.map((host) => ({ host }));
   }
 
   private t(ctx: UserEntity | string, key: string) {
