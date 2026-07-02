@@ -27,6 +27,7 @@ export const Envs = {
       : undefined,
     autoRenewBaseTariffId: 'f8860386-bb14-470b-a957-3998d10b417d',
     autoRenewPremiumTariffId: '1a412ac9-e902-4644-8523-ca9e661838bb',
+    supportProfile: process.env.TELEGRAM_SUPPORT_PROFILE ?? '',
   },
   crypto: {
     ethereum: {

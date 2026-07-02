@@ -170,7 +170,7 @@ export class TelegramService {
         ),
         Markup.button.url(
           `👩‍💻 ${this.t(user, 'support')}`,
-          'https://t.me/passimx',
+          Envs.telegram.supportProfile,
         ),
       ],
       [
@@ -1798,7 +1798,7 @@ export class TelegramService {
           [
             Markup.button.url(
               `👩‍💻 ${this.t(user, 'support')}`,
-              'https://t.me/passimx',
+              Envs.telegram.supportProfile,
             ),
           ],
         ]),
