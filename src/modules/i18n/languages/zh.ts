@@ -173,8 +173,10 @@ export default {
     'VIP 套餐有流量限制，建议同时购买基础套餐。\n' +
     'ℹ️ 购买前，建议先使用试用（免费）密钥测试是否可以绕过封锁。',
 
-  tariff_1: '试用（1天）',
-  tariff_3: '试用（3天）',
+  tariff_trial_1: '试用（1天）',
+  tariff_trial_3: '试用（3天）',
+  tariff_1: '1天',
+  tariff_3: '3天',
   tariff_7: '7天',
   tariff_14: '14天',
   tariff_30: '30天',
