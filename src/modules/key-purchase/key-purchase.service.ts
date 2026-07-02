@@ -51,9 +51,11 @@ export class KeyPurchaseService {
       let appliedPromo: PromoCodeEntity | null = null;
       const autoTrialPromoCode =
         finalPrice === 0
-          ? tariff.useCascade
+          ? tariff.kind === 'cascade'
             ? 'PREMIUM_TRIAL'
-            : 'TRIAL'
+            : tariff.kind === 'cdn'
+              ? 'VIP_TRIAL'
+              : 'TRIAL'
           : undefined;
       const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 
@@ -244,9 +246,11 @@ export class KeyPurchaseService {
       let appliedPromo: PromoCodeEntity | null = null;
       const autoTrialPromoCode =
         finalPrice === 0
-          ? tariff.useCascade
+          ? tariff.kind === 'cascade'
             ? 'PREMIUM_TRIAL'
-            : 'TRIAL'
+            : tariff.kind === 'cdn'
+              ? 'VIP_TRIAL'
+              : 'TRIAL'
           : undefined;
       const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 

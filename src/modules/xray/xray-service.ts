@@ -55,6 +55,7 @@ export class XrayService implements OnModuleInit {
     const servers = await this.em.find(ServerEntity, {
       where: { canCreateKey: true, code: Not('white') },
     });
+    // Прогреваем reality-параметры всех серверов (совмещённый сервер = reality + CDN).
     await Promise.allSettled(servers.map((s) => this.warmServerParamsCache(s)));
     const ok = [...this.serverParamsCache.values()].filter(
       (c) => c.data,
@@ -110,7 +111,7 @@ export class XrayService implements OnModuleInit {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
-      if (tariff.useCascade) {
+      if (tariff.kind === 'cascade') {
         const eu = await manager.findOne(ServerEntity, {
           where: { canDefaultCreateKey: true },
         });
@@ -135,8 +136,8 @@ export class XrayService implements OnModuleInit {
 
       const targets = await this.getKeyTargets(key, manager);
 
-      for (const { host, exit } of targets) {
-        const result = await this.createKey(key, host, exit);
+      for (const { host, exit, isCdn } of targets) {
+        const result = await this.createKey(key, host, exit, isCdn);
         if (!result)
           throw new BadRequestException(`Unable to create key: ${host.id}`);
       }
@@ -155,10 +156,12 @@ export class XrayService implements OnModuleInit {
     const keyId = keyEntity.id;
     const targets = await this.getKeyTargets(keyEntity);
 
-    for (const { host, exit } of targets) {
-      const inboundTag = exit
-        ? (this.euCascadeOptsFromServer(exit)?.inboundTag ?? 'vless-in')
-        : 'vless-in';
+    for (const { host, exit, isCdn } of targets) {
+      const inboundTag = isCdn
+        ? 'xhttp-cdn'
+        : exit
+          ? (this.euCascadeOptsFromServer(exit)?.inboundTag ?? 'vless-in')
+          : 'vless-in';
       const removed = await this.removeKey(keyId, host, inboundTag);
       if (!removed) return false;
     }
@@ -181,8 +184,8 @@ export class XrayService implements OnModuleInit {
 
     const targets = await this.getKeyTargets(keyEntity, manager);
 
-    for (const { host, exit } of targets) {
-      const isCreated = await this.createKey(keyEntity, host, exit);
+    for (const { host, exit, isCdn } of targets) {
+      const isCreated = await this.createKey(keyEntity, host, exit, isCdn);
       if (!isCreated) result = false;
     }
 
@@ -196,6 +199,11 @@ export class XrayService implements OnModuleInit {
     const port = eu.port;
     if (!tag || port == null || port < 1 || port > 65535) return null;
     return { inboundTag: tag, linkPort: port };
+  }
+
+  // Признак VIP-сервера (VLESS + XHTTP через Яндекс CDN). Проверяем есть ли значение в поле cdnDomain.
+  private isCdnServer(server: ServerEntity): boolean {
+    return !!server.cdnDomain;
   }
 
   public async checkAlmostExpiredKeys() {
@@ -322,28 +330,55 @@ export class XrayService implements OnModuleInit {
     manager: EntityManager = this.em,
   ) {
     const isWhite = server.code === 'white';
-    const keys = await manager.find(UserKeyEntity, {
-      where: {
-        protocol: 'xray',
-        status: 'active',
-        cascadeToServerId: isWhite ? Not(IsNull()) : IsNull(),
-      },
-      relations: ['user'],
-    });
+    const isCdn = this.isCdnServer(server);
 
-    const exits = isWhite ? await this.getCascadeExitServers(manager) : [];
+    // Активные некаскадные ключи заданного типа тарифа.
+    const activeKeysByKind = (kind: 'base' | 'cdn') =>
+      manager
+        .createQueryBuilder(UserKeyEntity, 'k')
+        .innerJoinAndSelect('k.user', 'user')
+        .innerJoin('k.tariff', 't')
+        .where('k.protocol = :p AND k.status = :st', {
+          p: 'xray',
+          st: 'active',
+        })
+        .andWhere('k.cascadeToServerId IS NULL AND t.kind = :kind', { kind })
+        .getMany();
 
-    for (const key of keys) {
-      if (isWhite) {
+    const notFound = () => {
+      throw new NotFoundException(`Server ${server.id} not found`);
+    };
+
+    // white — входной сервер каскада: восстанавливаем каскадные ключи на выходы.
+    if (isWhite) {
+      const cascadeKeys = await manager
+        .createQueryBuilder(UserKeyEntity, 'k')
+        .innerJoinAndSelect('k.user', 'user')
+        .where('k.protocol = :p AND k.status = :st', {
+          p: 'xray',
+          st: 'active',
+        })
+        .andWhere('k.cascadeToServerId IS NOT NULL')
+        .getMany();
+      const exits = await this.getCascadeExitServers(manager);
+      for (const key of cascadeKeys) {
         for (const exit of exits) {
-          const result = await this.createKey(key, server, exit);
-          if (!result)
-            throw new NotFoundException(`Server ${server.id} not found`);
+          if (!(await this.createKey(key, server, exit, false))) notFound();
         }
-      } else {
-        const result = await this.createKey(key, server);
-        if (!result)
-          throw new NotFoundException(`Server ${server.id} not found`);
+      }
+      return;
+    }
+
+    // Совмещённый сервер: восстанавливаем base (reality) и, если есть cdnDomain, VIP (xhttp).
+    const baseKeys = await activeKeysByKind('base');
+    for (const key of baseKeys) {
+      if (!(await this.createKey(key, server, undefined, false))) notFound();
+    }
+
+    if (isCdn) {
+      const cdnKeys = await activeKeysByKind('cdn');
+      for (const key of cdnKeys) {
+        if (!(await this.createKey(key, server, undefined, true))) notFound();
       }
     }
   }
@@ -371,6 +406,7 @@ export class XrayService implements OnModuleInit {
           canCreateKey: dto.canCreateKey ?? false,
           port: dto.port ?? null,
           forCascadeInboundTag: dto.forCascadeInboundTag ?? null,
+          cdnDomain: dto.cdnDomain ?? null,
         }),
       );
 
@@ -449,7 +485,16 @@ export class XrayService implements OnModuleInit {
     const targets = await this.getKeyTargets(key);
     const uris: string[] = [];
 
-    for (const { host, exit } of targets) {
+    for (const { host, exit, isCdn } of targets) {
+      // VIP сервера
+      if (isCdn) {
+        if (!host.cdnDomain) continue;
+        const country = host.code.replace(/^vip-/, '');
+        const label = `${this.t(user, `${country}_flag`)} ${this.t(user, `${country}_name`)} ${this.t(user, 'vip')}`;
+        uris.push(this.buildCdnXhttpUri(keyId, host.cdnDomain, label));
+        continue;
+      }
+
       const data = await this.getServerParams(host);
       if (!data) break;
 
@@ -470,11 +515,74 @@ export class XrayService implements OnModuleInit {
     return uris.join('\n');
   }
 
+  // Расширенные xhttp-параметры, вередаем query `extra`, так как передаются методом ГЕТ
+  // (URL-кодированный JSON). Значения Будут совпадать с теме что записаны в конфиг xray на сервере, в поеле: xhttpSettings
+  private static readonly VIP_XHTTP_EXTRA = {
+    xPaddingBytes: '100-1000',
+    xPaddingObfsMode: true,
+    xPaddingKey: 'hash',
+    xPaddingHeader: 'X-Client-Version',
+    xPaddingPlacement: 'queryInHeader',
+    xPaddingMethod: 'tokenish',
+    sessionPlacement: 'header',
+    sessionKey: 'X-Upload-Token',
+    seqPlacement: 'query',
+    seqKey: 'chunk_id',
+    uplinkHTTPMethod: 'GET',
+    scMaxBufferedPosts: 30,
+    scStreamUpServerSecs: '20-80',
+    enableXmux: true,
+    xmux: {
+      maxConcurrency: '16-32',
+      cMaxReuseTimes: 1000,
+      hMaxRequestTimes: '600-900',
+      hMaxReusableSecs: '100',
+      hKeepAlivePeriod: 20000,
+    },
+  };
+
+  private buildCdnXhttpUri(
+    keyId: string,
+    cdnDomain: string,
+    label: string,
+  ): string {
+    const extra = encodeURIComponent(
+      JSON.stringify(XrayService.VIP_XHTTP_EXTRA),
+    );
+    return (
+      `vless://${keyId}@${cdnDomain}:443` +
+      `?encryption=none&security=tls&sni=${cdnDomain}&host=${cdnDomain}` +
+      `&alpn=h2%2Chttp%2F1.1&type=xhttp&path=%2Fpoll&mode=packet-up&fp=chrome&extra=${extra}` +
+      `#${encodeURIComponent(label)}`
+    );
+  }
+
   private async createKey(
     keyEntity: UserKeyEntity,
     host: ServerEntity,
     exit?: ServerEntity,
+    isCdn = false,
   ): Promise<boolean> {
+    // VIP (определяет тип тарифа, а не сервер).
+    if (isCdn) {
+      const inboundTag = 'xhttp-cdn';
+      const port = String(host.port ?? '').trim();
+      if (!/^\d+$/.test(port)) {
+        logger.error(
+          `[createKey] VIP ${host.code}: задайте локальный port xhttp-инбаунда`,
+        );
+        return false;
+      }
+      const id = keyEntity.id;
+      const userFile = `/xray/data/users/${id}-${inboundTag}.json`;
+      const commands = [
+        `mkdir -p /xray/data/users`,
+        `echo '{"inbounds":[{"tag":"${inboundTag}","listen":"0.0.0.0","port":${port},"protocol":"vless","settings":{"clients":[{"id":"${id}","email":"${id}","level":0}],"decryption":"none"}}]}' > ${userFile}`,
+        `xray api adu --server=127.0.0.1:10085 ${userFile}`,
+      ];
+      return !!(await this.runCommands(host, commands));
+    }
+
     let options: CreateXrayKeyOptions | undefined;
     if (exit) {
       const fromEu = this.euCascadeOptsFromServer(exit);
@@ -553,7 +661,18 @@ export class XrayService implements OnModuleInit {
   private async getKeyTargets(
     key: UserKeyEntity,
     manager: EntityManager = this.em,
-  ): Promise<{ host: ServerEntity; exit?: ServerEntity }[]> {
+  ): Promise<{ host: ServerEntity; exit?: ServerEntity; isCdn?: boolean }[]> {
+    // CDN тариф: ключ только на VIP/CDN серверы, без каскадных выходов.
+    const tariff = await manager.findOne(TariffEntity, {
+      where: { id: key.tariffId },
+    });
+    if (tariff?.kind === 'cdn') {
+      const vipHosts = await manager.find(ServerEntity, {
+        where: { canCreateKey: true, cdnDomain: Not(IsNull()) },
+      });
+      return vipHosts.map((host) => ({ host, isCdn: true }));
+    }
+
     if (key.cascadeToServerId) {
       const whites = await manager.find(ServerEntity, {
         where: { canCreateKey: true, code: 'white' },
@@ -565,7 +684,8 @@ export class XrayService implements OnModuleInit {
     const hosts = await manager.find(ServerEntity, {
       where: { canCreateKey: true, code: Not('white') },
     });
-    return hosts.map((host) => ({ host }));
+    // Не добавляем VIP серверы в обычные (не VIP) ключи.
+    return hosts.filter((h) => !this.isCdnServer(h)).map((host) => ({ host }));
   }
 
   private t(ctx: UserEntity | string, key: string) {

@@ -66,8 +66,8 @@ export class AuthService {
   }: GetTariffsDto): Promise<DataResponse<TariffEntity[]>> {
     const where =
       kind === 'premium'
-        ? { active: true, useCascade: true }
-        : { active: true, useCascade: false };
+        ? { active: true, kind: 'cascade' as const }
+        : { active: true, kind: 'base' as const };
 
     const tariffs = await this.em.find(TariffEntity, {
       where,

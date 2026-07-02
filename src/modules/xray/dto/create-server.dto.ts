@@ -39,4 +39,9 @@ export class CreateServerDto {
   @MaxLength(128)
   @IsOptional()
   readonly forCascadeInboundTag?: string;
+
+  @IsString()
+  @MaxLength(255)
+  @IsOptional()
+  readonly cdnDomain?: string;
 }
