@@ -135,14 +135,8 @@ export class WechatService {
 
     await this.em.update(
       TransactionEntity,
-      {
-        paymentId: result.out_trade_no,
-        place: 'wechat',
-        currency: 'cny',
-      },
-      {
-        completed: true,
-      },
+      { paymentId: result.out_trade_no, place: 'wechat' },
+      { completed: true },
     );
   }
 

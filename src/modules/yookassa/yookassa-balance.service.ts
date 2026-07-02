@@ -85,7 +85,7 @@ export class YookassaBalanceService {
         userId,
         paymentId,
         amount,
-        currency: 'rub',
+        currency: CurrencyEnum.RUB,
         type: 'Credit',
         place: 'yookassa',
         completed: false,
@@ -118,18 +118,18 @@ export class YookassaBalanceService {
     if (!balancePayment) return;
     if (balancePayment.completed) return;
 
-    await this.em.update(
-      TransactionEntity,
-      { id: balancePayment.id },
-      { completed: true },
-    );
-
     const amount = Number(balancePayment.amount);
 
     await this.transactionsService.addBalance(
       balancePayment.userId,
       amount,
       CurrencyEnum.RUB,
+    );
+
+    await this.em.update(
+      TransactionEntity,
+      { id: balancePayment.id, place: 'yookassa' },
+      { completed: true },
     );
   }
 }

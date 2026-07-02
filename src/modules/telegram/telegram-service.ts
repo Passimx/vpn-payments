@@ -24,6 +24,7 @@ import { ResendMessageType } from './types/resend-message.type';
 import { TonService } from '../ton/ton.service';
 import { AppWalletEnum } from '../ton/enums/app-wallet.enum';
 import { DownloadLinksType, KeyEnum } from './types/download-links.type';
+import { TransactionEntity } from '../database/entities/transaction.entity';
 
 let resendMessageData: ResendMessageType | undefined;
 
@@ -271,6 +272,12 @@ export class TelegramService {
       starsPaid * 0.02,
       CurrencyEnum.USD,
     );
+
+    await this.em.update(
+      TransactionEntity,
+      { id: message.successful_payment.invoice_payload, userId: user.id },
+      { completed: true },
+    );
   };
 
   onPayTelegramStars = async (ctx: Context) => {
@@ -289,10 +296,25 @@ export class TelegramService {
     const starRate = 0.02; // course for usd
     const starsAmount = Math.ceil(correctAmount / starRate);
 
+    const now = Date.now();
+    const id = BigInt(now);
+
+    const transaction = {
+      id,
+      amount: correctAmount,
+      currency: CurrencyEnum.USD,
+      userId: user.id,
+      type: 'Credit',
+      place: 'telegram',
+      createdAt: now,
+    } as Partial<TransactionEntity>;
+
+    await this.em.insert(TransactionEntity, transaction);
+
     await ctx.replyWithInvoice({
       title: this.t(user, 'stars_invoice_title'),
       description: `${this.t(user, 'deposit_amount')} ${this.transactionsService.formatNumber(amount, this.t(user, 't10') as CurrencyEnum)}`,
-      payload: `deposit_stars_${user.id}_${Date.now()}`,
+      payload: `${id}`,
       provider_token: '',
       currency: 'XTR',
       prices: [{ label: 'Telegram Stars', amount: starsAmount }],

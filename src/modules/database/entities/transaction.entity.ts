@@ -35,7 +35,7 @@ export class TransactionEntity {
   readonly type: 'Credit' | 'Debit';
 
   @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })
-  readonly place: 'ton' | 'yookassa' | 'wechat';
+  readonly place: 'ton' | 'yookassa' | 'wechat' | 'telegram';
 
   @Column({ name: 'completed', type: 'boolean', default: false })
   readonly completed: boolean;
