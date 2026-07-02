@@ -89,24 +89,15 @@ export class TransactionsService {
   ) {
     const currencyPrice = this.cache;
     if (!currencyPrice) return 0;
-
     let sum = 0;
 
-    const currencyMap = {
-      rub: 'rub',
-      cny: 'cny',
-      ton: 'ton',
-      tonUsdt: 'usd',
-    };
-
     for (const [key, value] of Object.entries(balanceAccount)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const fromCurrency = currencyMap[key];
-      if (!fromCurrency) continue;
+      const isValid = Object.values(CurrencyEnum).includes(key as CurrencyEnum);
+      if (value === 0 || !isValid) continue;
 
       const converted = await this.convert(
         Number(value),
-        fromCurrency as CurrencyEnum,
+        key as CurrencyEnum,
         currency,
       );
       sum += converted;
