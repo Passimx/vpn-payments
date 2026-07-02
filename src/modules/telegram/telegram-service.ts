@@ -179,12 +179,12 @@ export class TelegramService {
           'ON_LANGUAGE',
         ),
       ],
-      [
-        Markup.button.url(
-          `📄 ${this.t(user, 'user_agreement')}`,
-          'https://passimx.ru/info/ru/vpn-user-agreement.html',
-        ),
-      ],
+      // [
+      //   Markup.button.url(
+      //     `📄 ${this.t(user, 'user_agreement')}`,
+      //     'https://passimx.ru/info/ru/vpn-user-agreement.html',
+      //   ),
+      // ],
     ]);
 
   private backToProfileButton = (user: UserEntity) =>
@@ -201,7 +201,7 @@ export class TelegramService {
 
   private readonly downloadLinks: DownloadLinksType = {
     ios: {
-      happ: 'https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973',
+      happ: 'https://apps.apple.com/ke/app/happ-proxy-utility/id6504287215',
       hiddify: 'https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532',
       incy: 'https://apps.apple.com/us/app/incy/id6756943388',
       v2RayTun: 'https://apps.apple.com/kz/app/v2raytun/id6476628951',
