@@ -59,4 +59,10 @@ export const Envs = {
     mchid: process.env.WECHAT_MCHID,
     notify_url: process.env.WECHAT_NOTIFY_URL,
   },
+  vipLaunch: {
+    discountPercent: Number(process.env.VIP_LAUNCH_DISCOUNT_PERCENT ?? 0),
+    discountUntil: process.env.VIP_LAUNCH_DISCOUNT_UNTIL
+      ? new Date(process.env.VIP_LAUNCH_DISCOUNT_UNTIL)
+      : null,
+  },
 };

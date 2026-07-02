@@ -62,6 +62,8 @@ export default {
   enter_promo: '输入优惠码',
   buy_key: '购买密钥',
   price: '价格',
+  sale_banner: '限时促销 • 折扣',
+  old_price: '原价',
   extended_key: '<b>密钥已续期</b>\n\n密钥已更新并重新激活。',
   promo_activated: '优惠码已使用',
   to_keys: '我的密钥',
