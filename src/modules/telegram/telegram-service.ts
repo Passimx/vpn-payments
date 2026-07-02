@@ -213,6 +213,14 @@ export class TelegramService {
       v2RayTun:
         'https://play.google.com/store/apps/details?id=com.v2raytun.android',
     },
+    windows: {
+      happ: 'https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe',
+      hiddify:
+        'https://github.com/hiddify/hiddify-app/releases/latest/download/Hiddify-Windows-Setup-x64.exe',
+      incy: 'https://github.com/INCY-DEV/incy-platforms/releases/download/desktop-v3.2.6/incy-windows-setup.exe',
+      v2RayTun:
+        'https://github.com/mdf45/v2raytun/releases/download/v3.8.12/v2RayTun_Setup.exe',
+    },
   };
 
   onStart = async (ctx: Context) => {
@@ -597,7 +605,7 @@ export class TelegramService {
             Markup.button.callback('🍎 iOS', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
-            Markup.button.callback('💻 Windows', `BTN_12:${KeyEnum.ANDROID}`),
+            Markup.button.callback('💻 Windows', `BTN_12:${KeyEnum.WINDOWS}`),
             Markup.button.callback('🍏 Mac', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
@@ -839,7 +847,7 @@ export class TelegramService {
       ? this.formatTrafficLimit(limitBytes)
       : this.t(user, 'unlimited');
     const text =
-      `📦 <b>${this.t(user, `tariff_${tariff.expirationDays}`)}</b>\n\n` +
+      `📦 <b>${this.t(user, `${Number(tariff.price) === 0 ? 'tariff_trial_' : 'tariff_'}${tariff.expirationDays}`)}</b>\n\n` +
       `📊 ${this.t(user, 'traffic')}: ${trafficText}\n` +
       `📅 ${this.t(user, 'term')}: ${tariff.expirationDays} ${this.t(user, 'days')}\n` +
       `💰 ${this.t(user, 'price')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(tariff.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}\n`;
@@ -1190,7 +1198,7 @@ export class TelegramService {
             Markup.button.callback('🍎 iOS', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
-            Markup.button.callback('💻 Windows', `BTN_12:${KeyEnum.ANDROID}`),
+            Markup.button.callback('💻 Windows', `BTN_12:${KeyEnum.WINDOWS}`),
             Markup.button.callback('🍏 Mac', `BTN_12:${KeyEnum.IOS}`),
           ],
           [
@@ -1993,6 +2001,8 @@ export class TelegramService {
 
   private formatTariffLabel(lang: string | undefined, t: TariffEntity): string {
     const limitBytes = t.trafficLimit ?? null;
+    const isTrial = Number(t.price) === 0;
+    const dayKey = `${isTrial ? 'tariff_trial_' : 'tariff_'}${t.expirationDays}`;
     if (limitBytes) {
       if (t.kind === 'cascade') {
         const template = this.t(lang ?? 'ru', 'premium_tariff_label');
@@ -2002,9 +2012,9 @@ export class TelegramService {
       }
 
       // Обычный тариф с лимитом трафика: не показываем слово Premium.
-      return `${this.t(lang ?? 'ru', `tariff_${t.expirationDays}`)} (${this.formatTrafficLimit(limitBytes)})`;
+      return `${this.t(lang ?? 'ru', dayKey)} (${this.formatTrafficLimit(limitBytes)})`;
     }
-    return this.t(lang ?? 'ru', `tariff_${t.expirationDays}`);
+    return this.t(lang ?? 'ru', dayKey);
   }
 
   private prepareKeysToButtons(user: UserEntity, keys: UserKeyEntity[]) {

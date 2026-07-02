@@ -160,13 +160,14 @@ export class AuthService {
   public async getKeyInfo(
     keyId: string,
   ): Promise<{ body: string; userinfo: string } | null> {
-    let title = `🌐PassimX VPN (ID ${StringsUtil.getShortName(keyId)})`;
-
     const key = await this.em.findOne(UserKeyEntity, {
       where: { id: keyId },
-      relations: ['user'],
+      relations: ['user', 'tariff'],
     });
     if (!key) return null;
+
+    const kindLabel = key.tariff?.kind === 'cdn' ? 'VIP' : 'BASE';
+    let title = `🌐PassimX ${kindLabel} (ID ${StringsUtil.getShortName(keyId)})`;
 
     let uris: string = '';
     if (key.status === 'active') {

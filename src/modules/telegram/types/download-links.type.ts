@@ -8,6 +8,7 @@ export enum DownloadLinksItemKeys {
 export enum KeyEnum {
   ANDROID = 'android',
   IOS = 'ios',
+  WINDOWS = 'windows',
 }
 
 type DownloadLinksItem = {

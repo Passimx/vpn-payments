@@ -180,8 +180,10 @@
     "The VIP tariff has a traffic limit — it's recommended to use it alongside a Base tariff.\n" +
     'ℹ️ Before buying, we recommend checking bypass with a trial (free) key.',
 
-  tariff_1: 'Trial (1 day)',
-  tariff_3: 'Trial (3 days)',
+  tariff_trial_1: 'Trial (1 day)',
+  tariff_trial_3: 'Trial (3 days)',
+  tariff_1: '1 day',
+  tariff_3: '3 days',
   tariff_7: '7 days',
   tariff_14: '14 days',
   tariff_30: '30 days',
