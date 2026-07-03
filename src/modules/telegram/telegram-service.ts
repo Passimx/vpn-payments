@@ -140,9 +140,7 @@ export class TelegramService {
     return this.i18nService.t(lang, key);
   }
 
-  // Временная скидка на VIP (CDN) при запуске. Управляется env-переменными
-  // VIP_LAUNCH_DISCOUNT_PERCENT и VIP_LAUNCH_DISCOUNT_UNTIL. Если они удалены
-  // или дата истекла — возвращает null и поведение возвращается к обычному.
+  // Временная скидка на VIP (CDN) при запуске. Управляется env
   private getVipLaunchDiscount(): number | null {
     const { discountPercent, discountUntil } = Envs.vipLaunch;
     if (!discountPercent || !discountUntil) return null;
