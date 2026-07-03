@@ -15,6 +15,7 @@ import { I18nService } from '../i18n/i18n.service';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { PurchaseResult } from './types/purchase-result.type';
+import { Envs } from '../../common/env/envs';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -48,6 +49,7 @@ export class KeyPurchaseService {
       });
 
       let finalPrice = Number(tariff.price);
+      finalPrice = this.applyVipLaunchDiscount(tariff, finalPrice);
       let appliedPromo: PromoCodeEntity | null = null;
       const autoTrialPromoCode =
         finalPrice === 0
@@ -243,6 +245,7 @@ export class KeyPurchaseService {
       });
 
       let finalPrice = Number(tariff.price);
+      finalPrice = this.applyVipLaunchDiscount(tariff, finalPrice);
       let appliedPromo: PromoCodeEntity | null = null;
       const autoTrialPromoCode =
         finalPrice === 0
@@ -345,6 +348,18 @@ export class KeyPurchaseService {
     } finally {
       await qr.release();
     }
+  }
+
+  // Временная скидка на VIP (CDN) при запуске. Управляется env-переменными
+  // VIP_LAUNCH_DISCOUNT_PERCENT и VIP_LAUNCH_DISCOUNT_UNTIL. После акции
+  // достаточно удалить переменные — цена вернётся к обычной без правок кода.
+  private applyVipLaunchDiscount(tariff: TariffEntity, price: number): number {
+    if (tariff.kind !== 'cdn') return price;
+    const { discountPercent, discountUntil } = Envs.vipLaunch;
+    if (discountPercent > 0 && discountUntil && new Date() < discountUntil) {
+      return Math.max(0, Math.round(price * (1 - discountPercent / 100)));
+    }
+    return price;
   }
 
   public t(payload: UserEntity | string, key: string) {

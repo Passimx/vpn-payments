@@ -3,4 +3,5 @@ export type ResendMessageType = {
   languageCode: string;
   chatId: number;
   messageId: number;
+  sendToAll?: boolean;
 };

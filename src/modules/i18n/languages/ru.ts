@@ -64,6 +64,8 @@ export default {
   enter_promo: 'Введите промокод',
   buy_key: 'Приобрести ключ',
   price: 'Цена',
+  sale_banner: 'АКЦИЯ • СКИДКА',
+  old_price: 'было',
   extended_key: '<b>Ключ продлён</b>\n\nКлюч обновлён и снова активен.',
   promo_activated: 'Промокод применён',
   to_keys: 'К ключам',
