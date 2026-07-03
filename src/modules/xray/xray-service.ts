@@ -28,7 +28,7 @@ import { CreateXrayKeyOptions } from './types/create-xray-key-options.type';
 
 const VALID_INBOUND_TAG_RE = /^[a-zA-Z0-9_.-]+$/;
 
-const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour — success and failure
+const SERVER_PARAMS_TTL_MS = 60 * 60 * 1000; // 1 hour
 const SERVER_PARAM_COMMANDS = [
   'cat /xray/data/public.key',
   'cat /xray/data/server.name',
