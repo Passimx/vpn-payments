@@ -7,7 +7,7 @@ export const Envs = {
   main: {
     appPort: Number(process.env.APP_PORT ?? 2000),
     jwtSecret: String(process.env.JWT_SECRET),
-    appUrl: 'https://passimx.com/8721280199',
+    appUrl: process.env.APP_URL ?? 'https://passimx.com/8721280199',
   },
   database: {
     host: process.env.PG_HOST,
@@ -60,9 +60,7 @@ export const Envs = {
     notify_url: process.env.WECHAT_NOTIFY_URL,
   },
   vipLaunch: {
-    discountPercent: Number(process.env.VIP_LAUNCH_DISCOUNT_PERCENT ?? 0),
-    discountUntil: process.env.VIP_LAUNCH_DISCOUNT_UNTIL
-      ? new Date(process.env.VIP_LAUNCH_DISCOUNT_UNTIL)
-      : null,
+    discountPercent: 70,
+    discountUntil: new Date('2026-07-06'),
   },
 };
