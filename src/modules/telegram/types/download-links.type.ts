@@ -2,7 +2,6 @@ export enum DownloadLinksItemKeys {
   HAPP = 'happ',
   HIDDIFY = 'hiddify',
   INCY = 'incy',
-  V2_RAY_TUN = 'v2RayTun',
 }
 
 export enum KeyEnum {

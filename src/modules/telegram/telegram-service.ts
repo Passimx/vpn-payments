@@ -213,22 +213,17 @@ export class TelegramService {
       happ: 'https://apps.apple.com/ke/app/happ-proxy-utility/id6504287215',
       hiddify: 'https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532',
       incy: 'https://apps.apple.com/us/app/incy/id6756943388',
-      v2RayTun: 'https://apps.apple.com/kz/app/v2raytun/id6476628951',
     },
     android: {
       happ: 'https://play.google.com/store/apps/details?id=com.happproxy',
       hiddify: 'https://play.google.com/store/search?q=hiddify&c=apps&hl=en',
       incy: 'https://play.google.com/store/apps/details?id=llc.itdev.incy',
-      v2RayTun:
-        'https://play.google.com/store/apps/details?id=com.v2raytun.android',
     },
     windows: {
       happ: 'https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe',
       hiddify:
         'https://github.com/hiddify/hiddify-app/releases/latest/download/Hiddify-Windows-Setup-x64.exe',
       incy: 'https://github.com/INCY-DEV/incy-platforms/releases/download/desktop-v3.2.6/incy-windows-setup.exe',
-      v2RayTun:
-        'https://github.com/mdf45/v2raytun/releases/download/v3.8.12/v2RayTun_Setup.exe',
     },
   };
 
@@ -611,10 +606,7 @@ export class TelegramService {
           Markup.button.url('HAPP', this.downloadLinks[key].happ),
           Markup.button.url('Hiddify', this.downloadLinks[key].hiddify),
         ],
-        [
-          Markup.button.url('v2RayTun', this.downloadLinks[key].v2RayTun),
-          Markup.button.url('INCY', this.downloadLinks[key].incy),
-        ],
+        [Markup.button.url('INCY', this.downloadLinks[key].incy)],
         key === KeyEnum.IOS
           ? [Markup.button.callback(this.t(user, 't14'), 'BTN_13')]
           : [],
@@ -1580,10 +1572,6 @@ export class TelegramService {
     ]);
 
     buttons.push([
-      Markup.button.url(
-        'V2RayTun',
-        `${Envs.main.appUrl}/keys-redirect/v2RayTun/${vpnKey.id}`,
-      ) as unknown as ReturnType<typeof Markup.button.callback>,
       Markup.button.url(
         this.t(user, 'INCY'),
         `${Envs.main.appUrl}/keys-redirect/incy/${vpnKey.id}`,
