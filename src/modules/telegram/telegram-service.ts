@@ -208,7 +208,7 @@ export class TelegramService {
   private backToTariffsButton = (user: UserEntity) =>
     Markup.button.callback(`⬅️ ${this.t(user, 'to_the_tariffs')}`, 'BTN_9');
 
-  private readonly downloadLinks: DownloadLinksType = {
+  public static readonly downloadLinks: DownloadLinksType = {
     ios: {
       happ: 'https://apps.apple.com/ke/app/happ-proxy-utility/id6504287215',
       hiddify: 'https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532',
@@ -603,10 +603,13 @@ export class TelegramService {
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard([
         [
-          Markup.button.url('HAPP', this.downloadLinks[key].happ),
-          Markup.button.url('Hiddify', this.downloadLinks[key].hiddify),
+          Markup.button.url('HAPP', TelegramService.downloadLinks[key].happ),
+          Markup.button.url(
+            'Hiddify',
+            TelegramService.downloadLinks[key].hiddify,
+          ),
         ],
-        [Markup.button.url('INCY', this.downloadLinks[key].incy)],
+        [Markup.button.url('INCY', TelegramService.downloadLinks[key].incy)],
         key === KeyEnum.IOS
           ? [Markup.button.callback(this.t(user, 't14'), 'BTN_13')]
           : [],

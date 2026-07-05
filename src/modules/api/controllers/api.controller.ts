@@ -8,6 +8,7 @@ import { Envs } from '../../../common/env/envs';
 import { I18nService } from '../../i18n/i18n.service';
 import { EntityManager } from 'typeorm';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
+import { TelegramService } from '../../telegram/telegram-service';
 
 @Controller()
 export class ApiController {
@@ -35,6 +36,12 @@ export class ApiController {
   async getCurrencyPrice() {
     const payload = await this.transactionsService.getCurrencyPrice();
     return new DataResponse(payload);
+  }
+
+  @Public()
+  @Get('apps')
+  getApps() {
+    return new DataResponse(TelegramService.downloadLinks);
   }
 
   // @Post('tariffs')

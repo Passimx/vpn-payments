@@ -20,7 +20,7 @@ export class TransactionsService {
   }
 
   private cache: CryptoPriceType | null = null;
-  private readonly TTL = 10 * 60 * 1000;
+  private readonly TTL = 60 * 60 * 1000;
 
   public async addBalance(
     userId: string,
@@ -108,6 +108,7 @@ export class TransactionsService {
 
     setTimeout(() => {
       this.cache = null;
+      this.getCurrencyPrice();
     }, this.TTL);
 
     return this.cache;
@@ -117,7 +118,7 @@ export class TransactionsService {
     balanceAccount: BalanceAccount,
     currency: CurrencyEnum,
   ) {
-    const currencyPrice = this.cache;
+    const currencyPrice = await this.getCurrencyPrice();
     if (!currencyPrice) return 0;
     let sum = 0;
 
