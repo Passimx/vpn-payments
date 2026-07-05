@@ -16,6 +16,7 @@ import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { PurchaseResult } from './types/purchase-result.type';
 import { Envs } from '../../common/env/envs';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -221,6 +222,7 @@ export class KeyPurchaseService {
     const returnFunc = async (
       payload: DataResponse<string | PriceWithPromoResult>,
     ) => {
+      logger.debug(payload);
       await qr.rollbackTransaction();
       return payload;
     };
