@@ -15,7 +15,7 @@ export const Envs = {
     database: process.env.PG_DATABASE,
     username: process.env.PG_USERNAME,
     password: process.env.PG_PASSWORD,
-    logging: Boolean(process.env.PG_LOGGING),
+    logging: process.env.PG_LOGGING === 'true',
   },
   telegram: {
     botToken: String(process.env.TELEGRAM_BOT_TOKEN),

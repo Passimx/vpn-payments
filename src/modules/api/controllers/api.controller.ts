@@ -1,33 +1,15 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Header,
-  Param,
-  Post,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Header, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from '../services/auth.service';
-import { LoginDto } from '../dto/requests/login.dto';
-import { UserId } from '../../../common/guards/user.decorator';
 import { Public } from '../../../common/guards/public.decorator';
 import { TransactionsService } from '../../transactions/transactions.service';
 import { DataResponse } from '../dto/responses/data-response.dto';
-import { AuthGuard } from '../../../common/guards/auth.guard';
-import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
-import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
-import { CreateKeyBody } from '../dto/requests/create-key.body';
-import { KeyIdDto } from '../dto/requests/key-id.dto';
-import { CreateAccountDto } from '../dto/requests/create-account.dto';
 import { Envs } from '../../../common/env/envs';
 import { I18nService } from '../../i18n/i18n.service';
 import { EntityManager } from 'typeorm';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
 
 @Controller()
-@UseGuards(AuthGuard)
 export class ApiController {
   constructor(
     private readonly authService: AuthService,
@@ -36,63 +18,65 @@ export class ApiController {
     private readonly em: EntityManager,
   ) {}
 
+  // @Public()
+  // @Post('login-by-telegram')
+  // loginByTelegram(@Body() body: LoginDto) {
+  //   return this.authService.loginByTelegram(body.key);
+  // }
+
   @Public()
-  @Post('login-by-telegram')
-  loginByTelegram(@Body() body: LoginDto) {
-    return this.authService.loginByTelegram(body.key);
+  @Get('users/passimx/:id')
+  GetUsersMe(@Param('id') userId: string) {
+    return this.authService.getUserByPassimxId(userId);
   }
 
-  @Get('users/me')
-  GetUsersMe(@UserId() userId: string) {
-    return this.authService.getUser(userId);
-  }
-
+  @Public()
   @Get('currency-price')
   async getCurrencyPrice() {
     const payload = await this.transactionsService.getCurrencyPrice();
     return new DataResponse(payload);
   }
 
-  @Post('tariffs')
-  tariffs(@Body() body: GetTariffsDto) {
-    return this.authService.getTariffs(body);
-  }
-
-  @Post('extend-key')
-  extendKey(@UserId() userId: string, @Body() body: ExtendKeyDto) {
-    return this.authService.extendKey(userId, body);
-  }
-
-  @Post('servers')
-  getServers() {
-    return this.authService.getServers();
-  }
-
-  @Post('change-auto-renew')
-  changeAutoRenew(@UserId() userId: string, @Body() body: KeyIdDto) {
-    return this.authService.changeAutoRenew(userId, body);
-  }
-
-  @Post('create-key')
-  createKey(@UserId() userId: string, @Body() body: CreateKeyBody) {
-    return this.authService.createKey(userId, body);
-  }
-
-  @Post('delete-key')
-  deleteKey(@UserId() userId: string, @Body() body: KeyIdDto) {
-    return this.authService.deleteKey(userId, body);
-  }
-
-  @Get('ref-info')
-  getRefInfo(@UserId() userId: string) {
-    return this.authService.getRefInfo(userId);
-  }
-
-  @Public()
-  @Post('create-account')
-  createAccount(@Body() body: CreateAccountDto) {
-    return this.authService.createAccount(body);
-  }
+  // @Post('tariffs')
+  // tariffs(@Body() body: GetTariffsDto) {
+  //   return this.authService.getTariffs(body);
+  // }
+  //
+  // @Post('extend-key')
+  // extendKey(@UserId() userId: string, @Body() body: ExtendKeyDto) {
+  //   return this.authService.extendKey(userId, body);
+  // }
+  //
+  // @Post('servers')
+  // getServers() {
+  //   return this.authService.getServers();
+  // }
+  //
+  // @Post('change-auto-renew')
+  // changeAutoRenew(@UserId() userId: string, @Body() body: KeyIdDto) {
+  //   return this.authService.changeAutoRenew(userId, body);
+  // }
+  //
+  // @Post('create-key')
+  // createKey(@UserId() userId: string, @Body() body: CreateKeyBody) {
+  //   return this.authService.createKey(userId, body);
+  // }
+  //
+  // @Post('delete-key')
+  // deleteKey(@UserId() userId: string, @Body() body: KeyIdDto) {
+  //   return this.authService.deleteKey(userId, body);
+  // }
+  //
+  // @Get('ref-info')
+  // getRefInfo(@UserId() userId: string) {
+  //   return this.authService.getRefInfo(userId);
+  // }
+  //
+  // @Public()
+  // @Post('create-account')
+  // createAccount(@Body() body: CreateAccountDto) {
+  //   return this.authService.createAccount(body);
+  // }
 
   @Public()
   @Get('keys-info/:keyId')

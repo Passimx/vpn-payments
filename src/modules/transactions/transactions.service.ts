@@ -5,6 +5,7 @@ import { UserEntity } from '../database/entities/user.entity';
 import { TelegramService } from '../telegram/telegram-service';
 import { CurrencyEnum } from './types/currency.enum';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class TransactionsService {
@@ -57,25 +58,54 @@ export class TransactionsService {
     if (amount > 0) await this.addBalance(user.source, amount, currency);
   }
 
-  // получение актуального курса криптовалют
   public async getCurrencyPrice() {
     if (this.cache) return this.cache;
 
-    const date = new Date();
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы 0-11
-    const year = date.getFullYear();
-    const formattedDate = `${day}-${month}-${year}`;
+    const [cbrCurrencyBase, cryptoCurrencyBase] = await Promise.all([
+      this.getCBRCurrencyBase(),
+      this.getCryptoCurrencyBase(),
+    ]);
 
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,ethereum,bitcoin,solana,usd&vs_currencies=usd,rub,cny,eur&date=${formattedDate}&localization=false`,
-    ).catch(() => {});
-    if (!response) return;
+    if (!cbrCurrencyBase || !cryptoCurrencyBase) return;
 
-    const data = (await response.json()) as CryptoPriceType;
-    data.ton = data['the-open-network'];
+    const usdInRub = cbrCurrencyBase.usdCurrency.rate;
+    const cnyInRub = cbrCurrencyBase.cnyCurrency.rate;
+    const tonInUsd = cryptoCurrencyBase.ton.usd;
 
-    this.cache = data;
+    const priceInUsd = {
+      usd: 1,
+      cny: cnyInRub / usdInRub,
+      rub: 1 / usdInRub,
+      ton: tonInUsd,
+    };
+
+    this.cache = {
+      usd: {
+        usd: 1,
+        cny: priceInUsd.usd / priceInUsd.cny,
+        rub: priceInUsd.usd / priceInUsd.rub,
+        ton: priceInUsd.usd / priceInUsd.ton,
+      },
+      cny: {
+        usd: priceInUsd.cny / priceInUsd.usd,
+        cny: 1,
+        rub: priceInUsd.cny / priceInUsd.rub,
+        ton: priceInUsd.cny / priceInUsd.ton,
+      },
+      rub: {
+        usd: priceInUsd.rub / priceInUsd.usd,
+        cny: priceInUsd.rub / priceInUsd.cny,
+        rub: 1,
+        ton: priceInUsd.rub / priceInUsd.ton,
+      },
+      ton: {
+        usd: priceInUsd.ton / priceInUsd.usd,
+        cny: priceInUsd.ton / priceInUsd.cny,
+        rub: priceInUsd.ton / priceInUsd.rub,
+        ton: 1,
+      },
+    };
+
     setTimeout(() => {
       this.cache = null;
     }, this.TTL);
@@ -184,13 +214,9 @@ export class TransactionsService {
     let result = 0;
 
     if (from === to) result = amount;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     else if (currencyPrice[from]?.[to]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       result = amount * currencyPrice[from][to];
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     } else if (currencyPrice[to]?.[from]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       result = amount / currencyPrice[to][from];
     } else if (from !== CurrencyEnum.USD && to !== CurrencyEnum.USD) {
       const inUsd = await this.convert(amount, from, CurrencyEnum.USD);
@@ -206,5 +232,75 @@ export class TransactionsService {
       maximumFractionDigits: 2,
     });
     return `${result} ${symdol}`;
+  }
+
+  private async getCryptoCurrencyBase() {
+    try {
+      const date = new Date();
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы 0-11
+      const year = date.getFullYear();
+      const formattedDate = `${day}-${month}-${year}`;
+
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,ethereum,bitcoin,solana,usd&vs_currencies=usd,rub,cny,eur&date=${formattedDate}&localization=false`,
+      ).catch(() => {});
+      if (!response) return;
+      const data = (await response.json()) as Partial<{
+        'the-open-network': { usd: number };
+        ton: { usd: number };
+        bitcoin: { usd: number };
+        ethereum: { usd: number };
+        solana: { usd: number };
+      }>;
+
+      data.ton = data['the-open-network'];
+      delete data['the-open-network'];
+
+      return data as {
+        ton: { usd: number };
+        bitcoin: { usd: number };
+        ethereum: { usd: number };
+        solana: { usd: number };
+      };
+    } catch (e) {
+      logger.error(e);
+      return;
+    }
+  }
+
+  private async getCBRCurrencyBase() {
+    try {
+      const response = await fetch('https://www.cbr.ru/currency_base/daily/');
+      const html = await response.text();
+
+      const rows = [
+        ...html.matchAll(
+          /<tr>\s*<td>(\d+)<\/td>\s*<td>([A-Z]+)<\/td>\s*<td>(\d+)<\/td>\s*<td>(.*?)<\/td>\s*<td>([\d,]+)<\/td>\s*<\/tr>/gs,
+        ),
+      ];
+
+      const currencies = rows.map((match) => ({
+        numericCode: match[1],
+        charCode: match[2],
+        units: Number(match[3]),
+        name: match[4].trim(),
+        rate: Number(match[5].replace(',', '.')),
+      }));
+
+      const cnyCurrency = currencies.find(
+        (currency) => currency.charCode === 'CNY',
+      );
+      const usdCurrency = currencies.find(
+        (currency) => currency.charCode === 'USD',
+      );
+
+      if (!cnyCurrency || !usdCurrency) return;
+
+      return { cnyCurrency, usdCurrency };
+    } catch (e) {
+      logger.error(e);
+      return;
+    }
   }
 }

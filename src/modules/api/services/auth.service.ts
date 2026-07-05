@@ -145,12 +145,43 @@ export class AuthService {
     return this.getUser(userId);
   }
 
+  public async getUserByPassimxId(
+    passimxId: string,
+  ): Promise<DataResponse<UserResponseDto>> {
+    const user = await this.em.findOne(UserEntity, {
+      where: { passimxId },
+      relations: ['balanceAccount', 'keys'],
+    });
+
+    if (!user) {
+      const id = crypto.randomUUID().replace(/-/g, '');
+      await this.em.insert(UserEntity, {
+        id,
+        passimxId,
+      });
+      await this.em.insert(BalanceAccount, {
+        userId: id,
+      });
+
+      return this.getUserByPassimxId(passimxId);
+    }
+
+    return new DataResponse<UserResponseDto>(
+      UserResponseDto.getFromUserEntity(user),
+    );
+  }
+
   public async getUser(id: string): Promise<DataResponse<UserResponseDto>> {
     const user = await this.em.findOneOrFail(UserEntity, {
       where: { id },
       relations: ['keys', 'balanceAccount'],
       order: { keys: { createdAt: 'ASC' } },
     });
+
+    if (!user)
+      await this.em.insert(UserEntity, {
+        passimxId: id,
+      });
 
     return new DataResponse<UserResponseDto>(
       UserResponseDto.getFromUserEntity(user),

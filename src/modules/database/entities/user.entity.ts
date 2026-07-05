@@ -18,6 +18,9 @@ export class UserEntity {
   })
   readonly telegramId?: number;
 
+  @Column({ name: 'passimx_id', type: 'varchar', nullable: true })
+  readonly passimxId?: string;
+
   @Column({ name: 'user_name', type: 'varchar', nullable: true })
   readonly userName?: string;
 

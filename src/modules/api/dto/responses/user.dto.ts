@@ -37,7 +37,7 @@ export class UserKeyDto {
 export class UserResponseDto {
   readonly id: string;
 
-  readonly balanceAccount: BalanceAccount;
+  readonly balance: BalanceAccount;
 
   readonly keys: UserKeyDto[];
 
@@ -50,7 +50,7 @@ export class UserResponseDto {
 
     return new UserResponseDto({
       id: user.id,
-      balanceAccount: user.balanceAccount,
+      balance: user.balanceAccount,
       keys,
     });
   }

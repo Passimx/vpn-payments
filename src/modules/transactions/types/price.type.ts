@@ -1,1 +1,1 @@
-export type PriceType = { usd: number; rub: number; cny: number; eur: number };
+export type PriceType = { usd: number; rub: number; cny: number; ton: number };
