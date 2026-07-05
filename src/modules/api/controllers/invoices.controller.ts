@@ -13,12 +13,12 @@ export class InvoicesController {
     return this.invoicesService.getSberInvoice(userId, body.amount);
   }
 
-  @Post('wechat')
+  @Post('wechat/:id')
   getWechatInvoice(@Param('id') userId: string, @Body() body: GetInvoiceDto) {
     return this.invoicesService.getWechatInvoice(userId, body.amount);
   }
 
-  @Post('ton')
+  @Post('ton/:id')
   getTonInvoice(@Param('id') userId: string, @Body() body: GetTonInvoice) {
     return this.invoicesService.getTonInvoice(
       userId,
