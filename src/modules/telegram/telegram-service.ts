@@ -2089,14 +2089,18 @@ export class TelegramService {
     if (!resendMessageData || resendMessageData.started) return;
     resendMessageData.started = true;
 
-    const users = await this.em
+    let query = this.em
       .createQueryBuilder(UserEntity, 'users')
-      .innerJoin('users.keys', 'keys', "keys.status = 'active'")
       .where('users.telegramId IS NOT NULL')
       .andWhere('users.languageCode = :languageCode', {
         languageCode: resendMessageData.languageCode,
-      })
-      .getMany();
+      });
+
+    if (!resendMessageData.sendToAll) {
+      query = query.innerJoin('users.keys', 'keys', "keys.status = 'active'");
+    }
+
+    const users = await query.getMany();
 
     for (const user of users) {
       try {
@@ -2132,6 +2136,7 @@ export class TelegramService {
 
     const ctxMessage = ctx.message as {
       message_id: number;
+      text?: string;
       reply_to_message?: { message_id: number };
     };
     const message = ctxMessage.reply_to_message;
@@ -2139,11 +2144,14 @@ export class TelegramService {
       return ctx.reply(this.t(user, 'need_to_reply'));
     }
 
+    const sendToAll = (ctxMessage.text ?? '').includes('all');
+
     resendMessageData = {
       started: false,
       languageCode: user.languageCode,
       chatId: user.telegramId,
       messageId: message.message_id,
+      sendToAll,
     };
   };
 }
