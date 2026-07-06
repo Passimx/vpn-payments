@@ -141,14 +141,6 @@ export class TelegramService {
     return this.i18nService.t(lang, key);
   }
 
-  // Временная скидка на VIP (CDN) при запуске. Управляется env
-  private getVipLaunchDiscount(): number | null {
-    const { discountPercent, discountUntil } = Envs.vipLaunch;
-    if (!discountPercent || !discountUntil) return null;
-    if (new Date() > discountUntil) return null;
-    return discountPercent;
-  }
-
   private profileMenu = (user: UserEntity) => {
     return Markup.inlineKeyboard([
       [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
@@ -871,39 +863,11 @@ export class TelegramService {
     const trafficText = limitBytes
       ? this.formatTrafficLimit(limitBytes)
       : this.t(user, 'unlimited');
-
-    const originalPriceFormatted = this.transactionsService.formatNumber(
-      await this.transactionsService.convert(
-        tariff.price,
-        CurrencyEnum.RUB,
-        this.t(user, 't11') as CurrencyEnum,
-      ),
-      this.t(user, 't10'),
-    );
-    const vipDiscount =
-      tariff.kind === 'cdn' ? this.getVipLaunchDiscount() : null;
-
-    let banner = '';
-    let priceText = originalPriceFormatted;
-    if (vipDiscount) {
-      const discountedPriceFormatted = this.transactionsService.formatNumber(
-        await this.transactionsService.convert(
-          Math.round(Number(tariff.price) * (1 - vipDiscount / 100)),
-          CurrencyEnum.RUB,
-          this.t(user, 't11') as CurrencyEnum,
-        ),
-        this.t(user, 't10'),
-      );
-      banner = `🔥🔥🔥 <b>${this.t(user, 'sale_banner')} −${vipDiscount}%</b> 🔥🔥🔥\n\n`;
-      priceText = `<s>${originalPriceFormatted}</s> −${vipDiscount}% = <b>${discountedPriceFormatted}</b>`;
-    }
-
     const text =
-      banner +
       `📦 <b>${this.t(user, `${Number(tariff.price) === 0 ? 'tariff_trial_' : 'tariff_'}${tariff.expirationDays}`)}</b>\n\n` +
       `📊 ${this.t(user, 'traffic')}: ${trafficText}\n` +
       `📅 ${this.t(user, 'term')}: ${tariff.expirationDays} ${this.t(user, 'days')}\n` +
-      `💰 ${this.t(user, 'price')}: ${priceText}\n`;
+      `💰 ${this.t(user, 'price')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(tariff.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}\n`;
 
     await ctx
       .editMessageText(text, {
@@ -2027,36 +1991,12 @@ export class TelegramService {
       : filteredList;
 
     return await Promise.all(
-      pricedList.map(async (t) => {
-        const vipDiscount =
-          t.kind === 'cdn' ? this.getVipLaunchDiscount() : null;
-        const displayPrice = vipDiscount
-          ? Math.round(Number(t.price) * (1 - vipDiscount / 100))
-          : Number(t.price);
-        const formattedPrice = this.transactionsService.formatNumber(
-          await this.transactionsService.convert(
-            displayPrice,
-            CurrencyEnum.RUB,
-            this.t(user, 't11') as CurrencyEnum,
-          ),
-          this.t(user, 't10'),
-        );
-        let label = `${this.formatTariffLabel(user.languageCode, t)} — ${formattedPrice}`;
-        if (vipDiscount) {
-          // В тексте кнопки Telegram не поддерживает HTML (зачёркивание),
-          // поэтому старую цену показываем через «было …».
-          const originalFormatted = this.transactionsService.formatNumber(
-            await this.transactionsService.convert(
-              Number(t.price),
-              CurrencyEnum.RUB,
-              this.t(user, 't11') as CurrencyEnum,
-            ),
-            this.t(user, 't10'),
-          );
-          label = `🔥 ${this.formatTariffLabel(user.languageCode, t)} — ${formattedPrice} (${this.t(user, 'old_price')} ${originalFormatted}, −${vipDiscount}%)`;
-        }
-        return [Markup.button.callback(label, `T:${t.id}`)];
-      }),
+      pricedList.map(async (t) => [
+        Markup.button.callback(
+          `${this.formatTariffLabel(user.languageCode, t)} — ${this.transactionsService.formatNumber(await this.transactionsService.convert(t.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}`,
+          `T:${t.id}`,
+        ),
+      ]),
     );
   }
 
@@ -2149,19 +2089,14 @@ export class TelegramService {
     if (!resendMessageData || resendMessageData.started) return;
     resendMessageData.started = true;
 
-    let query = this.em
+    const users = await this.em
       .createQueryBuilder(UserEntity, 'users')
+      .innerJoin('users.keys', 'keys', "keys.status = 'active'")
       .where('users.telegramId IS NOT NULL')
       .andWhere('users.languageCode = :languageCode', {
         languageCode: resendMessageData.languageCode,
-      });
-
-    // Без флага `all` — только пользователи с активными ключами (старое поведение).
-    if (!resendMessageData.sendToAll) {
-      query = query.innerJoin('users.keys', 'keys', "keys.status = 'active'");
-    }
-
-    const users = await query.getMany();
+      })
+      .getMany();
 
     for (const user of users) {
       try {
@@ -2197,7 +2132,6 @@ export class TelegramService {
 
     const ctxMessage = ctx.message as {
       message_id: number;
-      text?: string;
       reply_to_message?: { message_id: number };
     };
     const message = ctxMessage.reply_to_message;
@@ -2205,15 +2139,11 @@ export class TelegramService {
       return ctx.reply(this.t(user, 'need_to_reply'));
     }
 
-    // Флаг `all` в команде → рассылка всем пользователям, а не только с активными ключами.
-    const sendToAll = (ctxMessage.text ?? '').includes('all');
-
     resendMessageData = {
       started: false,
       languageCode: user.languageCode,
       chatId: user.telegramId,
       messageId: message.message_id,
-      sendToAll,
     };
   };
 }
