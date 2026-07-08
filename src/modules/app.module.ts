@@ -9,9 +9,11 @@ import { KeyPurchaseModule } from './key-purchase/key-purchase.module';
 import { XrayModule } from './xray/xray.module';
 import { WechatModule } from './wechat/wechat.module';
 import { ApiModule } from './api/api.module';
+import { PassimxModule } from './passimx/passimx.module';
 
 @Module({
   imports: [
+    PassimxModule,
     XrayModule,
     ScheduleModule,
     DatabaseModule,
