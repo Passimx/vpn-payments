@@ -2050,7 +2050,8 @@ export class TelegramService {
             ),
             this.t(user, 't10'),
           );
-          const strikethrough = (s: string) => [...s].map((c) => '\u0335' + c).join('');
+          const strikethrough = (s: string) =>
+            [...s].map((c) => '\u0335' + c).join('');
           label = `🔥 ${this.formatTariffLabel(user.languageCode, t)} — ${strikethrough(originalFormatted)} ➡️ ${formattedPrice} (-${vipDiscount}%)`;
         }
         return [Markup.button.callback(label, `T:${t.id}`)];
