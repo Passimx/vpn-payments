@@ -63,6 +63,8 @@
   enter_promo: 'Enter promo code',
   buy_key: 'Buy key',
   price: 'Price',
+  sale_banner: 'SALE • DISCOUNT',
+  old_price: 'was',
   extended_key:
     '<b>Key extended</b>\n\nThe key has been updated and is active again.',
   promo_activated: 'Promo code applied',
