@@ -141,6 +141,13 @@ export class TelegramService {
     return this.i18nService.t(lang, key);
   }
 
+  private getVipLaunchDiscount(): number | null {
+    const { discountPercent, discountUntil } = Envs.vipLaunch;
+    if (!discountPercent || !discountUntil) return null;
+    if (new Date() > discountUntil) return null;
+    return discountPercent;
+  }
+
   private profileMenu = (user: UserEntity) => {
     return Markup.inlineKeyboard([
       [Markup.button.callback(`🔑 ${this.t(user, 'my_keys')}`, 'BTN_5')],
@@ -863,11 +870,39 @@ export class TelegramService {
     const trafficText = limitBytes
       ? this.formatTrafficLimit(limitBytes)
       : this.t(user, 'unlimited');
+
+    const originalPriceFormatted = this.transactionsService.formatNumber(
+      await this.transactionsService.convert(
+        tariff.price,
+        CurrencyEnum.RUB,
+        this.t(user, 't11') as CurrencyEnum,
+      ),
+      this.t(user, 't10'),
+    );
+    const vipDiscount =
+      tariff.kind === 'cdn' ? this.getVipLaunchDiscount() : null;
+
+    let banner = '';
+    let priceText = originalPriceFormatted;
+    if (vipDiscount) {
+      const discountedPriceFormatted = this.transactionsService.formatNumber(
+        await this.transactionsService.convert(
+          Math.round(Number(tariff.price) * (1 - vipDiscount / 100)),
+          CurrencyEnum.RUB,
+          this.t(user, 't11') as CurrencyEnum,
+        ),
+        this.t(user, 't10'),
+      );
+      banner = `🔥🔥🔥 <b>${this.t(user, 'sale_banner')} −${vipDiscount}%</b> 🔥🔥🔥\n\n`;
+      priceText = `<del>${originalPriceFormatted}</del> ➡️ <b>${discountedPriceFormatted}</b>`;
+    }
+
     const text =
+      banner +
       `📦 <b>${this.t(user, `${Number(tariff.price) === 0 ? 'tariff_trial_' : 'tariff_'}${tariff.expirationDays}`)}</b>\n\n` +
       `📊 ${this.t(user, 'traffic')}: ${trafficText}\n` +
       `📅 ${this.t(user, 'term')}: ${tariff.expirationDays} ${this.t(user, 'days')}\n` +
-      `💰 ${this.t(user, 'price')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(tariff.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}\n`;
+      `💰 ${this.t(user, 'price')}: ${priceText}\n`;
 
     await ctx
       .editMessageText(text, {
@@ -1991,12 +2026,36 @@ export class TelegramService {
       : filteredList;
 
     return await Promise.all(
-      pricedList.map(async (t) => [
-        Markup.button.callback(
-          `${this.formatTariffLabel(user.languageCode, t)} — ${this.transactionsService.formatNumber(await this.transactionsService.convert(t.price, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}`,
-          `T:${t.id}`,
-        ),
-      ]),
+      pricedList.map(async (t) => {
+        const vipDiscount =
+          t.kind === 'cdn' ? this.getVipLaunchDiscount() : null;
+        const displayPrice = vipDiscount
+          ? Math.round(Number(t.price) * (1 - vipDiscount / 100))
+          : Number(t.price);
+        const formattedPrice = this.transactionsService.formatNumber(
+          await this.transactionsService.convert(
+            displayPrice,
+            CurrencyEnum.RUB,
+            this.t(user, 't11') as CurrencyEnum,
+          ),
+          this.t(user, 't10'),
+        );
+        let label = `${this.formatTariffLabel(user.languageCode, t)} — ${formattedPrice}`;
+        if (vipDiscount) {
+          const originalFormatted = this.transactionsService.formatNumber(
+            await this.transactionsService.convert(
+              Number(t.price),
+              CurrencyEnum.RUB,
+              this.t(user, 't11') as CurrencyEnum,
+            ),
+            this.t(user, 't10'),
+          );
+          const strikethrough = (s: string) =>
+            [...s].map((c) => '\u0335' + c).join('');
+          label = `🔥 ${this.formatTariffLabel(user.languageCode, t)} — ${strikethrough(originalFormatted)} ➡️ ${formattedPrice} (-${vipDiscount}%)`;
+        }
+        return [Markup.button.callback(label, `T:${t.id}`)];
+      }),
     );
   }
 

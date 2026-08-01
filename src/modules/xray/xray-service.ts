@@ -524,8 +524,10 @@ export class XrayService implements OnModuleInit {
     xPaddingHeader: 'X-Client-Version',
     xPaddingPlacement: 'queryInHeader',
     xPaddingMethod: 'tokenish',
-    sessionPlacement: 'header',
-    sessionKey: 'X-Upload-Token',
+    sessionPlacement: 'header', // для старой версии Happ
+    sessionKey: 'X-Upload-Token', // для старой версии Happ
+    sessionIDPlacement: 'header', // для новой версии Happ
+    sessionIDKey: 'X-Upload-Token', // для новой версии Happ
     seqPlacement: 'query',
     seqKey: 'chunk_id',
     uplinkHTTPMethod: 'GET',
@@ -552,7 +554,7 @@ export class XrayService implements OnModuleInit {
     return (
       `vless://${keyId}@${cdnDomain}:443` +
       `?encryption=none&security=tls&sni=${cdnDomain}&host=${cdnDomain}` +
-      `&alpn=h2%2Chttp%2F1.1&type=xhttp&path=%2Fpoll&mode=packet-up&fp=chrome&extra=${extra}` +
+      `&alpn=h2%2Chttp%2F1.1&type=xhttp&path=%2Fpoll&mode=packet-up&fp=firefox&extra=${extra}` +
       `#${encodeURIComponent(label)}`
     );
   }
