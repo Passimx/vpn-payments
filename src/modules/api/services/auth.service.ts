@@ -5,8 +5,6 @@ import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { TokenType } from '../types/token.type';
 import { UserResponseDto } from '../dto/responses/user.dto';
-import { TariffEntity } from '../../database/entities/tariff.entity';
-import { GetTariffsDto } from '../dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../dto/requests/extend-key.dto';
 import { KeyPurchaseService } from '../../key-purchase/key-purchase.service';
 import { ServerEntity } from '../../database/entities/server.entity';
@@ -22,35 +20,12 @@ import { StringsUtil } from '../../../common/utils/strings.util';
 
 @Injectable()
 export class AuthService {
-  private readonly loginUserKey = new Map<string, string>();
-
   constructor(
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly xrayService: XrayService,
   ) {}
-
-  public async loginByTelegram(key: string) {
-    const userId = this.loginUserKey.get(key);
-    if (!userId) return new DataResponse('not_found');
-    this.loginUserKey.delete(key);
-
-    const user = await this.em.findOneOrFail(UserEntity, {
-      where: { id: userId },
-    });
-
-    if (!user) return new DataResponse('not_found');
-
-    const payload = { userId: user.id, createdAt: Date.now() };
-    const token = await this.jwtService.signAsync(payload);
-
-    return new DataResponse({ token });
-  }
-
-  public setKey(key: string, userId: string) {
-    this.loginUserKey.set(key, userId);
-  }
 
   public async verifyTokenAsync(token: string): Promise<TokenType | undefined> {
     try {
@@ -61,34 +36,17 @@ export class AuthService {
     }
   }
 
-  public async getTariffs({
-    kind,
-  }: GetTariffsDto): Promise<DataResponse<TariffEntity[]>> {
-    const where =
-      kind === 'premium'
-        ? { active: true, kind: 'cascade' as const }
-        : { active: true, kind: 'base' as const };
-
-    const tariffs = await this.em.find(TariffEntity, {
-      where,
-      order: { price: 'ASC' },
-    });
-
-    return new DataResponse<TariffEntity[]>(tariffs);
-  }
-
   public async extendKey(
     userId: string,
     body: ExtendKeyDto,
-  ): Promise<DataResponse<string | UserResponseDto>> {
+  ): Promise<UserResponseDto | undefined> {
     const result = await this.keyPurchaseService.renewKey(
       userId,
       body.keyId,
       body.tariffId,
     );
 
-    if (!result.success && typeof result.data === 'string')
-      return new DataResponse(result.data);
+    if (!result.success && typeof result.data === 'string') return;
 
     return this.getUser(userId);
   }
@@ -106,7 +64,7 @@ export class AuthService {
   public async changeAutoRenew(
     userId: string,
     { keyId }: KeyIdDto,
-  ): Promise<DataResponse<string | UserResponseDto>> {
+  ): Promise<UserResponseDto> {
     await this.em
       .createQueryBuilder()
       .update(UserKeyEntity)
@@ -122,7 +80,7 @@ export class AuthService {
   public async createKey(
     userId: string,
     body: CreateKeyBody,
-  ): Promise<DataResponse<string | UserResponseDto>> {
+  ): Promise<UserResponseDto | undefined> {
     const result = await this.keyPurchaseService.purchase(
       userId,
       body.tariffId,
@@ -130,8 +88,7 @@ export class AuthService {
       'xray',
     );
 
-    if (!result.success && typeof result.data === 'string')
-      return new DataResponse(result.data);
+    if (!result.success && typeof result.data === 'string') return;
 
     return this.getUser(userId);
   }
@@ -139,53 +96,20 @@ export class AuthService {
   public async deleteKey(
     userId: string,
     body: KeyIdDto,
-  ): Promise<DataResponse<string | UserResponseDto>> {
+  ): Promise<UserResponseDto> {
     await this.em.softDelete(UserKeyEntity, { id: body.keyId, userId });
 
     return this.getUser(userId);
   }
 
-  public async getUserByPassimxId(
-    passimxId: string,
-  ): Promise<DataResponse<UserResponseDto>> {
-    const user = await this.em.findOne(UserEntity, {
-      where: { passimxId },
-      relations: ['balanceAccount', 'keys'],
-    });
-
-    if (!user) {
-      const id = crypto.randomUUID().replace(/-/g, '');
-      await this.em.insert(UserEntity, {
-        id,
-        passimxId,
-      });
-      await this.em.insert(BalanceAccount, {
-        userId: id,
-      });
-
-      return this.getUserByPassimxId(passimxId);
-    }
-
-    return new DataResponse<UserResponseDto>(
-      UserResponseDto.getFromUserEntity(user),
-    );
-  }
-
-  public async getUser(id: string): Promise<DataResponse<UserResponseDto>> {
+  public async getUser(id: string): Promise<UserResponseDto> {
     const user = await this.em.findOneOrFail(UserEntity, {
       where: { id },
       relations: ['keys', 'balanceAccount'],
       order: { keys: { createdAt: 'ASC' } },
     });
 
-    if (!user)
-      await this.em.insert(UserEntity, {
-        passimxId: id,
-      });
-
-    return new DataResponse<UserResponseDto>(
-      UserResponseDto.getFromUserEntity(user),
-    );
+    return UserResponseDto.getFromUserEntity(user);
   }
 
   public async getKeyInfo(
@@ -236,13 +160,15 @@ export class AuthService {
       userId: id,
     });
 
-    const user = await this.em.findOne(UserEntity, { where: { id } });
-    if (!user) return new DataResponse('not_found');
+    const user = await this.getUser(id);
+    if (!user) return;
 
-    const payload = { userId: user.id, createdAt: Date.now() };
-    const token = await this.jwtService.signAsync(payload);
+    return { user };
+  }
 
-    return new DataResponse({ token });
+  public async createToken(userId: string) {
+    const payload = { userId, createdAt: Date.now() };
+    return await this.jwtService.signAsync(payload);
   }
 
   public async getRefInfo(userId: string): Promise<DataResponse<RefInfoDto>> {

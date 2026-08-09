@@ -65,4 +65,14 @@ export const Envs = {
     discountPercent: 50,
     discountUntil: new Date('2026-08-01'),
   },
+  passimxConnect: {
+    exportInit: {
+      ownerVerifyKeyString: String(process.env.CONNECTION_PUBLIC_ED25519_KEY),
+      sendVerifyKeyString: String(process.env.CONNECTION_PUBLIC_ED25519_KEY),
+      ownerSignKeyString: String(process.env.CONNECTION_PRIVATE_ED25519_KEY),
+      sendSignKeyString: String(process.env.CONNECTION_PRIVATE_ED25519_KEY),
+    },
+    id: String(process.env.CONNECTION_CHANNEL_ID),
+    url: String(process.env.CONNECTION_URL),
+  },
 };

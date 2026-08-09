@@ -14,10 +14,8 @@ import { I18nService } from '../i18n/i18n.service';
 import { XrayService } from '../xray/xray-service';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { AnalyticsService } from './analytics.service';
-import { Archiver } from '@passimx/archiver';
 import { logger } from '../../common/logger/logger';
 import { WechatService } from '../wechat/wechat.service';
-import { AuthService } from '../api/services/auth.service';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { ResendMessageType } from './types/resend-message.type';
@@ -52,7 +50,6 @@ export class TelegramService {
     @Inject(forwardRef(() => XrayService))
     private readonly xrayService: XrayService,
     private readonly wechatService: WechatService,
-    private readonly athService: AuthService,
     private readonly tonService: TonService,
   ) {}
 
@@ -60,16 +57,7 @@ export class TelegramService {
     this.bot = new Telegraf(Envs.telegram.botToken);
     this.bot.catch(logger.error);
 
-    if (Envs.telegram.archiverEndpoint) {
-      const archiver = new Archiver({
-        apiKey: Envs.telegram.archiverApiKey,
-        endpoint: Envs.telegram.archiverEndpoint,
-      });
-      archiver.listen(this.bot);
-    }
-
     this.bot.command('stats', this.analyticsService.sendAnalytics);
-    this.bot.command('loginFromWeb', this.loginFromWeb);
     this.bot.command('resendMessage', this.saveResendMessage);
 
     this.bot.start(this.onStart);
@@ -2120,28 +2108,6 @@ export class TelegramService {
         url: Envs.telegram.botWebUrl,
       },
     });
-  };
-
-  private loginFromWeb = async (ctx: Context) => {
-    const user = await this.getUserByCtx(ctx);
-    const { payload } = ctx as unknown as { payload?: string };
-    if (!payload || payload.length <= 0)
-      return ctx.sendMessage(
-        `${this.t(user, 'key_not_found')}\n\n${this.t(user, 'select_action')}`,
-        {
-          parse_mode: 'HTML',
-          ...this.profileMenu(user),
-        },
-      );
-
-    this.athService.setKey(payload, user.id);
-    await ctx.sendMessage(
-      `${this.t(user, 'login_from_web')}\n\n${this.t(user, 'select_action')}`,
-      {
-        parse_mode: 'HTML',
-        ...this.profileMenu(user),
-      },
-    );
   };
 
   public async resendMessage() {

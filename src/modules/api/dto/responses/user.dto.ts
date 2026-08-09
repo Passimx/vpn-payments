@@ -39,6 +39,8 @@ export class UserResponseDto {
 
   readonly balance: BalanceAccount;
 
+  readonly languageCode: string;
+
   readonly keys: UserKeyDto[];
 
   constructor(payload: UserResponseDto) {
@@ -51,6 +53,7 @@ export class UserResponseDto {
     return new UserResponseDto({
       id: user.id,
       balance: user.balanceAccount,
+      languageCode: user.languageCode,
       keys,
     });
   }

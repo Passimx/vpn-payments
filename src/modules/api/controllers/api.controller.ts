@@ -2,88 +2,18 @@ import { Controller, Get, Header, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { Public } from '../../../common/guards/public.decorator';
-import { TransactionsService } from '../../transactions/transactions.service';
-import { DataResponse } from '../dto/responses/data-response.dto';
 import { Envs } from '../../../common/env/envs';
 import { I18nService } from '../../i18n/i18n.service';
 import { EntityManager } from 'typeorm';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
-import { TelegramService } from '../../telegram/telegram-service';
 
 @Controller()
 export class ApiController {
   constructor(
     private readonly authService: AuthService,
     private readonly i18nService: I18nService,
-    private readonly transactionsService: TransactionsService,
     private readonly em: EntityManager,
   ) {}
-
-  // @Public()
-  // @Post('login-by-telegram')
-  // loginByTelegram(@Body() body: LoginDto) {
-  //   return this.authService.loginByTelegram(body.key);
-  // }
-
-  @Public()
-  @Get('users/passimx/:id')
-  GetUsersMe(@Param('id') userId: string) {
-    return this.authService.getUserByPassimxId(userId);
-  }
-
-  @Public()
-  @Get('currency-price')
-  async getCurrencyPrice() {
-    const payload = await this.transactionsService.getCurrencyPrice();
-    return new DataResponse(payload);
-  }
-
-  @Public()
-  @Get('apps')
-  getApps() {
-    return new DataResponse(TelegramService.downloadLinks);
-  }
-
-  // @Post('tariffs')
-  // tariffs(@Body() body: GetTariffsDto) {
-  //   return this.authService.getTariffs(body);
-  // }
-  //
-  // @Post('extend-key')
-  // extendKey(@UserId() userId: string, @Body() body: ExtendKeyDto) {
-  //   return this.authService.extendKey(userId, body);
-  // }
-  //
-  // @Post('servers')
-  // getServers() {
-  //   return this.authService.getServers();
-  // }
-  //
-  // @Post('change-auto-renew')
-  // changeAutoRenew(@UserId() userId: string, @Body() body: KeyIdDto) {
-  //   return this.authService.changeAutoRenew(userId, body);
-  // }
-  //
-  // @Post('create-key')
-  // createKey(@UserId() userId: string, @Body() body: CreateKeyBody) {
-  //   return this.authService.createKey(userId, body);
-  // }
-  //
-  // @Post('delete-key')
-  // deleteKey(@UserId() userId: string, @Body() body: KeyIdDto) {
-  //   return this.authService.deleteKey(userId, body);
-  // }
-  //
-  // @Get('ref-info')
-  // getRefInfo(@UserId() userId: string) {
-  //   return this.authService.getRefInfo(userId);
-  // }
-  //
-  // @Public()
-  // @Post('create-account')
-  // createAccount(@Body() body: CreateAccountDto) {
-  //   return this.authService.createAccount(body);
-  // }
 
   @Public()
   @Get('keys-info/:keyId')

@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
 import {
   DataSource,
@@ -37,7 +36,7 @@ const SERVER_PARAM_COMMANDS = [
 ];
 
 @Injectable()
-export class XrayService implements OnModuleInit {
+export class XrayService {
   private readonly serverParamsCache = new Map<
     string,
     { data: string[] | null; fetchedAt: number }

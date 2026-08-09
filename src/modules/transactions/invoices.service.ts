@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { YookassaBalanceService } from '../../yookassa/yookassa-balance.service';
-import { WechatService } from '../../wechat/wechat.service';
-import { CurrencyEnum } from '../../transactions/types/currency.enum';
-import { TonService } from '../../ton/ton.service';
-import { AppWalletEnum } from '../../ton/enums/app-wallet.enum';
+import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
+import { WechatService } from '../wechat/wechat.service';
+import { CurrencyEnum } from './types/currency.enum';
+import { TonService } from '../ton/ton.service';
+import { AppWalletEnum } from '../ton/enums/app-wallet.enum';
 
 @Injectable()
 export class InvoicesService {

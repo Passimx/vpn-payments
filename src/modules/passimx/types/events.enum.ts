@@ -1,0 +1,12 @@
+export enum EventsEnum {
+  GET_APPS = 'get_apps',
+  GET_TARIFFS = 'get_tariffs',
+  GET_CURRENCY = 'get_currency',
+  GET_USER_INF = 'get_user_inf',
+  LOGIN_BY_URL = 'login_by_url',
+  CREATE_ACCOUNT = 'create_account',
+  UPDATE_USER_INF = 'update_user_inf',
+  CREATE_TON_INVOICE = 'create_ton_invoice',
+  CREATE_SBER_INVOICE = 'create_sber_invoice',
+  CREATE_WECHAT_INVOICE = 'create_wechat_invoice',
+}
