@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import PassimxService from './passimx.service';
+import PxConnectService from './px-connect.service';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { ApiModule } from '../api/api.module';
 
 @Module({
   imports: [ApiModule, TransactionsModule],
-  providers: [PassimxService],
-  exports: [PassimxService],
+  providers: [PxConnectService],
+  exports: [PxConnectService],
 })
-export class PassimxModule {}
+export class PxConnectModule {}

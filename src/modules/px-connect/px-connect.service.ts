@@ -15,7 +15,7 @@ import { TariffEntity } from '../database/entities/tariff.entity';
 import { GetTariffsDto } from '../api/dto/requests/get-tariffs.dto';
 
 @Injectable()
-class PassimxService {
+class PxConnectService {
   private readonly px: PxConnect;
 
   constructor(
@@ -154,4 +154,4 @@ class PassimxService {
   };
 }
 
-export default PassimxService;
+export default PxConnectService;
