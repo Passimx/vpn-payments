@@ -54,7 +54,7 @@ class PxConnectService {
 
   private readonly removeKey = async (ctx: Context<string>) => {
     const id = ctx.payload;
-    if (!id) return;
+    if (!id) return ctx.reply(undefined);
 
     const result = await this.authService.deleteKey(id);
     ctx.reply(result);
@@ -62,7 +62,7 @@ class PxConnectService {
 
   private extendKey = async (ctx: Context<ExtendKeyDto>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!payload) return ctx.reply(undefined);
 
     const result = await this.authService.extendKey(payload);
     ctx.reply(result);
@@ -70,7 +70,7 @@ class PxConnectService {
 
   private createKey = async (ctx: Context<UserKeyEntity>) => {
     const key = ctx.payload;
-    if (!key) return;
+    if (!key) return ctx.reply(undefined);
 
     const result = await this.authService.createKey(key.userId, key.tariffId);
     ctx.reply(result);
@@ -102,7 +102,7 @@ class PxConnectService {
     );
 
     const updatedUser = await this.authService.getUser(user.id);
-    return ctx.reply(updatedUser);
+    ctx.reply(updatedUser);
   };
 
   private getUserInf = async (ctx: Context<string>) => {
@@ -138,7 +138,7 @@ class PxConnectService {
 
   private createWechatInvoice = async (ctx: Context<CreateInvoiceType>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!payload) return ctx.reply(undefined);
 
     const response = await this.invoicesService.getWechatInvoice(
       payload.userId,
@@ -149,7 +149,7 @@ class PxConnectService {
 
   private createSberInvoice = async (ctx: Context<CreateInvoiceType>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!payload) return ctx.reply(undefined);
 
     const response = await this.invoicesService.getSberInvoice(
       payload.userId,
@@ -160,7 +160,7 @@ class PxConnectService {
 
   private createTonInvoice = (ctx: Context<CreateTonInvoiceType>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!payload) return ctx.reply(undefined);
 
     const response = this.invoicesService.getTonInvoice(
       payload.userId,
