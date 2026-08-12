@@ -1,6 +1,7 @@
 import { UserEntity } from '../../../database/entities/user.entity';
 import { UserKeyEntity } from '../../../database/entities/user-key.entity';
 import { BalanceAccount } from '../../../database/entities/balance-account.entity';
+import { TariffKind } from '../../../database/entities/tariff.entity';
 
 export class UserKeyDto {
   readonly id: string;
@@ -17,7 +18,7 @@ export class UserKeyDto {
 
   readonly countTrafficUsed: number | null;
 
-  readonly cascadeToServerId: string | null;
+  readonly kind: TariffKind;
 
   constructor(payload: UserKeyDto) {
     Object.assign(this, payload);
@@ -32,7 +33,7 @@ export class UserKeyDto {
       autoRenewEnabled: key.autoRenewEnabled,
       countTrafficLimit: key.countTrafficLimit,
       countTrafficUsed: key.countTrafficUsed,
-      cascadeToServerId: key.cascadeToServerId,
+      kind: key.tariff.kind,
     });
   }
 }
