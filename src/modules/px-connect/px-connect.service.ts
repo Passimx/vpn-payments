@@ -144,7 +144,7 @@ class PxConnectService {
       payload.userId,
       payload.amount,
     );
-    ctx.reply(response.data);
+    ctx.reply(response);
   };
 
   private createSberInvoice = async (ctx: Context<CreateInvoiceType>) => {
@@ -155,7 +155,7 @@ class PxConnectService {
       payload.userId,
       payload.amount,
     );
-    ctx.reply(response.data);
+    ctx.reply(response);
   };
 
   private createTonInvoice = (ctx: Context<CreateTonInvoiceType>) => {
@@ -169,7 +169,7 @@ class PxConnectService {
       payload.app,
     );
 
-    ctx.reply(response.data);
+    ctx.reply(response);
   };
 
   private getCurrency = async (ctx: Context) => {

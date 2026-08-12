@@ -5,14 +5,11 @@ import path from 'node:path';
 import { Envs } from '../../common/env/envs';
 import { logger } from '../../common/logger/logger';
 import { InvoiceCallbackType } from './types/invoice-callback.type';
-import { createCanvas, loadImage } from 'canvas';
-import * as QRCode from 'qrcode';
 import { InvoiceCreateType } from './types/invoice-create.type';
 import { EntityManager } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { WechatTransactionType } from './types/wechat-transaction.type';
 import { TransactionsService } from '../transactions/transactions.service';
-import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 @Injectable()
@@ -29,10 +26,10 @@ export class WechatService {
   public async createInvoice(
     userId: string,
     amount: number,
-  ): Promise<DataResponse<string>> {
-    if (!this.wxPay) return new DataResponse('error');
+  ): Promise<string | undefined> {
+    if (!this.wxPay) return;
     const { notify_url } = Envs.wechat;
-    if (!notify_url) return new DataResponse('error');
+    if (!notify_url) return;
     const outTradeNo = Date.now().toString();
 
     const params = {
@@ -51,7 +48,7 @@ export class WechatService {
 
     if (result.status !== 200) {
       logger.error(result.error);
-      return new DataResponse('error');
+      return;
     }
 
     const url = result.data.code_url;
@@ -69,43 +66,7 @@ export class WechatService {
       createdAt: now,
     });
 
-    return new DataResponse(url, true);
-  }
-
-  public async createImage(url: string) {
-    const size = 400;
-    const canvas = createCanvas(size, size);
-    const ctx = canvas.getContext('2d');
-
-    const qrCanvas = createCanvas(size, size);
-    await QRCode.toCanvas(qrCanvas, url, {
-      errorCorrectionLevel: 'H',
-      width: size,
-      margin: 1,
-      color: {
-        light: '#ffffff',
-        dark: '#062846',
-      },
-    });
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
-    ctx.drawImage(qrCanvas, 0, 0);
-
-    const logo = await loadImage(
-      path.join(__dirname, '../../public/media/logo.png'),
-    );
-
-    const logoSize = size * 0.8;
-    const x = (size - logoSize) / 2;
-    const y = (size - logoSize) / 2;
-
-    ctx.save();
-    ctx.globalAlpha = 0.4;
-    ctx.drawImage(logo, x, y, logoSize, logoSize);
-    ctx.restore();
-
-    return canvas.toBuffer();
+    return url;
   }
 
   public async invoiceCallback(data: InvoiceCallbackType) {

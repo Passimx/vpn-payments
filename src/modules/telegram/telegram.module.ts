@@ -1,14 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TelegramService } from './telegram-service';
 import { KeyPurchaseModule } from '../key-purchase/key-purchase.module';
-import { YookassaModule } from '../yookassa/yookassa.module';
 import { XrayModule } from '../xray/xray.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { I18nModule } from '../i18n/i18n.module';
 import { AnalyticsService } from './analytics.service';
-import { WechatModule } from '../wechat/wechat.module';
 import { ApiModule } from '../api/api.module';
-import { TonModule } from '../ton/ton.module';
 
 @Module({
   imports: [
@@ -16,10 +13,7 @@ import { TonModule } from '../ton/ton.module';
     TransactionsModule,
     KeyPurchaseModule,
     XrayModule,
-    YookassaModule,
-    WechatModule,
     ApiModule,
-    TonModule,
   ],
   providers: [TelegramService, AnalyticsService],
   exports: [TelegramService, AnalyticsService],

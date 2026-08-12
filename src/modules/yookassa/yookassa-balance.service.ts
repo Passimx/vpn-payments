@@ -5,7 +5,6 @@ import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { logger } from '../../common/logger/logger';
 import { TransactionsService } from '../transactions/transactions.service';
-import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 
 export type YooKassaWebhookPayload = {
@@ -28,11 +27,11 @@ export class YookassaBalanceService {
   async createInvoice(
     userId: string,
     amount: number,
-  ): Promise<DataResponse<string>> {
+  ): Promise<string | undefined> {
     try {
       const shopId = (Envs.yookassa.walletNumber || '').trim();
       const secretKey = (Envs.yookassa.accessToken || '').trim();
-      if (!shopId || !secretKey) return new DataResponse('yookassa_not_found');
+      if (!shopId || !secretKey) return;
 
       const idempotenceKey = randomUUID();
       const authHeader =
@@ -63,7 +62,7 @@ export class YookassaBalanceService {
         }),
       });
 
-      if (!res.ok) return new DataResponse('yookassa_not_found');
+      if (!res.ok) return;
 
       const payment = (await res.json()) as {
         id: string;
@@ -76,8 +75,7 @@ export class YookassaBalanceService {
       const paymentId = payment.id;
       const paymentUrl = payment.confirmation?.confirmation_url;
 
-      if (!paymentId || !paymentUrl)
-        return new DataResponse('yookassa_not_found');
+      if (!paymentId || !paymentUrl) return;
 
       const now = Date.now();
       await this.em.save(TransactionEntity, {
@@ -93,10 +91,9 @@ export class YookassaBalanceService {
         createdAt: now,
       } as unknown as TransactionEntity);
 
-      return new DataResponse(paymentUrl, true);
+      return paymentUrl;
     } catch (error) {
       logger.error('[YooKassa] createBalancePaymentLink exception', error);
-      return new DataResponse('yookassa_not_found');
     }
   }
 

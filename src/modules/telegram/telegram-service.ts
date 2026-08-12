@@ -7,7 +7,6 @@ import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { Envs } from '../../common/env/envs';
 import { KeyPurchaseService } from '../key-purchase/key-purchase.service';
-import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import path from 'node:path';
 import { I18nService } from '../i18n/i18n.service';
@@ -15,14 +14,13 @@ import { XrayService } from '../xray/xray-service';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { AnalyticsService } from './analytics.service';
 import { logger } from '../../common/logger/logger';
-import { WechatService } from '../wechat/wechat.service';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { ResendMessageType } from './types/resend-message.type';
-import { TonService } from '../ton/ton.service';
 import { AppWalletEnum } from '../ton/enums/app-wallet.enum';
 import { DownloadLinksType, KeyEnum } from './types/download-links.type';
 import { TransactionEntity } from '../database/entities/transaction.entity';
+import { InvoicesService } from '../transactions/invoices.service';
 
 let resendMessageData: ResendMessageType | undefined;
 
@@ -43,14 +41,12 @@ export class TelegramService {
     private readonly em: EntityManager,
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly transactionsService: TransactionsService,
-    private readonly yookassaBalanceService: YookassaBalanceService,
     @Inject(forwardRef(() => AnalyticsService))
     private readonly analyticsService: AnalyticsService,
     private readonly i18nService: I18nService,
     @Inject(forwardRef(() => XrayService))
     private readonly xrayService: XrayService,
-    private readonly wechatService: WechatService,
-    private readonly tonService: TonService,
+    private readonly invoicesService: InvoicesService,
   ) {}
 
   async onModuleInit() {
@@ -326,14 +322,14 @@ export class TelegramService {
       CurrencyEnum.RUB,
     );
 
-    const result = await this.yookassaBalanceService.createInvoice(
+    const result = await this.invoicesService.getSberInvoice(
       user.id,
       convertedAmount,
     );
     await ctx.deleteMessage(processingMessage.message_id);
-    if (!result.success) {
+    if (!result) {
       await ctx
-        .editMessageText(`❌ ${this.t(user, result.data)}`, {
+        .editMessageText(`❌ ${this.t(user, 'yookassa_not_found')}`, {
           ...Markup.inlineKeyboard([
             [
               Markup.button.callback(
@@ -354,7 +350,7 @@ export class TelegramService {
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
-            [Markup.button.url('💳 YooKassa', result.data)],
+            [Markup.button.url('💳 YooKassa', result)],
             [
               Markup.button.callback(
                 `⬅️ ${this.t(user, 'back')}`,
@@ -385,13 +381,29 @@ export class TelegramService {
       CurrencyEnum.CNY,
     );
 
-    const result = await this.wechatService.createInvoice(
+    const result = await this.invoicesService.getWechatInvoice(
       user.id,
       convertedAmount,
     );
-    if (!result.success) return;
 
-    const invoiceQrCode = await this.wechatService.createImage(result.data);
+    if (!result) {
+      await ctx
+        .editMessageText(`❌ ${this.t(user, 'error')}`, {
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback(
+                `💸 ${this.t(user, 'put_money')}`,
+                'BTN_BALANCE',
+              ),
+            ],
+            [Markup.button.callback(`⬅️ ${this.t(user, 'back')}`, 'BTN_9')],
+          ]),
+        })
+        .catch(logger.error);
+      return;
+    }
+
+    const invoiceQrCode = await this.invoicesService.createImage(result);
 
     await ctx.deleteMessage(processingMessage.message_id);
     await ctx
@@ -965,34 +977,34 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                this.tonService.getTonInvoice(
+                this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.TON,
                   AppWalletEnum.MY_TON_WALLET,
-                ).data,
+                ),
               ),
             ],
             [
               Markup.button.url(
                 'Tonkeeper',
-                this.tonService.getTonInvoice(
+                this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.TON,
                   AppWalletEnum.TON_KEEPER,
-                ).data,
+                ),
               ),
             ],
             [
               Markup.button.url(
                 'Tonhub',
-                this.tonService.getTonInvoice(
+                this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.TON,
                   AppWalletEnum.TON_HUB,
-                ).data,
+                ),
               ),
             ],
             [this.backToPayWaysButton(user)],
@@ -1036,34 +1048,34 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                this.tonService.getTonInvoice(
+                this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.USD,
                   AppWalletEnum.MY_TON_WALLET,
-                ).data,
+                ),
               ),
             ],
             [
               Markup.button.url(
                 'Tonkeeper',
-                this.tonService.getTonInvoice(
+                this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.USD,
                   AppWalletEnum.TON_KEEPER,
-                ).data,
+                ),
               ),
             ],
             [
               Markup.button.url(
                 'Tonhub',
-                this.tonService.getTonInvoice(
+                this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.USD,
                   AppWalletEnum.TON_HUB,
-                ).data,
+                ),
               ),
             ],
             [this.backToPayWaysButton(user)],

@@ -8,7 +8,6 @@ import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
 import { logger } from '../../common/logger/logger';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
-import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { AppWalletEnum } from './enums/app-wallet.enum';
 
 @Injectable()
@@ -91,7 +90,7 @@ export class TonService {
     amount: number,
     currency: CurrencyEnum.TON | CurrencyEnum.USD,
     app: AppWalletEnum,
-  ): DataResponse<string> {
+  ): string {
     let paymentUrl = 'https://tonhub.com';
 
     if (app === AppWalletEnum.MY_TON_WALLET)
@@ -108,7 +107,7 @@ export class TonService {
 
     paymentUrl += `&text=${userId}`;
 
-    return new DataResponse(paymentUrl, true);
+    return paymentUrl;
   }
 
   private async addBalance(transactions: TransactionEntity[]) {
