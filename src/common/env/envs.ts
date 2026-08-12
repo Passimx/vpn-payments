@@ -72,7 +72,6 @@ export const Envs = {
       ownerSignKeyString: String(process.env.CONNECTION_PRIVATE_ED25519_KEY),
       sendSignKeyString: String(process.env.CONNECTION_PRIVATE_ED25519_KEY),
     },
-    id: String(process.env.CONNECTION_CHANNEL_ID),
     url: String(process.env.CONNECTION_URL),
   },
 };

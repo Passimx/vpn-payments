@@ -17,6 +17,8 @@ export class UserKeyDto {
 
   readonly countTrafficUsed: number | null;
 
+  readonly cascadeToServerId: string | null;
+
   constructor(payload: UserKeyDto) {
     Object.assign(this, payload);
   }
@@ -30,6 +32,7 @@ export class UserKeyDto {
       autoRenewEnabled: key.autoRenewEnabled,
       countTrafficLimit: key.countTrafficLimit,
       countTrafficUsed: key.countTrafficUsed,
+      cascadeToServerId: key.cascadeToServerId,
     });
   }
 }
@@ -38,8 +41,6 @@ export class UserResponseDto {
   readonly id: string;
 
   readonly balance: BalanceAccount;
-
-  readonly languageCode: string;
 
   readonly keys: UserKeyDto[];
 
@@ -53,7 +54,6 @@ export class UserResponseDto {
     return new UserResponseDto({
       id: user.id,
       balance: user.balanceAccount,
-      languageCode: user.languageCode,
       keys,
     });
   }

@@ -10,7 +10,6 @@ import { KeyPurchaseService } from '../../key-purchase/key-purchase.service';
 import { ServerEntity } from '../../database/entities/server.entity';
 import { GetServerDto } from '../dto/responses/get-server.dto';
 import { XrayService } from '../../xray/xray-service';
-import { CreateKeyBody } from '../dto/requests/create-key.body';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { RefInfoDto, RefInfoUserItemDto } from '../dto/responses/ref-info.dto';
@@ -37,18 +36,17 @@ export class AuthService {
   }
 
   public async extendKey(
-    userId: string,
     body: ExtendKeyDto,
   ): Promise<UserResponseDto | undefined> {
     const result = await this.keyPurchaseService.renewKey(
-      userId,
+      body.userId,
       body.keyId,
       body.tariffId,
     );
 
     if (!result.success && typeof result.data === 'string') return;
 
-    return this.getUser(userId);
+    return this.getUser(body.userId);
   }
 
   public async getServers() {
@@ -79,11 +77,11 @@ export class AuthService {
 
   public async createKey(
     userId: string,
-    body: CreateKeyBody,
+    tariffId: string,
   ): Promise<UserResponseDto | undefined> {
     const result = await this.keyPurchaseService.purchase(
       userId,
-      body.tariffId,
+      tariffId,
       undefined,
       'xray',
     );
@@ -93,13 +91,12 @@ export class AuthService {
     return this.getUser(userId);
   }
 
-  public async deleteKey(
-    userId: string,
-    body: KeyIdDto,
-  ): Promise<UserResponseDto> {
-    await this.em.softDelete(UserKeyEntity, { id: body.keyId, userId });
+  public async deleteKey(keyId: string): Promise<UserResponseDto | undefined> {
+    const key = await this.em.findOne(UserKeyEntity, { where: { id: keyId } });
+    if (!key) return;
 
-    return this.getUser(userId);
+    await this.em.softDelete(UserKeyEntity, { id: keyId });
+    return this.getUser(key.userId);
   }
 
   public async getUser(id: string): Promise<UserResponseDto> {

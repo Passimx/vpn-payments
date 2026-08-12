@@ -6,4 +6,7 @@ export class ExtendKeyDto {
 
   @IsUUID()
   readonly tariffId: string;
+
+  @IsUUID()
+  readonly userId: string;
 }

@@ -13,6 +13,7 @@ import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { GetTariffsDto } from '../api/dto/requests/get-tariffs.dto';
+import { ExtendKeyDto } from '../api/dto/requests/extend-key.dto';
 
 @Injectable()
 class PxConnectService {
@@ -36,6 +37,9 @@ class PxConnectService {
 
     this.px.onAction((routes) => {
       routes.on(EventsEnum.GET_APPS, this.getApps);
+      routes.on(EventsEnum.CREATE_KEY, this.createKey);
+      routes.on(EventsEnum.EXTEND_KEY, this.extendKey);
+      routes.on(EventsEnum.REMOVE_KEY, this.removeKey);
       routes.on(EventsEnum.GET_TARIFFS, this.getTariffs);
       routes.on(EventsEnum.LOGIN_BY_URL, this.loginByUrl);
       routes.on(EventsEnum.GET_USER_INF, this.getUserInf);
@@ -46,6 +50,30 @@ class PxConnectService {
       routes.on(EventsEnum.CREATE_SBER_INVOICE, this.createSberInvoice);
       routes.on(EventsEnum.CREATE_WECHAT_INVOICE, this.createWechatInvoice);
     });
+  };
+
+  private readonly removeKey = async (ctx: Context<string>) => {
+    const id = ctx.payload;
+    if (!id) return;
+
+    const result = await this.authService.deleteKey(id);
+    ctx.reply(result);
+  };
+
+  private extendKey = async (ctx: Context<ExtendKeyDto>) => {
+    const payload = ctx.payload;
+    if (!payload) return;
+
+    const result = await this.authService.extendKey(payload);
+    ctx.reply(result);
+  };
+
+  private createKey = async (ctx: Context<UserKeyEntity>) => {
+    const key = ctx.payload;
+    if (!key) return;
+
+    const result = await this.authService.createKey(key.userId, key.tariffId);
+    ctx.reply(result);
   };
 
   private getTariffs = async (ctx: Context) => {
