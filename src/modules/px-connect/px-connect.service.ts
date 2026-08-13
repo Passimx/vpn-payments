@@ -54,29 +54,26 @@ class PxConnectService {
 
   private readonly removeKey = async (ctx: Context<string>) => {
     const id = ctx.payload;
-    if (!id) return ctx.reply(undefined);
+    if (!id) return;
 
-    const result = await this.authService.deleteKey(id);
-    ctx.reply(result);
+    return this.authService.deleteKey(id);
   };
 
   private extendKey = async (ctx: Context<ExtendKeyDto>) => {
     const payload = ctx.payload;
-    if (!payload) return ctx.reply(undefined);
+    if (!payload) return;
 
-    const result = await this.authService.extendKey(payload);
-    ctx.reply(result);
+    return this.authService.extendKey(payload);
   };
 
   private createKey = async (ctx: Context<UserKeyEntity>) => {
     const key = ctx.payload;
-    if (!key) return ctx.reply(undefined);
+    if (!key) return;
 
-    const result = await this.authService.createKey(key.userId, key.tariffId);
-    ctx.reply(result);
+    return this.authService.createKey(key.userId, key.tariffId);
   };
 
-  private getTariffs = async (ctx: Context) => {
+  private getTariffs = async () => {
     const [base, cdn] = await Promise.all([
       this.em.find(TariffEntity, {
         where: { active: true, kind: 'base' },
@@ -88,12 +85,12 @@ class PxConnectService {
       }),
     ]);
 
-    ctx.reply(GetTariffsDto.creteInstance(base, cdn));
+    return GetTariffsDto.creteInstance(base, cdn);
   };
 
   private updateUserInf = async (ctx: Context<Partial<UserEntity>>) => {
     const user = ctx.payload;
-    if (!user.id) return ctx.reply(undefined);
+    if (!user.id) return;
 
     await this.em.update(
       UserEntity,
@@ -101,16 +98,14 @@ class PxConnectService {
       { languageCode: user.languageCode },
     );
 
-    const updatedUser = await this.authService.getUser(user.id);
-    ctx.reply(updatedUser);
+    return this.authService.getUser(user.id);
   };
 
   private getUserInf = async (ctx: Context<string>) => {
     const id = ctx.payload;
-    if (!id.length) return ctx.reply(undefined);
+    if (!id.length) return;
 
-    const user = await this.authService.getUser(id);
-    ctx.reply(user);
+    return this.authService.getUser(id);
   };
 
   private loginByUrl = async (ctx: Context<string>) => {
@@ -119,66 +114,58 @@ class PxConnectService {
 
     const match = ctx.payload.match(pattern);
     const id = match ? match[1] : null;
-    if (!id) return ctx.reply(undefined);
+    if (!id) return;
 
     const key = await this.em.findOne(UserKeyEntity, {
       where: { id },
       relations: ['user'],
     });
-    if (!key) return ctx.reply(undefined);
+    if (!key) return;
 
-    const user = await this.authService.getUser(key.userId);
-    ctx.reply({ user });
+    return this.authService.getUser(key.userId);
   };
 
-  private createAccount = async (ctx: Context<{ languageCode: 'ru' }>) => {
-    const response = await this.authService.createAccount(ctx.payload);
-    ctx.reply(response);
+  private createAccount = async (ctx: Context<{ languageCode: string }>) => {
+    if (!ctx.payload?.languageCode) return;
+
+    return this.authService.createAccount(ctx.payload);
   };
 
   private createWechatInvoice = async (ctx: Context<CreateInvoiceType>) => {
     const payload = ctx.payload;
-    if (!payload) return ctx.reply(undefined);
+    if (!payload) return;
 
-    const response = await this.invoicesService.getWechatInvoice(
+    return this.invoicesService.getWechatInvoice(
       payload.userId,
       payload.amount,
     );
-    ctx.reply(response);
   };
 
   private createSberInvoice = async (ctx: Context<CreateInvoiceType>) => {
     const payload = ctx.payload;
-    if (!payload) return ctx.reply(undefined);
+    if (!payload) return;
 
-    const response = await this.invoicesService.getSberInvoice(
-      payload.userId,
-      payload.amount,
-    );
-    ctx.reply(response);
+    return this.invoicesService.getSberInvoice(payload.userId, payload.amount);
   };
 
   private createTonInvoice = (ctx: Context<CreateTonInvoiceType>) => {
     const payload = ctx.payload;
-    if (!payload) return ctx.reply(undefined);
+    if (!payload) return;
 
-    const response = this.invoicesService.getTonInvoice(
+    return this.invoicesService.getTonInvoice(
       payload.userId,
       payload.amount,
       payload.currency,
       payload.app,
     );
-
-    ctx.reply(response);
   };
 
-  private getCurrency = async (ctx: Context) => {
-    const response = await this.transactionsService.getCurrencyPrice();
-    ctx.reply(response);
+  private getCurrency = () => {
+    return this.transactionsService.getCurrencyPrice();
   };
 
-  private getApps = (ctx: Context) => {
-    ctx.reply(TelegramService.downloadLinks);
+  private getApps = () => {
+    return TelegramService.downloadLinks;
   };
 }
 

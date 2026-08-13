@@ -22,7 +22,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.1",
     "@nestjs/typeorm": "^11.0.0",
-    "@passimx/px.connect": "^1.2.0",
+    "@passimx/px.connect": "^2.0.1",
     "@ton/core": "^0.63.0",
     "@ton/ton": "^16.2.2",
     "canvas": "^3.2.3",
