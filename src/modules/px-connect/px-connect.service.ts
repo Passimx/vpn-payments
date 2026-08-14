@@ -14,6 +14,7 @@ import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { GetTariffsDto } from '../api/dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../api/dto/requests/extend-key.dto';
+import { ExchangeBalanceDto } from '../api/dto/requests/exchange-balance.dto';
 
 @Injectable()
 class PxConnectService {
@@ -37,6 +38,7 @@ class PxConnectService {
 
     this.px.onAction((routes) => {
       routes.on(EventsEnum.GET_APPS, this.getApps);
+      routes.on(EventsEnum.EXCHANGE, this.exchange);
       routes.on(EventsEnum.CREATE_KEY, this.createKey);
       routes.on(EventsEnum.EXTEND_KEY, this.extendKey);
       routes.on(EventsEnum.REMOVE_KEY, this.removeKey);
@@ -50,6 +52,13 @@ class PxConnectService {
       routes.on(EventsEnum.CREATE_SBER_INVOICE, this.createSberInvoice);
       routes.on(EventsEnum.CREATE_WECHAT_INVOICE, this.createWechatInvoice);
     });
+  };
+
+  private readonly exchange = async (ctx: Context<ExchangeBalanceDto>) => {
+    const payload = ctx.payload;
+    if (!payload) return;
+
+    return this.authService.exchange(payload);
   };
 
   private readonly removeKey = async (ctx: Context<string>) => {

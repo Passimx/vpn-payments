@@ -1,4 +1,5 @@
 export enum EventsEnum {
+  EXCHANGE = 'exchange',
   GET_APPS = 'get_apps',
   CREATE_KEY = 'create_key',
   REMOVE_KEY = 'remove_key',

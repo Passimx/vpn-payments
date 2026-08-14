@@ -26,6 +26,7 @@ export class TransactionsService {
     userId: string,
     balance: number,
     currency: CurrencyEnum,
+    useSource: boolean = true,
   ) {
     await this.em
       .createQueryBuilder()
@@ -42,7 +43,7 @@ export class TransactionsService {
       where: { id: userId },
     });
 
-    if (!user.source) return;
+    if (!user.source || !useSource) return;
     const userEntity = await this.em.findOne(UserEntity, {
       where: { id: user.source },
     });
@@ -141,7 +142,7 @@ export class TransactionsService {
     userId: string,
     amount: number,
     currency: CurrencyEnum,
-    manager: EntityManager,
+    manager: EntityManager = this.em,
   ): Promise<boolean> {
     const balanceAccount = await manager.findOneOrFail(BalanceAccount, {
       where: { userId },

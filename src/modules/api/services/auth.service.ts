@@ -16,6 +16,8 @@ import { RefInfoDto, RefInfoUserItemDto } from '../dto/responses/ref-info.dto';
 import { BalanceAccount } from '../../database/entities/balance-account.entity';
 import { CreateAccountDto } from '../dto/requests/create-account.dto';
 import { StringsUtil } from '../../../common/utils/strings.util';
+import { ExchangeBalanceDto } from '../dto/requests/exchange-balance.dto';
+import { TransactionsService } from '../../transactions/transactions.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +26,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly xrayService: XrayService,
+    private readonly transactionsService: TransactionsService,
   ) {}
 
   public async verifyTokenAsync(token: string): Promise<TokenType | undefined> {
@@ -144,6 +147,40 @@ export class AuthService {
     const userinfo = `upload=0; download=${download}${totalPart}; expire=${expire}`;
 
     return { body, userinfo };
+  }
+
+  public async exchange(
+    payload: ExchangeBalanceDto,
+  ): Promise<UserResponseDto | undefined> {
+    const user = await this.getUser(payload.userId);
+    if (!user) return;
+
+    if (
+      !user.balance[payload.from] ||
+      user.balance[payload.from] < payload.amountFrom
+    )
+      return;
+
+    await this.transactionsService.decreaseBalance(
+      payload.userId,
+      payload.amountFrom,
+      payload.from,
+    );
+
+    const amountTo = await this.transactionsService.convert(
+      payload.amountFrom,
+      payload.from,
+      payload.to,
+    );
+
+    await this.transactionsService.addBalance(
+      payload.userId,
+      amountTo,
+      payload.to,
+      false,
+    );
+
+    return this.getUser(payload.userId);
   }
 
   public async createAccount(body: CreateAccountDto) {

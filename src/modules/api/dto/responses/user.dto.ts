@@ -1,7 +1,7 @@
 import { UserEntity } from '../../../database/entities/user.entity';
 import { UserKeyEntity } from '../../../database/entities/user-key.entity';
-import { BalanceAccount } from '../../../database/entities/balance-account.entity';
 import { TariffKind } from '../../../database/entities/tariff.entity';
+import { CurrencyEnum } from '../../../transactions/types/currency.enum';
 
 export class UserKeyDto {
   readonly id: string;
@@ -41,7 +41,7 @@ export class UserKeyDto {
 export class UserResponseDto {
   readonly id: string;
 
-  readonly balance: BalanceAccount;
+  readonly balance: Record<CurrencyEnum, number>;
 
   readonly keys: UserKeyDto[];
 
@@ -54,7 +54,12 @@ export class UserResponseDto {
 
     return new UserResponseDto({
       id: user.id,
-      balance: user.balanceAccount,
+      balance: {
+        rub: user.balanceAccount.rub,
+        cny: user.balanceAccount.cny,
+        usd: user.balanceAccount.usd,
+        ton: user.balanceAccount.ton,
+      },
       keys,
     });
   }
