@@ -27,6 +27,7 @@ export class TransactionsService {
     balance: number,
     currency: CurrencyEnum,
     useSource: boolean = true,
+    notifyTg: boolean = true,
   ) {
     await this.em
       .createQueryBuilder()
@@ -37,7 +38,12 @@ export class TransactionsService {
       .where('user_id = :userId', { userId })
       .execute();
 
-    await this.telegramService.sendMessageAddBalance(userId, balance, currency);
+    if (notifyTg)
+      await this.telegramService.sendMessageAddBalance(
+        userId,
+        balance,
+        currency,
+      );
 
     const user = await this.em.findOneOrFail(UserEntity, {
       where: { id: userId },
@@ -139,6 +145,21 @@ export class TransactionsService {
   }
 
   public async decreaseBalance(
+    userId: string,
+    balance: number,
+    currency: CurrencyEnum,
+  ) {
+    return this.em
+      .createQueryBuilder()
+      .update(BalanceAccount)
+      .set({
+        [currency]: () => `${currency} - ${balance}`,
+      })
+      .where('user_id = :userId', { userId })
+      .execute();
+  }
+
+  public async decreaseBalanceFromAll(
     userId: string,
     amount: number,
     currency: CurrencyEnum,

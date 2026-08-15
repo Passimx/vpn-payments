@@ -80,7 +80,7 @@ export class KeyPurchaseService {
       // Бесплатные пробные тарифы выдаем только через соответствующий trial-промокод.
       if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
 
-      const result = await this.transactionsService.decreaseBalance(
+      const result = await this.transactionsService.decreaseBalanceFromAll(
         userId,
         finalPrice,
         CurrencyEnum.RUB,
@@ -275,7 +275,7 @@ export class KeyPurchaseService {
       if (finalPrice === 0 && !appliedPromo)
         return returnFunc(new DataResponse('error'));
 
-      const result = await this.transactionsService.decreaseBalance(
+      const result = await this.transactionsService.decreaseBalanceFromAll(
         userId,
         finalPrice,
         CurrencyEnum.RUB,

@@ -178,6 +178,7 @@ export class AuthService {
       amountTo,
       payload.to,
       false,
+      false,
     );
 
     return this.getUser(payload.userId);
