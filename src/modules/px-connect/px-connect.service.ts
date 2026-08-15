@@ -112,7 +112,7 @@ class PxConnectService {
 
   private getUserInf = async (ctx: Context<string>) => {
     const id = ctx.payload;
-    if (!id.length) return;
+    if (!id?.length) return;
 
     return this.authService.getUser(id);
   };

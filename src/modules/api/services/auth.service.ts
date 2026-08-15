@@ -195,10 +195,7 @@ export class AuthService {
       userId: id,
     });
 
-    const user = await this.getUser(id);
-    if (!user) return;
-
-    return { user };
+    return this.getUser(id);
   }
 
   public async createToken(userId: string) {
