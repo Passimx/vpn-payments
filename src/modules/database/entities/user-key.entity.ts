@@ -24,10 +24,26 @@ export class UserKeyEntity {
   @Column({ name: 'cascade_to_server_id', type: 'uuid', nullable: true })
   readonly cascadeToServerId: string | null;
 
-  @Column({ name: 'count_traffic_limit', type: 'bigint', default: 0 })
+  @Column({
+    name: 'count_traffic_limit',
+    type: 'bigint',
+    default: 0,
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly countTrafficLimit: number;
 
-  @Column({ name: 'count_traffic_used', type: 'bigint', default: 0 })
+  @Column({
+    name: 'count_traffic_used',
+    type: 'bigint',
+    default: 0,
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly countTrafficUsed: number;
 
   @Column({ name: 'tariff_id', type: 'uuid' })

@@ -140,8 +140,13 @@ export class TransactionsService {
       );
       sum += converted;
     }
+    const fixedString = sum.toFixed(12);
+    const dotIndex = fixedString.indexOf('.');
 
-    return Math.floor(sum * 100) / 100;
+    if (dotIndex === -1) return sum;
+
+    const truncatedString = fixedString.substring(0, dotIndex + 6);
+    return Number(truncatedString);
   }
 
   public async decreaseBalance(
@@ -231,6 +236,7 @@ export class TransactionsService {
   }
 
   public async convert(amount: number, from: CurrencyEnum, to: CurrencyEnum) {
+    if (typeof amount === 'string') amount = Number(amount);
     const currencyPrice = await this.getCurrencyPrice();
     if (!currencyPrice) return 0;
 
@@ -246,7 +252,13 @@ export class TransactionsService {
       result = await this.convert(inUsd, CurrencyEnum.USD, to);
     }
 
-    return Math.floor(result * 100) / 100;
+    const fixedString = result.toFixed(12);
+    const dotIndex = fixedString.indexOf('.');
+
+    if (dotIndex === -1) return result;
+
+    const truncatedString = fixedString.substring(0, dotIndex + 6);
+    return Number(truncatedString);
   }
 
   public formatNumber(value: number, symdol: string) {

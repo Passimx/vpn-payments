@@ -10,9 +10,15 @@ export class BalanceAccount {
   @Column({
     name: 'rub',
     type: 'numeric',
+    precision: 12,
+    scale: 5,
     default: 0,
     transformer: {
-      to: (value: number) => value,
+      to: (value?: number) => {
+        if (value === undefined || value === null || Number.isNaN(value))
+          return 0;
+        return Math.floor(value * 100000) / 100000;
+      },
       from: (value: string) => Number(value),
     },
   })
@@ -21,9 +27,15 @@ export class BalanceAccount {
   @Column({
     name: 'cny',
     type: 'numeric',
+    precision: 12,
+    scale: 5,
     default: 0,
     transformer: {
-      to: (value: number) => value,
+      to: (value?: number) => {
+        if (value === undefined || value === null || Number.isNaN(value))
+          return 0;
+        return Math.floor(value * 100000) / 100000;
+      },
       from: (value: string) => Number(value),
     },
   })
@@ -32,9 +44,15 @@ export class BalanceAccount {
   @Column({
     name: 'ton',
     type: 'numeric',
+    precision: 12,
+    scale: 5,
     default: 0,
     transformer: {
-      to: (value: number) => value,
+      to: (value?: number) => {
+        if (value === undefined || value === null || Number.isNaN(value))
+          return 0;
+        return Math.floor(value * 100000) / 100000;
+      },
       from: (value: string) => Number(value),
     },
   })
@@ -43,9 +61,15 @@ export class BalanceAccount {
   @Column({
     name: 'usd',
     type: 'numeric',
+    precision: 12,
+    scale: 5,
     default: 0,
     transformer: {
-      to: (value: number) => value,
+      to: (value?: number) => {
+        if (value === undefined || value === null || Number.isNaN(value))
+          return 0;
+        return Math.floor(value * 100000) / 100000;
+      },
       from: (value: string) => Number(value),
     },
   })

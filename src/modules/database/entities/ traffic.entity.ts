@@ -10,10 +10,24 @@ export class TrafficEntity {
   @Column({ name: 'server_id', primary: true })
   readonly serverId: string;
 
-  @Column({ name: 'up_link', type: 'bigint' })
+  @Column({
+    name: 'up_link',
+    type: 'bigint',
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly upLink: number;
 
-  @Column({ name: 'down_link', type: 'bigint' })
+  @Column({
+    name: 'down_link',
+    type: 'bigint',
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly downLink: number;
 
   @Column({

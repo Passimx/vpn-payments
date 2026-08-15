@@ -12,13 +12,34 @@ export class TariffEntity {
   @PrimaryGeneratedColumn('uuid')
   readonly id: string;
 
-  @Column({ name: 'expiration_days', type: 'int' })
+  @Column({
+    name: 'expiration_days',
+    type: 'int',
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly expirationDays: number;
 
-  @Column({ name: 'price', type: 'numeric' })
+  @Column({
+    name: 'price',
+    type: 'numeric',
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly price: number;
 
-  @Column({ name: 'traffic_limit', type: 'bigint' })
+  @Column({
+    name: 'traffic_limit',
+    type: 'bigint',
+    transformer: {
+      to: (value: string) => Number(value),
+      from: (value: string) => Number(value),
+    },
+  })
   readonly trafficLimit: number;
 
   @Column({ name: 'kind', type: 'varchar', default: 'base' })
