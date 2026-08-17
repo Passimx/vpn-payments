@@ -22,11 +22,11 @@ import { DownloadLinksType, KeyEnum } from './types/download-links.type';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { InvoicesService } from '../transactions/invoices.service';
 
+export let bot: Telegraf;
 let resendMessageData: ResendMessageType | undefined;
 
 @Injectable()
 export class TelegramService {
-  public bot: Telegraf;
   private amountMap = new Map<number, number>();
   private waitingForPromo = new Map<number, { id: string; isRenew: boolean }>();
   private pendingPromo = new Map<
@@ -50,70 +50,70 @@ export class TelegramService {
   ) {}
 
   async onModuleInit() {
-    this.bot = new Telegraf(Envs.telegram.botToken);
-    this.bot.catch(logger.error);
+    bot = new Telegraf(Envs.telegram.botToken);
+    bot.catch(logger.error);
 
-    this.bot.command('stats', this.analyticsService.sendAnalytics);
-    this.bot.command('resendMessage', this.saveResendMessage);
+    bot.command('stats', this.analyticsService.sendAnalytics);
+    bot.command('resendMessage', this.saveResendMessage);
 
-    this.bot.start(this.onStart);
-    this.bot.action('BTN_1', this.onBtn1);
-    this.bot.action('BTN_2', this.onBtn2);
-    this.bot.action('ON_INSTRUCTION', this.onInstruction);
-    this.bot.action('BTN_4', this.onBtn4);
-    this.bot.action('BTN_5', this.onBtn5);
-    this.bot.action('BTN_8', this.onBtn8);
-    this.bot.action('BTN_9', this.onBtn9);
-    this.bot.action('BTN_11', this.onBtn11);
-    this.bot.action(/^BTN_12:([\w-]+)$/, this.onBtn12);
-    this.bot.action('BTN_13', this.onBtn13);
-    this.bot.action('ON_STARS', this.onPayTelegramStars);
-    this.bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
-    this.bot.action(/^DELETE_KEY:([\w-]+)$/, this.onDeleKey);
-    this.bot.action('BTN_BALANCE', this.onBalance);
-    this.bot.action('ON_MY_REF_LINK', this.onMyRefLink);
-    this.bot.action('ADD_BALANCE', this.onAddBalance);
-    this.bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
-    this.bot.action('ON_ADD_KEY_INSTRUCTION', this.onAddKeyInstruction);
-    this.bot.action('ON_WECHAT', this.onWechat);
-    this.bot.action('ON_YOOKASSA', this.onYookassa);
-    this.bot.action('ON_LANGUAGE', this.onLanguage);
-    this.bot.action(/^ON_SET_LANGUAGE:[\w-]+$/, this.onSetLanguage);
-    this.bot.action(/^T:[\w-]+$/, this.onTariffSelect);
-    this.bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
-    this.bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
-    this.bot.action(/^BUY_XRAY:[\w-]+$/, this.onBuyTariff);
-    this.bot.action(/^BUY_HYST:[\w-]+$/, this.onBuyTariff);
-    this.bot.action('TARIFFS_BASE', this.onTariffsBase);
-    this.bot.action('TARIFFS_PREMIUM', this.onTariffsPremium);
-    this.bot.action('TARIFFS_VIP', this.onTariffsVip);
-    this.bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
-    this.bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
-    this.bot.action(/^AUTO_RENEW_TOGGLE:([\w-]+)$/, this.onAutoRenewToggle);
-    this.bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
-    this.bot.action(/^BUTTON_MONEY:([\d.,]+)$/, this.onSetButtonMoney);
+    bot.start(this.onStart);
+    bot.action('BTN_1', this.onBtn1);
+    bot.action('BTN_2', this.onBtn2);
+    bot.action('ON_INSTRUCTION', this.onInstruction);
+    bot.action('BTN_4', this.onBtn4);
+    bot.action('BTN_5', this.onBtn5);
+    bot.action('BTN_8', this.onBtn8);
+    bot.action('BTN_9', this.onBtn9);
+    bot.action('BTN_11', this.onBtn11);
+    bot.action(/^BTN_12:([\w-]+)$/, this.onBtn12);
+    bot.action('BTN_13', this.onBtn13);
+    bot.action('ON_STARS', this.onPayTelegramStars);
+    bot.action(/^KEY_DETAILS:([\w-]+)$/, this.onKeyDetails);
+    bot.action(/^DELETE_KEY:([\w-]+)$/, this.onDeleKey);
+    bot.action('BTN_BALANCE', this.onBalance);
+    bot.action('ON_MY_REF_LINK', this.onMyRefLink);
+    bot.action('ADD_BALANCE', this.onAddBalance);
+    bot.action('ON_ADD_BALANCE_INSTRUCTION', this.onAddBalanceInstruction);
+    bot.action('ON_ADD_KEY_INSTRUCTION', this.onAddKeyInstruction);
+    bot.action('ON_WECHAT', this.onWechat);
+    bot.action('ON_YOOKASSA', this.onYookassa);
+    bot.action('ON_LANGUAGE', this.onLanguage);
+    bot.action(/^ON_SET_LANGUAGE:[\w-]+$/, this.onSetLanguage);
+    bot.action(/^T:[\w-]+$/, this.onTariffSelect);
+    bot.action(/^PROMO:([\w-]+)$/, this.onPromoClick);
+    bot.action(/^BUY:[\w-]+$/, this.onBuyTariff);
+    bot.action(/^BUY_XRAY:[\w-]+$/, this.onBuyTariff);
+    bot.action(/^BUY_HYST:[\w-]+$/, this.onBuyTariff);
+    bot.action('TARIFFS_BASE', this.onTariffsBase);
+    bot.action('TARIFFS_PREMIUM', this.onTariffsPremium);
+    bot.action('TARIFFS_VIP', this.onTariffsVip);
+    bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
+    bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
+    bot.action(/^AUTO_RENEW_TOGGLE:([\w-]+)$/, this.onAutoRenewToggle);
+    bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
+    bot.action(/^BUTTON_MONEY:([\d.,]+)$/, this.onSetButtonMoney);
 
-    this.bot.on('pre_checkout_query', this.onPreCheckoutQuery);
-    this.bot.on('successful_payment', this.onSuccessfulPayment);
-    this.bot.on('text', this.onText);
+    bot.on('pre_checkout_query', this.onPreCheckoutQuery);
+    bot.on('successful_payment', this.onSuccessfulPayment);
+    bot.on('text', this.onText);
 
-    const userInfo = await this.bot.telegram.getMe();
+    const userInfo = await bot.telegram.getMe();
     if (!userInfo.username.includes('test'))
       for (const lang of Object.keys(this.i18nService.langs)) {
         await Promise.all([
-          this.bot.telegram.setMyDescription(this.t(lang, 'description'), lang),
-          this.bot.telegram.setMyShortDescription(
+          bot.telegram.setMyDescription(this.t(lang, 'description'), lang),
+          bot.telegram.setMyShortDescription(
             this.t(lang, 'short_description'),
             lang,
           ),
         ]);
       }
 
-    void this.bot.launch();
+    void bot.launch();
   }
 
   onModuleDestroy() {
-    this.bot.stop();
+    bot.stop();
   }
 
   private t(payload: UserEntity | string, key: string) {
@@ -210,6 +210,43 @@ export class TelegramService {
     },
   };
 
+  public createInvoice = async (userId: string, amount: number) => {
+    try {
+      const now = Date.now();
+      const id = BigInt(now);
+
+      const starsAmount = Math.ceil(amount);
+      const usdAmount = starsAmount * TransactionsService.telegramStarsRate;
+      const text = `${starsAmount} Telegram Stars`;
+
+      const paymentUrl = await bot.telegram.createInvoiceLink({
+        title: text,
+        description: text,
+        payload: `${id}`,
+        provider_token: Envs.telegram.botToken,
+        currency: 'XTR',
+        prices: [{ label: 'Telegram Stars', amount: starsAmount }],
+      });
+
+      const transaction = {
+        id,
+        amount: usdAmount,
+        currency: CurrencyEnum.USD,
+        userId,
+        type: 'Credit',
+        place: 'telegram',
+        createdAt: now,
+        paymentUrl,
+      } as Partial<TransactionEntity>;
+
+      await this.em.insert(TransactionEntity, transaction);
+
+      return paymentUrl;
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   onStart = async (ctx: Context) => {
     const user = await this.getUserByCtx(ctx);
     const filePath = path.join(
@@ -246,22 +283,27 @@ export class TelegramService {
   };
 
   onSuccessfulPayment = async (ctx: Context) => {
-    const user = await this.getUserByCtx(ctx);
     const message = ctx.message as unknown as {
       successful_payment: { total_amount: number; invoice_payload: string };
     };
     const payment = message.successful_payment;
+    const transactionId = BigInt(payment.invoice_payload);
     const starsPaid = payment.total_amount;
 
+    const transaction = await this.em.findOne(TransactionEntity, {
+      where: { id: transactionId },
+    });
+    if (!transaction) return;
+
     await this.transactionsService.addBalance(
-      user.id,
-      starsPaid * 0.02,
+      transaction.userId,
+      starsPaid * TransactionsService.telegramStarsRate,
       CurrencyEnum.USD,
     );
 
     await this.em.update(
       TransactionEntity,
-      { id: message.successful_payment.invoice_payload, userId: user.id },
+      { id: transaction.id },
       { completed: true },
     );
   };
@@ -279,8 +321,9 @@ export class TelegramService {
       CurrencyEnum.USD,
     );
 
-    const starRate = 0.02; // course for usd
-    const starsAmount = Math.ceil(correctAmount / starRate);
+    const starsAmount = Math.ceil(
+      correctAmount / TransactionsService.telegramStarsRate,
+    );
 
     const now = Date.now();
     const id = BigInt(now);
@@ -301,7 +344,7 @@ export class TelegramService {
       title: this.t(user, 'stars_invoice_title'),
       description: `${this.t(user, 'deposit_amount')} ${this.transactionsService.formatNumber(amount, this.t(user, 't10') as CurrencyEnum)}`,
       payload: `${id}`,
-      provider_token: '',
+      provider_token: Envs.telegram.botToken,
       currency: 'XTR',
       prices: [{ label: 'Telegram Stars', amount: starsAmount }],
     });
@@ -790,7 +833,7 @@ export class TelegramService {
       .catch(logger.error);
   };
 
-  private async getUserByCtx(ctx: Context) {
+  private async getUserByCtx(ctx: Context): Promise<UserEntity> {
     const user = await this.em.findOne(UserEntity, {
       where: { telegramId: ctx?.from!.id },
       relations: ['balanceAccount'],
@@ -815,10 +858,7 @@ export class TelegramService {
       userId: id,
     });
 
-    return this.em.findOneOrFail(UserEntity, {
-      where: { telegramId: ctx?.from!.id },
-      relations: ['balanceAccount'],
-    });
+    return this.getUserByCtx(ctx);
   }
 
   // Общий список тарифов (покупка и продление)
@@ -1764,7 +1804,7 @@ export class TelegramService {
     });
     if (!user?.telegramId) return;
 
-    await this.bot.telegram
+    await bot.telegram
       .sendMessage(
         user.telegramId,
         `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(addBalance, currency, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>`,
@@ -1777,7 +1817,7 @@ export class TelegramService {
     });
 
     if (userKeyExists) {
-      await this.bot.telegram
+      await bot.telegram
         .sendMessage(
           user.telegramId,
           `${this.t(user, 'select_action')}:`,
@@ -1794,7 +1834,7 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
     );
 
-    await this.bot.telegram
+    await bot.telegram
       .sendMessage(
         user.telegramId,
         `${this.t(user, 'balance')}: ${this.transactionsService.formatNumber(balance, this.t(user, 't10'))}\n<b>${this.t(user, 'select_tariff')}:</b>`,
@@ -1820,14 +1860,14 @@ export class TelegramService {
       'welcome.mp4',
     );
 
-    const videoMessage = await this.bot.telegram
+    const videoMessage = await bot.telegram
       .sendVideo(user.telegramId, Input.fromLocalFile(filePath), {
         disable_notification: true,
       })
       .catch(() => {});
     if (!videoMessage) return;
 
-    await this.bot.telegram
+    await bot.telegram
       .sendMessage(user.telegramId, this.t(user, 'message_try_first_key'), {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
@@ -1858,7 +1898,7 @@ export class TelegramService {
     if (!user.telegramId) return;
     const keys = this.prepareKeysToButtons(user, user.keys);
 
-    await this.bot.telegram
+    await bot.telegram
       .sendMessage(
         user.telegramId,
         this.t(user, 'key_almost_expired'),
@@ -1891,7 +1931,7 @@ export class TelegramService {
     if (!user.telegramId) return;
 
     const buttons = this.prepareKeysToButtons(user, [key]);
-    await this.bot.telegram.sendMessage(
+    await bot.telegram.sendMessage(
       user.telegramId,
       `${this.t(user, 'key_expired')}\n` + `${this.t(user, 'select_action')}:`,
       {
@@ -1913,7 +1953,7 @@ export class TelegramService {
     if (!user.telegramId) return;
 
     const buttons = this.prepareKeysToButtons(user, [key]);
-    await this.bot.telegram.sendMessage(
+    await bot.telegram.sendMessage(
       user.telegramId,
       `${this.t(user, 'key_traffic_limit_exceeded')}\n` +
         `${this.t(user, 'select_action')}:`,
@@ -1939,7 +1979,7 @@ export class TelegramService {
     if (!progress) return;
 
     const buttons = this.prepareKeysToButtons(user, [key]);
-    await this.bot.telegram.sendMessage(
+    await bot.telegram.sendMessage(
       user.telegramId,
       `${this.t(user, 'key_traffic_low_warning')}\n` +
         `<b>${this.t(user, 'traffic')}:</b> ${progress}\n\n` +
@@ -2142,7 +2182,7 @@ export class TelegramService {
     for (const user of users) {
       try {
         if (!user.telegramId) continue;
-        await this.bot.telegram
+        await bot.telegram
           .copyMessage(
             user.telegramId,
             resendMessageData.chatId,
@@ -2151,11 +2191,21 @@ export class TelegramService {
           )
           .catch(() => {});
 
-        await this.bot.telegram
+        await bot.telegram
           .sendMessage(user.telegramId, `${this.t(user, 'select_action')}:`, {
             ...this.menu(user),
           })
           .catch(() => {});
+        await bot.telegram.setChatMenuButton({
+          chatId: user.telegramId,
+          menuButton: {
+            type: 'web_app',
+            text: this.t(user, 'open_app_button'),
+            web_app: {
+              url: Envs.telegram.botWebUrl!,
+            },
+          },
+        });
 
         await new Promise((r) => setTimeout(r, 100));
       } catch (e) {

@@ -13,4 +13,5 @@ export enum EventsEnum {
   CREATE_TON_INVOICE = 'create_ton_invoice',
   CREATE_SBER_INVOICE = 'create_sber_invoice',
   CREATE_WECHAT_INVOICE = 'create_wechat_invoice',
+  CREATE_TELEGRAM_STARS_INVOICE = 'create_telegram_stars_invoice',
 }

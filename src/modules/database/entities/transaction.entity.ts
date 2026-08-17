@@ -16,7 +16,7 @@ export class TransactionEntity {
   @Column({ name: 'message', type: 'text', nullable: true })
   readonly message: string;
 
-  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  @Column({ name: 'user_id', type: 'uuid' })
   readonly userId: string;
 
   @Column({

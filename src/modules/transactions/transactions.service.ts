@@ -9,6 +9,8 @@ import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class TransactionsService {
+  public static telegramStarsRate = 0.015;
+
   constructor(
     private readonly em: EntityManager,
     @Inject(forwardRef(() => TelegramService))

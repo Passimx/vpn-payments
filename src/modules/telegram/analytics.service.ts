@@ -5,7 +5,7 @@ import { PaymentsEntity } from '../database/entities/payment.entity';
 import { AnalyticEntity } from '../database/entities/analytic.entity';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
-import { TelegramService } from './telegram-service';
+import { bot, TelegramService } from './telegram-service';
 import { Context } from 'telegraf';
 import { ServerEntity } from '../database/entities/server.entity';
 import { XrayService } from '../xray/xray-service';
@@ -147,7 +147,7 @@ export class AnalyticsService {
       },
     });
 
-    await this.telegramService.bot.telegram
+    await bot.telegram
       .sendPhoto(
         ctx.chat!.id,
         {

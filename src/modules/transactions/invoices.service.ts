@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
 import { WechatService } from '../wechat/wechat.service';
 import { CurrencyEnum } from './types/currency.enum';
@@ -7,6 +7,7 @@ import { AppWalletEnum } from '../ton/enums/app-wallet.enum';
 import { createCanvas, loadImage } from 'canvas';
 import * as QRCode from 'qrcode';
 import path from 'node:path';
+import { TelegramService } from '../telegram/telegram-service';
 
 @Injectable()
 export class InvoicesService {
@@ -14,6 +15,8 @@ export class InvoicesService {
     private readonly yookassaBalanceService: YookassaBalanceService,
     private readonly wechatService: WechatService,
     private readonly tonService: TonService,
+    @Inject(forwardRef(() => TelegramService))
+    private readonly telegramService: TelegramService,
   ) {}
 
   public async getSberInvoice(userId: string, amount: number) {
@@ -22,6 +25,10 @@ export class InvoicesService {
 
   public async getWechatInvoice(userId: string, amount: number) {
     return await this.wechatService.createInvoice(userId, amount);
+  }
+
+  public async getTelegramStarsInvoice(userId: string, amount: number) {
+    return this.telegramService.createInvoice(userId, amount);
   }
 
   public getTonInvoice(

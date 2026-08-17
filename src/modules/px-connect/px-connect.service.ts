@@ -51,6 +51,10 @@ class PxConnectService {
       routes.on(EventsEnum.CREATE_TON_INVOICE, this.createTonInvoice);
       routes.on(EventsEnum.CREATE_SBER_INVOICE, this.createSberInvoice);
       routes.on(EventsEnum.CREATE_WECHAT_INVOICE, this.createWechatInvoice);
+      routes.on(
+        EventsEnum.CREATE_TELEGRAM_STARS_INVOICE,
+        this.createTelegramStarsInvoice,
+      );
     });
   };
 
@@ -157,6 +161,16 @@ class PxConnectService {
     return this.invoicesService.getSberInvoice(payload.userId, payload.amount);
   };
 
+  private createTelegramStarsInvoice = (ctx: Context<CreateInvoiceType>) => {
+    const payload = ctx.payload;
+    if (!payload) return;
+
+    return this.invoicesService.getTelegramStarsInvoice(
+      payload.userId,
+      payload.amount,
+    );
+  };
+
   private createTonInvoice = (ctx: Context<CreateTonInvoiceType>) => {
     const payload = ctx.payload;
     if (!payload) return;
@@ -169,8 +183,14 @@ class PxConnectService {
     );
   };
 
-  private getCurrency = () => {
-    return this.transactionsService.getCurrencyPrice();
+  private getCurrency = async () => {
+    const currency = await this.transactionsService.getCurrencyPrice();
+    if (!currency) return;
+
+    return {
+      currency,
+      telegramStarsRate: TransactionsService.telegramStarsRate,
+    };
   };
 
   private getApps = () => {
