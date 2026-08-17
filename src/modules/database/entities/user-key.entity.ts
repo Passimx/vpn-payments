@@ -29,8 +29,12 @@ export class UserKeyEntity {
     type: 'bigint',
     default: 0,
     transformer: {
-      to: (value: string) => Number(value),
-      from: (value: string) => Number(value),
+      to: (value?: string | number | null) => {
+        if (value === undefined || value === null) return 0;
+        const n = Number(value);
+        return Number.isNaN(n) ? 0 : n;
+      },
+      from: (value: string | null) => Number(value ?? 0),
     },
   })
   readonly countTrafficLimit: number;
@@ -40,8 +44,12 @@ export class UserKeyEntity {
     type: 'bigint',
     default: 0,
     transformer: {
-      to: (value: string) => Number(value),
-      from: (value: string) => Number(value),
+      to: (value?: string | number | null) => {
+        if (value === undefined || value === null) return 0;
+        const n = Number(value);
+        return Number.isNaN(n) ? 0 : n;
+      },
+      from: (value: string | null) => Number(value ?? 0),
     },
   })
   readonly countTrafficUsed: number;
