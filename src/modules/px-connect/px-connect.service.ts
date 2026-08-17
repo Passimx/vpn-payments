@@ -86,19 +86,19 @@ class PxConnectService {
     return this.authService.createKey(key.userId, key.tariffId);
   };
 
-  private getTariffs = async () => {
-    const [base, cdn] = await Promise.all([
-      this.em.find(TariffEntity, {
-        where: { active: true, kind: 'base' },
-        order: { price: 'ASC' },
-      }),
-      this.em.find(TariffEntity, {
-        where: { active: true, kind: 'cdn' },
-        order: { price: 'ASC' },
-      }),
-    ]);
+  private getTariffs = async (ctx: Context<string>) => {
+    const userId = ctx.payload;
+    if (!userId) return;
 
-    return GetTariffsDto.creteInstance(base, cdn);
+    const tariffs = await this.em
+      .createQueryBuilder(TariffEntity, 'tariffs')
+      .where('tariffs.active IS TRUE')
+      .andWhere('tariffs.kind IN (:...kinds)', { kinds: ['base', 'cdn'] })
+      .andWhere('tariffs.price > 0')
+      .orderBy('tariffs.price', 'ASC')
+      .getMany();
+
+    return GetTariffsDto.creteInstanceFromEntities(tariffs);
   };
 
   private updateUserInf = async (ctx: Context<Partial<UserEntity>>) => {

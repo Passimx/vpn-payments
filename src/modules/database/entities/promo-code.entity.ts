@@ -2,11 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { UserEntity } from './user.entity';
 
 @Entity({ name: 'promocodes' })
 export class PromoCodeEntity {
@@ -31,13 +28,6 @@ export class PromoCodeEntity {
     nullable: true,
   })
   readonly allowedTariffIds: string[] | null;
-
-  @Column({ name: 'user_id', type: 'varchar', nullable: true })
-  readonly userId: string | null;
-
-  @ManyToOne(() => UserEntity, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'user_id' })
-  readonly user: UserEntity | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;

@@ -89,7 +89,6 @@ export class TelegramService {
     bot.action('TARIFFS_VIP', this.onTariffsVip);
     bot.action(/^BUY_KEY:([\w-]+)$/, this.onBuyTariff);
     bot.action(/^RENEW:([\w-]+)$/, this.onRenewKey);
-    bot.action(/^AUTO_RENEW_TOGGLE:([\w-]+)$/, this.onAutoRenewToggle);
     bot.action(/^PROMO_KEY:([\w-]+)$/, this.onRenewPromo);
     bot.action(/^BUTTON_MONEY:([\d.,]+)$/, this.onSetButtonMoney);
 
@@ -1511,31 +1510,6 @@ export class TelegramService {
     await this.renderKeyDetails(ctx, user, vpnKey);
   };
 
-  onAutoRenewToggle = async (ctx: Context) => {
-    ctx.answerCbQuery().catch(logger.error);
-    const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
-    const keyId = data.replace('AUTO_RENEW_TOGGLE:', '');
-    const user = await this.getUserByCtx(ctx);
-    const vpnKey = await this.findUserKeyWithDetails(user.id, keyId);
-    if (!vpnKey) {
-      await ctx
-        .answerCbQuery(this.t(user, 'key_not_found'))
-        .catch(logger.error);
-      return;
-    }
-
-    await this.em.update(
-      UserKeyEntity,
-      { id: vpnKey.id },
-      { autoRenewEnabled: !vpnKey.autoRenewEnabled },
-    );
-
-    const updatedKey = await this.findUserKeyWithDetails(user.id, keyId);
-    if (!updatedKey) return;
-
-    await this.renderKeyDetails(ctx, user, updatedKey);
-  };
-
   onDeleKey = async (ctx: Context) => {
     const data = (ctx.callbackQuery as { data?: string })?.data ?? '';
     const keyId = data.replace('DELETE_KEY:', '');
@@ -1579,7 +1553,6 @@ export class TelegramService {
       `<b>ID:</b> ${vpnKey.id}`,
       `<b>${this.t(user, 'status')}:</b> ${this.t(user, vpnKey.status)}`,
       expires ? `<b>${this.t(user, 'until')}:</b> ${expires}` : '',
-      `<b>${this.t(user, 'auto_renew')}:</b> ${vpnKey.autoRenewEnabled ? this.t(user, 'enabled') : this.t(user, 'disabled')}`,
       trafficLine,
       `<b>${this.t(user, 't16')}:</b>\n`,
       `<code>${Envs.main.appUrl}/keys-info/${vpnKey.id}</code>`,
@@ -1591,14 +1564,6 @@ export class TelegramService {
       Markup.button.callback(
         `🔄 ${this.t(user, 'extend_key')}`,
         `RENEW:${vpnKey.id}`,
-      ),
-    ]);
-    buttons.push([
-      Markup.button.callback(
-        vpnKey.autoRenewEnabled
-          ? `⛔ ${this.t(user, 'disable_auto_renew')}`
-          : `✅ ${this.t(user, 'enable_auto_renew')}`,
-        `AUTO_RENEW_TOGGLE:${vpnKey.id}`,
       ),
     ]);
 
