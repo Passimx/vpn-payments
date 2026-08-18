@@ -25,8 +25,8 @@ export class TransactionEntity {
   @Column({ name: 'user_id', type: 'uuid' })
   readonly userId: string;
 
-  @CreateDateColumn({ name: 'created_at_date', type: 'timestamptz' })
-  readonly createdAtDate: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  readonly createdAt: Date;
 
   // Credit - деньги пришли
   // Debit - деньги ушли

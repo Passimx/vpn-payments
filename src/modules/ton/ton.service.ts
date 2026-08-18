@@ -77,8 +77,8 @@ export class TonService {
       .filter(
         (transaction) =>
           !transactionEntity ||
-          new Date(transaction.createdAtDate).getTime() >
-            new Date(transactionEntity?.createdAtDate).getTime(),
+          new Date(transaction.createdAt).getTime() >
+            new Date(transactionEntity?.createdAt).getTime(),
       );
 
     await this.em.insert(TransactionEntity, transactionsNotEmpty);
