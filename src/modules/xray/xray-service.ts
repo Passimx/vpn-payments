@@ -221,7 +221,7 @@ export class XrayService {
 
     for (const user of users) {
       await this.telegramService.sendAlmostExpiredKey(user);
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 

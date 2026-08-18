@@ -61,7 +61,7 @@ export class UserKeyEntity {
   readonly expiresAt: Date;
 
   @Column({ name: 'auto_extend_tariff_id', type: 'uuid', nullable: true })
-  readonly autoExtendTariffId: string;
+  readonly autoExtendTariffId: string | null;
 
   @Column({
     name: 'status',
@@ -91,4 +91,8 @@ export class UserKeyEntity {
   @ManyToOne(() => TariffEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tariff_id' })
   readonly tariff: TariffEntity;
+
+  @ManyToOne(() => TariffEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'auto_extend_tariff_id' })
+  readonly autoTariff?: TariffEntity;
 }

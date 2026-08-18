@@ -1857,13 +1857,33 @@ export class TelegramService {
 
   public async sendAlmostExpiredKey(user: UserEntity) {
     if (!user.telegramId) return;
-    const keys = this.prepareKeysToButtons(user, user.keys);
+    const keys: UserKeyEntity[] = [];
+
+    for (const key of user.keys) {
+      if (!key.autoExtendTariffId) {
+        keys.push(key);
+        continue;
+      }
+
+      const result = await this.keyPurchaseService.renewKey(
+        user.id,
+        key.id,
+        key.autoExtendTariffId,
+      );
+
+      if (!result.success) keys.push(key);
+    }
+
+    const keyButtons = this.prepareKeysToButtons(user, keys);
 
     await bot.telegram
       .sendMessage(
         user.telegramId,
         this.t(user, 'key_almost_expired'),
-        Markup.inlineKeyboard([...keys, [this.backToProfileButton(user)]]),
+        Markup.inlineKeyboard([
+          ...keyButtons,
+          [this.backToProfileButton(user)],
+        ]),
       )
       .catch(logger.error);
   }

@@ -237,10 +237,10 @@ export class KeyPurchaseService {
         where: { id: keyId, userId: user.id },
         relations: ['tariff'],
       });
-      if (!vpnKey) return returnFunc(new DataResponse('key_not_found'));
+      if (!vpnKey) return await returnFunc(new DataResponse('key_not_found'));
 
       if (!vpnKey.tariffId || !vpnKey.tariff)
-        return returnFunc(new DataResponse('tariff_not_found'));
+        return await returnFunc(new DataResponse('tariff_not_found'));
 
       const tariff = await manager.findOneOrFail(TariffEntity, {
         where: { id: tariffId, active: true },
@@ -266,14 +266,14 @@ export class KeyPurchaseService {
           effectivePromoCode,
         );
         if (!priceResult.success || typeof priceResult.data === 'string')
-          return returnFunc(priceResult);
+          return await returnFunc(priceResult);
 
         finalPrice = priceResult.data.finalPrice;
         appliedPromo = priceResult.data.appliedPromo;
       }
 
       if (finalPrice === 0 && !appliedPromo)
-        return returnFunc(new DataResponse('error'));
+        return await returnFunc(new DataResponse('error'));
 
       const result = await this.transactionsService.decreaseBalanceFromAll(
         userId,
@@ -282,11 +282,11 @@ export class KeyPurchaseService {
         manager,
       );
 
-      if (!result) return returnFunc(new DataResponse('t1'));
+      if (!result) return await returnFunc(new DataResponse('t1'));
 
       if (vpnKey.protocol === 'hysteria') {
         const isConnected = await this.blitzService.checkConnection();
-        if (!isConnected) return returnFunc(new DataResponse('t2'));
+        if (!isConnected) return await returnFunc(new DataResponse('t2'));
 
         const editResult = await this.blitzService.editUser({
           userId: vpnKey.userId,
@@ -294,10 +294,11 @@ export class KeyPurchaseService {
           renewCreationDate: true,
         });
 
-        if (!editResult.success) return returnFunc(new DataResponse('error'));
+        if (!editResult.success)
+          return await returnFunc(new DataResponse('error'));
       } else if (vpnKey.protocol === 'xray') {
         const reactivated = await this.xrayService.reactivateXrayKey(vpnKey.id);
-        if (!reactivated) return returnFunc(new DataResponse('error'));
+        if (!reactivated) return await returnFunc(new DataResponse('error'));
       }
 
       const base = new Date(vpnKey.expiresAt);
@@ -346,7 +347,7 @@ export class KeyPurchaseService {
       return new DataResponse(vpnKey.id, true);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      return returnFunc(new DataResponse('error'));
+      return await returnFunc(new DataResponse('error'));
     } finally {
       await qr.release();
     }
