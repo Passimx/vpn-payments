@@ -77,9 +77,8 @@ export class YookassaBalanceService {
 
       if (!paymentId || !paymentUrl) return;
 
-      const now = Date.now();
       await this.em.save(TransactionEntity, {
-        id: BigInt(now),
+        id: BigInt(Date.now()),
         userId,
         paymentId,
         amount,
@@ -88,8 +87,6 @@ export class YookassaBalanceService {
         place: 'yookassa',
         completed: false,
         paymentUrl,
-        createdAt: now,
-        createdAtDate: new Date(now),
       } as unknown as TransactionEntity);
 
       return paymentUrl;

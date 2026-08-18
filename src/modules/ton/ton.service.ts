@@ -63,7 +63,6 @@ export class TonService {
             type: payload?.type,
             place: 'ton',
             userId,
-            createdAt: transaction.now * 1e3,
             createdAtDate: new Date(transaction.now * 1e3),
           } as unknown as TransactionEntity;
         } catch (error) {
@@ -78,7 +77,8 @@ export class TonService {
       .filter(
         (transaction) =>
           !transactionEntity ||
-          transaction.createdAt > transactionEntity?.createdAt,
+          new Date(transaction.createdAtDate).getTime() >
+            new Date(transactionEntity?.createdAtDate).getTime(),
       );
 
     await this.em.insert(TransactionEntity, transactionsNotEmpty);

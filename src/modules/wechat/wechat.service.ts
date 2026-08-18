@@ -63,8 +63,6 @@ export class WechatService {
       place: 'wechat',
       completed: false,
       paymentUrl: url,
-      createdAt: now,
-      createdAtDate: new Date(now),
     });
 
     return url;

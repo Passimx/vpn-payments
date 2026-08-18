@@ -63,13 +63,13 @@ export class XrayService {
   }
 
   private async warmServerParamsCache(server: ServerEntity): Promise<void> {
-    const t = Date.now();
+    const beforeMs = Date.now();
     const data = await this.fetchServerParams(server);
     this.serverParamsCache.set(server.id, {
       data: data ?? null,
       fetchedAt: Date.now(),
     });
-    const ms = Date.now() - t;
+    const ms = Date.now() - beforeMs;
     if (data) {
       logger.info(`[XrayService] ✅ cached ${server.code} in ${ms}ms`);
     } else {

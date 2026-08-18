@@ -211,8 +211,7 @@ export class TelegramService {
 
   public createInvoice = async (userId: string, amount: number) => {
     try {
-      const now = Date.now();
-      const id = BigInt(now);
+      const id = BigInt(Date.now());
 
       const starsAmount = Math.ceil(amount);
       const usdAmount = starsAmount * TransactionsService.telegramStarsRate;
@@ -234,8 +233,6 @@ export class TelegramService {
         userId,
         type: 'Credit',
         place: 'telegram',
-        createdAt: now,
-        createdAtDate: new Date(now),
         paymentUrl,
       } as Partial<TransactionEntity>;
 
@@ -325,8 +322,7 @@ export class TelegramService {
       correctAmount / TransactionsService.telegramStarsRate,
     );
 
-    const now = Date.now();
-    const id = BigInt(now);
+    const id = BigInt(Date.now());
 
     const transaction = {
       id,
@@ -335,8 +331,6 @@ export class TelegramService {
       userId: user.id,
       type: 'Credit',
       place: 'telegram',
-      createdAt: now,
-      createdAtDate: new Date(now),
     } as Partial<TransactionEntity>;
 
     await this.em.insert(TransactionEntity, transaction);

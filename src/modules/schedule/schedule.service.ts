@@ -14,7 +14,7 @@ export class ScheduleService {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
-  @Cron('* * * * *')
+  @Cron('*/10 * * * * *')
   public async scanTonTransactions() {
     await this.tonService.scanTransactions();
   }
