@@ -12,7 +12,7 @@ export class UserKeyDto {
 
   readonly status: string;
 
-  // readonly autoRenewEnabled: string | null;
+  readonly autoExtendTariffId: string | null;
 
   readonly countTrafficLimit: number | null;
 
@@ -30,7 +30,7 @@ export class UserKeyDto {
       expiresAt: key.expiresAt,
       createdAt: key.createdAt,
       status: key.status,
-      // autoRenewEnabled: key.autoRenewEnabled,
+      autoExtendTariffId: key.autoExtendTariffId,
       countTrafficLimit: key.countTrafficLimit,
       countTrafficUsed: key.countTrafficUsed,
       kind: key.tariff.kind,

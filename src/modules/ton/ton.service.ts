@@ -64,6 +64,7 @@ export class TonService {
             place: 'ton',
             userId,
             createdAt: transaction.now * 1e3,
+            createdAtDate: new Date(transaction.now * 1e3),
           } as unknown as TransactionEntity;
         } catch (error) {
           logger.error(error);

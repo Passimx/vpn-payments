@@ -1,4 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+} from 'typeorm';
 import { UserEntity } from './user.entity';
 import { type CurrencyEnum } from '../../transactions/types/currency.enum';
 
@@ -28,6 +34,9 @@ export class TransactionEntity {
     },
   })
   readonly createdAt: number;
+
+  @CreateDateColumn({ name: 'created_at_date', type: 'timestamptz' })
+  readonly createdAtDate?: Date;
 
   // Credit - деньги пришли
   // Debit - деньги ушли

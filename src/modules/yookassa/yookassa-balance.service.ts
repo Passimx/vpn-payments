@@ -89,6 +89,7 @@ export class YookassaBalanceService {
         completed: false,
         paymentUrl,
         createdAt: now,
+        createdAtDate: new Date(now),
       } as unknown as TransactionEntity);
 
       return paymentUrl;

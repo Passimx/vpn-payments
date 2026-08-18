@@ -18,6 +18,8 @@ import { CreateAccountDto } from '../dto/requests/create-account.dto';
 import { StringsUtil } from '../../../common/utils/strings.util';
 import { ExchangeBalanceDto } from '../dto/requests/exchange-balance.dto';
 import { TransactionsService } from '../../transactions/transactions.service';
+import { ChangeExtendTariffIdDto } from '../dto/requests/change-extend-tariff-id.dto';
+import { TariffEntity } from '../../database/entities/tariff.entity';
 
 @Injectable()
 export class AuthService {
@@ -147,6 +149,23 @@ export class AuthService {
     const userinfo = `upload=0; download=${download}${totalPart}; expire=${expire}`;
 
     return { body, userinfo };
+  }
+
+  public async changeExtendTariffId(payload: ChangeExtendTariffIdDto) {
+    if (payload.tariffId !== null) {
+      const tariff = await this.em.findOne(TariffEntity, {
+        where: { id: payload.tariffId, active: true },
+      });
+      if (!tariff) return;
+    }
+
+    await this.em.update(
+      UserKeyEntity,
+      { id: payload.keyId, userId: payload.userId },
+      { autoExtendTariffId: payload.tariffId },
+    );
+
+    return this.getUser(payload.userId);
   }
 
   public async exchange(

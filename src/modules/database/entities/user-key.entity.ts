@@ -60,8 +60,8 @@ export class UserKeyEntity {
   @Column({ name: 'expires_at', type: 'timestamptz' })
   readonly expiresAt: Date;
 
-  // @Column({ name: 'auto_renew_enabled', type: 'uuid' })
-  // readonly autoRenewEnabled: string;
+  @Column({ name: 'auto_extend_tariff_id', type: 'uuid', nullable: true })
+  readonly autoExtendTariffId: string;
 
   @Column({
     name: 'status',

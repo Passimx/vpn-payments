@@ -15,6 +15,7 @@ import { TariffEntity } from '../database/entities/tariff.entity';
 import { GetTariffsDto } from '../api/dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../api/dto/requests/extend-key.dto';
 import { ExchangeBalanceDto } from '../api/dto/requests/exchange-balance.dto';
+import { ChangeExtendTariffIdDto } from '../api/dto/requests/change-extend-tariff-id.dto';
 
 @Injectable()
 class PxConnectService {
@@ -51,11 +52,21 @@ class PxConnectService {
       routes.on(EventsEnum.CREATE_TON_INVOICE, this.createTonInvoice);
       routes.on(EventsEnum.CREATE_SBER_INVOICE, this.createSberInvoice);
       routes.on(EventsEnum.CREATE_WECHAT_INVOICE, this.createWechatInvoice);
+      routes.on(EventsEnum.CHANGE_EXTEND_TARIFF_ID, this.changeExtendTariffId);
       routes.on(
         EventsEnum.CREATE_TELEGRAM_STARS_INVOICE,
         this.createTelegramStarsInvoice,
       );
     });
+  };
+
+  private readonly changeExtendTariffId = async (
+    ctx: Context<ChangeExtendTariffIdDto>,
+  ) => {
+    const payload = ctx.payload;
+    if (!payload) return;
+
+    return this.authService.changeExtendTariffId(payload);
   };
 
   private readonly exchange = async (ctx: Context<ExchangeBalanceDto>) => {

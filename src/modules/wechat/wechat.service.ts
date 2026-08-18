@@ -64,6 +64,7 @@ export class WechatService {
       completed: false,
       paymentUrl: url,
       createdAt: now,
+      createdAtDate: new Date(now),
     });
 
     return url;
