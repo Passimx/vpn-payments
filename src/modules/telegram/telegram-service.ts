@@ -1874,6 +1874,8 @@ export class TelegramService {
       if (!result.success) keys.push(key);
     }
 
+    if (!keys.length) return;
+
     const keyButtons = this.prepareKeysToButtons(user, keys);
 
     await bot.telegram
