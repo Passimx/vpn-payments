@@ -13,7 +13,7 @@ export class TransactionEntity {
   @Column({ name: 'id', type: 'bigint', primary: true })
   readonly id: bigint;
 
-  @Column({ name: 'amount', type: 'numeric', default: 0 })
+  @Column({ name: 'amount', type: 'numeric' })
   readonly amount: number;
 
   @Column({ name: 'currency', type: 'varchar' })
@@ -27,7 +27,7 @@ export class TransactionEntity {
 
   // Credit - деньги пришли
   // Debit - деньги ушли
-  @Column({ name: 'type', type: 'varchar', nullable: true, length: 2 ** 4 })
+  @Column({ name: 'type', type: 'varchar', length: 2 ** 4 })
   readonly type: 'Credit' | 'Debit';
 
   @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })

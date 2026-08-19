@@ -22,18 +22,13 @@ export class PaymentsEntity {
   @Column({ name: 'amount', type: 'numeric', precision: 12 })
   readonly amount: number;
 
-  @Column({ name: 'currency', type: 'varchar', default: 'rub' })
+  @Column({ name: 'currency', type: 'varchar' })
   readonly currency: CurrencyEnum;
 
-  @Column({ name: 'type', type: 'varchar', length: 2 ** 4, default: 'Debit' })
+  @Column({ name: 'type', type: 'varchar', length: 2 ** 4 })
   readonly type: 'Credit' | 'Debit';
 
-  @Column({
-    name: 'place',
-    type: 'varchar',
-    length: 2 ** 4,
-    default: 'inner_service',
-  })
+  @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })
   readonly place: 'ton' | 'yookassa' | 'wechat' | 'telegram' | 'inner_service';
 
   @Column({ name: 'completed', type: 'boolean', default: true })
