@@ -135,6 +135,10 @@ export class KeyPurchaseService {
         amount: finalPrice,
         tariffId: tariff.id,
         vpnKeyId: createdKeyId,
+        currency: CurrencyEnum.RUB,
+        place: 'inner_service',
+        type: 'Debit',
+        completed: true,
       });
       if (appliedPromo) {
         await manager.insert(PromoUsageEntity, {
@@ -334,6 +338,10 @@ export class KeyPurchaseService {
         amount: finalPrice,
         tariffId: tariff.id,
         vpnKeyId: vpnKey.id,
+        currency: CurrencyEnum.RUB,
+        place: 'inner_service',
+        type: 'Debit',
+        completed: true,
       });
 
       if (appliedPromo) {

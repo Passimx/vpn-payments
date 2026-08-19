@@ -9,6 +9,7 @@ import {
 import { UserEntity } from './user.entity';
 import { TariffEntity } from './tariff.entity';
 import { UserKeyEntity } from './user-key.entity';
+import type { CurrencyEnum } from '../../transactions/types/currency.enum';
 
 @Entity({ name: 'payments' })
 export class PaymentsEntity {
@@ -20,6 +21,23 @@ export class PaymentsEntity {
 
   @Column({ name: 'amount', type: 'numeric', precision: 12 })
   readonly amount: number;
+
+  @Column({ name: 'currency', type: 'varchar', default: 'rub' })
+  readonly currency: CurrencyEnum;
+
+  @Column({ name: 'type', type: 'varchar', length: 2 ** 4, default: 'Debit' })
+  readonly type: 'Credit' | 'Debit';
+
+  @Column({
+    name: 'place',
+    type: 'varchar',
+    length: 2 ** 4,
+    default: 'inner_service',
+  })
+  readonly place: 'ton' | 'yookassa' | 'wechat' | 'telegram' | 'inner_service';
+
+  @Column({ name: 'completed', type: 'boolean', default: true })
+  readonly completed: boolean;
 
   @Column({ name: 'tariff_id', type: 'varchar' })
   readonly tariffId: string;

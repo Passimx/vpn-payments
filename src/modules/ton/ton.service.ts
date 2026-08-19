@@ -59,7 +59,6 @@ export class TonService {
             id: transaction.lt,
             amount: payload?.amount * (1 + Envs.crypto.allowance),
             currency: payload?.currency,
-            message: payload?.message,
             type: payload?.type,
             place: 'ton',
             userId,
