@@ -62,7 +62,7 @@ export class TonService {
             place: 'ton',
             userId,
             completed: true,
-            createdAtDate: new Date(transaction.now * 1e3),
+            createdAt: new Date(transaction.now * 1e3),
             meta: {
               place: 'ton',
             },
