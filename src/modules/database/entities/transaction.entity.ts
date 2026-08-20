@@ -4,6 +4,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { type CurrencyEnum } from '../../transactions/types/currency.enum';
@@ -11,8 +12,8 @@ import { TransactionMeta } from './meta/transaction-meta';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
-  @Column({ name: 'id', type: 'bigint', primary: true })
-  readonly id: bigint;
+  @PrimaryGeneratedColumn('uuid')
+  readonly id: string;
 
   @Column({ name: 'amount', type: 'numeric' })
   readonly amount: number;

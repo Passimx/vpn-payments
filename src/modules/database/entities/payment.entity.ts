@@ -35,12 +35,6 @@ export class PaymentsEntity {
   @Column({ name: 'completed', type: 'boolean', default: true })
   readonly completed: boolean;
 
-  @Column({ name: 'tariff_id', type: 'varchar' })
-  readonly tariffId: string;
-
-  @Column({ name: 'vpn_key_id', type: 'varchar' })
-  readonly vpnKeyId: string;
-
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
 

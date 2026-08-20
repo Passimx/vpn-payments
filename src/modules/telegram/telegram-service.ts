@@ -211,36 +211,31 @@ export class TelegramService {
 
   public createInvoice = async (userId: string, amount: number) => {
     try {
-      const id = BigInt(Date.now());
-
       const starsAmount = Math.ceil(amount);
       const usdAmount = starsAmount * TransactionsService.telegramStarsRate;
       const text = `${starsAmount} Telegram Stars`;
 
-      const paymentUrl = await bot.telegram.createInvoiceLink({
-        title: text,
-        description: text,
-        payload: `${id}`,
-        provider_token: Envs.telegram.botToken,
-        currency: 'XTR',
-        prices: [{ label: 'Telegram Stars', amount: starsAmount }],
-      });
-
       const transaction = {
-        id,
         amount: usdAmount,
         currency: CurrencyEnum.USD,
         userId,
         type: 'Credit',
         place: 'telegram',
-        paymentUrl,
         meta: {
-          paymentUrl,
           place: 'telegram',
         },
       } as Partial<TransactionEntity>;
 
-      await this.em.insert(TransactionEntity, transaction);
+      const paymentUrl = await bot.telegram.createInvoiceLink({
+        title: text,
+        description: text,
+        payload: transaction.id!,
+        provider_token: Envs.telegram.botToken,
+        currency: 'XTR',
+        prices: [{ label: 'Telegram Stars', amount: starsAmount }],
+      });
+
+      await this.em.save(TransactionEntity, transaction);
 
       return paymentUrl;
     } catch (error) {
@@ -288,7 +283,7 @@ export class TelegramService {
       successful_payment: { total_amount: number; invoice_payload: string };
     };
     const payment = message.successful_payment;
-    const transactionId = BigInt(payment.invoice_payload);
+    const transactionId = payment.invoice_payload;
     const starsPaid = payment.total_amount;
 
     const transaction = await this.em.findOne(TransactionEntity, {
@@ -326,10 +321,7 @@ export class TelegramService {
       correctAmount / TransactionsService.telegramStarsRate,
     );
 
-    const id = BigInt(Date.now());
-
     const transaction = {
-      id,
       amount: correctAmount,
       currency: CurrencyEnum.USD,
       userId: user.id,
@@ -340,12 +332,12 @@ export class TelegramService {
       },
     } as Partial<TransactionEntity>;
 
-    await this.em.insert(TransactionEntity, transaction);
+    await this.em.save(TransactionEntity, transaction);
 
     await ctx.replyWithInvoice({
       title: this.t(user, 'stars_invoice_title'),
       description: `${this.t(user, 'deposit_amount')} ${this.transactionsService.formatNumber(amount, this.t(user, 't10') as CurrencyEnum)}`,
-      payload: `${id}`,
+      payload: transaction.id!,
       provider_token: Envs.telegram.botToken,
       currency: 'XTR',
       prices: [{ label: 'Telegram Stars', amount: starsAmount }],

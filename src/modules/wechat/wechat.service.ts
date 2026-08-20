@@ -52,9 +52,7 @@ export class WechatService {
     }
 
     const url = result.data.code_url;
-    const now = Date.now();
     await this.em.insert(TransactionEntity, {
-      id: BigInt(now),
       userId: userId,
       paymentId: outTradeNo,
       amount: params.amount.total / 100,
@@ -62,10 +60,8 @@ export class WechatService {
       type: 'Credit',
       place: 'wechat',
       completed: false,
-      paymentUrl: url,
       meta: {
         paymentId: outTradeNo,
-        paymentUrl: url,
         place: 'wechat',
       },
     });

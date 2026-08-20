@@ -25,7 +25,7 @@ export class TonService {
 
     const transactionEntity = await this.em.findOne(TransactionEntity, {
       where: { place: 'ton' },
-      order: { id: 'DESC' },
+      order: { createdAt: 'DESC' },
     });
 
     const address = Address.parse(Envs.crypto.ton.walletAddress);
@@ -56,17 +56,17 @@ export class TonService {
           if (!userId) return undefined;
 
           return {
-            id: transaction.lt,
             amount: payload?.amount * (1 + Envs.crypto.allowance),
             currency: payload?.currency,
             type: payload?.type,
             place: 'ton',
             userId,
+            completed: true,
             createdAtDate: new Date(transaction.now * 1e3),
             meta: {
               place: 'ton',
             },
-          } as unknown as TransactionEntity;
+          } as Partial<TransactionEntity>;
         } catch (error) {
           logger.error(error);
           return undefined as unknown as TransactionEntity;
@@ -79,13 +79,14 @@ export class TonService {
       .filter(
         (transaction) =>
           !transactionEntity ||
-          new Date(transaction.createdAt).getTime() >
+          new Date(transaction.createdAt!).getTime() >
             new Date(transactionEntity?.createdAt).getTime(),
       );
 
-    await this.em.insert(TransactionEntity, transactionsNotEmpty);
+    if (transactions.length) return;
 
-    if (transactions.length) await this.addBalance(transactionsNotEmpty);
+    await this.em.insert(TransactionEntity, transactionsNotEmpty);
+    await this.addBalance(transactionsNotEmpty);
   }
 
   public getTonInvoice(
@@ -113,19 +114,13 @@ export class TonService {
     return paymentUrl;
   }
 
-  private async addBalance(transactions: TransactionEntity[]) {
-    await Promise.all(
+  private addBalance(transactions: Partial<TransactionEntity>[]) {
+    return Promise.all(
       transactions.map(async (transaction) => {
         await this.transactionsService.addBalance(
-          transaction.userId,
-          transaction.amount,
-          transaction.currency,
-        );
-
-        await this.em.update(
-          TransactionEntity,
-          { id: transaction.id, place: 'ton' },
-          { completed: true },
+          transaction.userId!,
+          transaction.amount!,
+          transaction.currency!,
         );
       }),
     );

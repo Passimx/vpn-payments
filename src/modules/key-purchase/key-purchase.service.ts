@@ -133,8 +133,6 @@ export class KeyPurchaseService {
       await manager.insert(PaymentsEntity, {
         userId: user.id,
         amount: finalPrice,
-        tariffId: tariff.id,
-        vpnKeyId: createdKeyId,
         currency: CurrencyEnum.RUB,
         place: 'inner_service',
         type: 'Debit',
@@ -340,8 +338,6 @@ export class KeyPurchaseService {
       await manager.insert(PaymentsEntity, {
         userId: user.id,
         amount: finalPrice,
-        tariffId: tariff.id,
-        vpnKeyId: vpnKey.id,
         currency: CurrencyEnum.RUB,
         place: 'inner_service',
         type: 'Debit',
