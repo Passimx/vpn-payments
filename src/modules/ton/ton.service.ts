@@ -39,6 +39,8 @@ export class TonService {
 
     if (!transactions || !transactions.length) return;
 
+    logger.info(transactions);
+
     const transactionEntities = await Promise.all(
       transactions.map(async (transaction) => {
         try {
@@ -74,6 +76,8 @@ export class TonService {
       }),
     );
 
+    logger.info(transactionEntities);
+
     const transactionsNotEmpty = transactionEntities
       .filter((transactionEntity) => !!transactionEntity)
       .filter(
@@ -82,6 +86,8 @@ export class TonService {
           new Date(transaction.createdAt!).getTime() >
             new Date(transactionEntity?.createdAt).getTime(),
       );
+
+    logger.info(transactionsNotEmpty);
 
     if (!transactions.length) return;
 
