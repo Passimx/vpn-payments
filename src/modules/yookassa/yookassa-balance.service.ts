@@ -78,7 +78,6 @@ export class YookassaBalanceService {
       if (!paymentId || !paymentUrl) return;
 
       await this.em.save(TransactionEntity, {
-        id: BigInt(Date.now()),
         userId,
         amount,
         currency: CurrencyEnum.RUB,
@@ -90,7 +89,7 @@ export class YookassaBalanceService {
           paymentId,
           place: 'yookassa',
         },
-      } as unknown as TransactionEntity);
+      } as TransactionEntity);
 
       return paymentUrl;
     } catch (error) {
