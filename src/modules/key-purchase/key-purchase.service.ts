@@ -139,6 +139,10 @@ export class KeyPurchaseService {
         place: 'inner_service',
         type: 'Debit',
         completed: true,
+        meta: {
+          vpnKeyId: createdKeyId,
+          tariffId: tariff.id,
+        },
       });
       if (appliedPromo) {
         await manager.insert(PromoUsageEntity, {
@@ -342,6 +346,10 @@ export class KeyPurchaseService {
         place: 'inner_service',
         type: 'Debit',
         completed: true,
+        meta: {
+          tariffId: tariff.id,
+          vpnKeyId: vpnKey.id,
+        },
       });
 
       if (appliedPromo) {

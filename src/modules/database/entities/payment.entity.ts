@@ -10,6 +10,7 @@ import { UserEntity } from './user.entity';
 import { TariffEntity } from './tariff.entity';
 import { UserKeyEntity } from './user-key.entity';
 import type { CurrencyEnum } from '../../transactions/types/currency.enum';
+import { PaymentMeta } from './meta/payment-meta';
 
 @Entity({ name: 'payments' })
 export class PaymentsEntity {
@@ -42,6 +43,9 @@ export class PaymentsEntity {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;
+
+  @Column({ type: 'jsonb', nullable: true })
+  readonly meta!: PaymentMeta;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { type CurrencyEnum } from '../../transactions/types/currency.enum';
+import { TransactionMeta } from './meta/transaction-meta';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
@@ -41,6 +42,9 @@ export class TransactionEntity {
 
   @Column({ name: 'paymentId', type: 'varchar', unique: true, nullable: true })
   readonly paymentId?: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  readonly meta!: TransactionMeta;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
