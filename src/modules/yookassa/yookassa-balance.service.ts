@@ -87,6 +87,11 @@ export class YookassaBalanceService {
         completed: false,
         paymentId,
         paymentUrl,
+        meta: {
+          paymentId,
+          paymentUrl,
+          place: 'yookassa',
+        },
       } as unknown as TransactionEntity);
 
       return paymentUrl;

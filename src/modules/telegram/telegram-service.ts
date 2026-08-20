@@ -234,6 +234,10 @@ export class TelegramService {
         type: 'Credit',
         place: 'telegram',
         paymentUrl,
+        meta: {
+          paymentUrl,
+          place: 'telegram',
+        },
       } as Partial<TransactionEntity>;
 
       await this.em.insert(TransactionEntity, transaction);
@@ -331,6 +335,9 @@ export class TelegramService {
       userId: user.id,
       type: 'Credit',
       place: 'telegram',
+      meta: {
+        place: 'telegram',
+      },
     } as Partial<TransactionEntity>;
 
     await this.em.insert(TransactionEntity, transaction);

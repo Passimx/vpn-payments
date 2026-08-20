@@ -63,6 +63,11 @@ export class WechatService {
       place: 'wechat',
       completed: false,
       paymentUrl: url,
+      meta: {
+        paymentId: outTradeNo,
+        paymentUrl: url,
+        place: 'wechat',
+      },
     });
 
     return url;

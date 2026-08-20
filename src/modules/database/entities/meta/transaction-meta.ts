@@ -1,5 +1,7 @@
 export class TransactionMeta {
-  readonly paymentId: string;
+  readonly paymentId?: string;
 
-  readonly paymentUrl: string;
+  readonly paymentUrl?: string;
+
+  readonly place: 'ton' | 'yookassa' | 'wechat' | 'telegram';
 }

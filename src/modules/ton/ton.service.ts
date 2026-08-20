@@ -63,6 +63,9 @@ export class TonService {
             place: 'ton',
             userId,
             createdAtDate: new Date(transaction.now * 1e3),
+            meta: {
+              place: 'ton',
+            },
           } as unknown as TransactionEntity;
         } catch (error) {
           logger.error(error);
