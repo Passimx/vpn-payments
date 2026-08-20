@@ -83,7 +83,7 @@ export class TonService {
             new Date(transactionEntity?.createdAt).getTime(),
       );
 
-    if (transactions.length) return;
+    if (!transactions.length) return;
 
     await this.em.insert(TransactionEntity, transactionsNotEmpty);
     await this.addBalance(transactionsNotEmpty);

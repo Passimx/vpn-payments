@@ -226,6 +226,8 @@ export class TelegramService {
         },
       } as Partial<TransactionEntity>;
 
+      await this.em.save(TransactionEntity, transaction);
+
       const paymentUrl = await bot.telegram.createInvoiceLink({
         title: text,
         description: text,
@@ -234,8 +236,6 @@ export class TelegramService {
         currency: 'XTR',
         prices: [{ label: 'Telegram Stars', amount: starsAmount }],
       });
-
-      await this.em.save(TransactionEntity, transaction);
 
       return paymentUrl;
     } catch (error) {
