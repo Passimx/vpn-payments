@@ -7,8 +7,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { TariffEntity } from './tariff.entity';
-import { UserKeyEntity } from './user-key.entity';
 import type { CurrencyEnum } from '../../transactions/types/currency.enum';
 import { PaymentMeta } from './meta/payment-meta';
 
@@ -44,12 +42,4 @@ export class PaymentsEntity {
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   readonly user: UserEntity;
-
-  @ManyToOne(() => TariffEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'tariff_id' })
-  readonly tariff: TariffEntity;
-
-  @ManyToOne(() => UserKeyEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'vpn_key_id' })
-  readonly vpnKey: UserKeyEntity;
 }
