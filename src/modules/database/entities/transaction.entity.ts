@@ -38,9 +38,6 @@ export class TransactionEntity {
   @Column({ name: 'completed', type: 'boolean', default: false })
   readonly completed: boolean;
 
-  @Column({ name: 'payment_url', type: 'text', nullable: true })
-  readonly paymentUrl?: string;
-
   @Column({ name: 'paymentId', type: 'varchar', unique: true, nullable: true })
   readonly paymentId?: string;
 
