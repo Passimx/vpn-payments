@@ -1,42 +1,7 @@
 import { UserEntity } from '../../../database/entities/user.entity';
-import { UserKeyEntity } from '../../../database/entities/user-key.entity';
-import { TariffKind } from '../../../database/entities/tariff.entity';
 import { CurrencyEnum } from '../../../transactions/types/currency.enum';
-
-export class UserKeyDto {
-  readonly id: string;
-
-  readonly expiresAt: Date;
-
-  readonly createdAt: Date;
-
-  readonly status: string;
-
-  readonly autoExtendTariffId: string | null;
-
-  readonly countTrafficLimit: number | null;
-
-  readonly countTrafficUsed: number | null;
-
-  readonly kind: TariffKind;
-
-  constructor(payload: UserKeyDto) {
-    Object.assign(this, payload);
-  }
-
-  public static getFromUserKey(key: UserKeyEntity) {
-    return new UserKeyDto({
-      id: key.id,
-      expiresAt: key.expiresAt,
-      createdAt: key.createdAt,
-      status: key.status,
-      autoExtendTariffId: key.autoExtendTariffId,
-      countTrafficLimit: key.countTrafficLimit,
-      countTrafficUsed: key.countTrafficUsed,
-      kind: key.tariff.kind,
-    });
-  }
-}
+import { TransactionDto } from './transaction.dto';
+import { UserKeyDto } from './user-key.dto';
 
 export class UserResponseDto {
   readonly id: string;
@@ -45,12 +10,17 @@ export class UserResponseDto {
 
   readonly keys: UserKeyDto[];
 
+  readonly transactions: TransactionDto[];
+
   constructor(payload: UserResponseDto) {
     Object.assign(this, payload);
   }
 
   public static getFromUserEntity(user: UserEntity) {
     const keys = user.keys.map((key) => UserKeyDto.getFromUserKey(key));
+    const transactions = user.transactions.map((key) =>
+      TransactionDto.getFromTransaction(key),
+    );
 
     return new UserResponseDto({
       id: user.id,
@@ -61,6 +31,7 @@ export class UserResponseDto {
         ton: user.balanceAccount.ton,
       },
       keys,
+      transactions,
     });
   }
 }

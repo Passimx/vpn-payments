@@ -25,9 +25,6 @@ export class TransactionEntity {
   @Column({ name: 'user_id', type: 'uuid' })
   readonly userId: string;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
-  readonly createdAt: Date;
-
   // Credit - деньги пришли
   // Debit - деньги ушли
   @Column({ name: 'type', type: 'varchar', length: 2 ** 4 })
@@ -44,6 +41,9 @@ export class TransactionEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   readonly meta!: TransactionMeta | PaymentMeta;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  readonly createdAt: Date;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
