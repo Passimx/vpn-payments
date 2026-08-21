@@ -1,6 +1,6 @@
 import { TransactionEntity } from '../../../database/entities/transaction.entity';
 import type { CurrencyEnum } from '../../../transactions/types/currency.enum';
-import { TransactionMeta } from '../../../database/entities/meta/transaction-meta';
+import { DepositMeta } from '../../../database/entities/meta/deposit-meta';
 import { PaymentMeta } from '../../../database/entities/meta/payment-meta';
 
 export class TransactionDto {
@@ -12,11 +12,11 @@ export class TransactionDto {
 
   readonly type: 'Credit' | 'Debit';
 
-  readonly kind: 'Transfer' | 'Payment' | 'Deposit';
+  readonly kind: 'Transfer' | 'Payment' | 'Deposit' | 'Exchange';
 
   readonly completed: boolean;
 
-  readonly meta!: TransactionMeta | PaymentMeta;
+  readonly meta!: DepositMeta | PaymentMeta;
 
   readonly createdAt: Date;
 

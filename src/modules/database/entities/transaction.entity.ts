@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { type CurrencyEnum } from '../../transactions/types/currency.enum';
-import { TransactionMeta } from './meta/transaction-meta';
+import { DepositMeta } from './meta/deposit-meta';
 import { PaymentMeta } from './meta/payment-meta';
 
 @Entity({ name: 'transactions' })
@@ -33,14 +33,15 @@ export class TransactionEntity {
   // Transfer - перевод денег
   // Payment - оплата
   // Deposit - пополнение баланса
+  // Exchange - обмен
   @Column({ name: 'kind', type: 'varchar', length: 2 ** 4 })
-  readonly kind: 'Transfer' | 'Payment' | 'Deposit';
+  readonly kind: 'Transfer' | 'Payment' | 'Deposit' | 'Exchange';
 
   @Column({ name: 'completed', type: 'boolean' })
   readonly completed: boolean;
 
   @Column({ type: 'jsonb', nullable: true })
-  readonly meta!: TransactionMeta | PaymentMeta;
+  readonly meta!: DepositMeta | PaymentMeta;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;

@@ -20,6 +20,7 @@ import { ExchangeBalanceDto } from '../dto/requests/exchange-balance.dto';
 import { TransactionsService } from '../../transactions/transactions.service';
 import { ChangeExtendTariffIdDto } from '../dto/requests/change-extend-tariff-id.dto';
 import { TariffEntity } from '../../database/entities/tariff.entity';
+import { TransactionEntity } from '../../database/entities/transaction.entity';
 
 @Injectable()
 export class AuthService {
@@ -189,6 +190,15 @@ export class AuthService {
       payload.from,
     );
 
+    await this.em.save(TransactionEntity, {
+      amount: payload.amountFrom,
+      currency: payload.from,
+      userId: payload.userId,
+      type: 'Debit',
+      kind: 'Exchange',
+      completed: true,
+    });
+
     const amountTo = await this.transactionsService.convert(
       payload.amountFrom,
       payload.from,
@@ -202,6 +212,15 @@ export class AuthService {
       false,
       false,
     );
+
+    await this.em.save(TransactionEntity, {
+      amount: amountTo,
+      currency: payload.to,
+      userId: payload.userId,
+      type: 'Credit',
+      kind: 'Exchange',
+      completed: true,
+    });
 
     return this.getUser(payload.userId);
   }
