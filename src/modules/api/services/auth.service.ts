@@ -107,8 +107,11 @@ export class AuthService {
   public async getUser(id: string): Promise<UserResponseDto> {
     const user = await this.em.findOneOrFail(UserEntity, {
       where: { id },
-      relations: ['keys', 'balanceAccount', 'keys.tariff'],
-      order: { keys: { createdAt: 'ASC' } },
+      relations: ['keys', 'balanceAccount', 'keys.tariff', 'transactions'],
+      order: {
+        keys: { createdAt: 'DESC' },
+        transactions: { createdAt: 'DESC' },
+      },
     });
 
     return UserResponseDto.getFromUserEntity(user);

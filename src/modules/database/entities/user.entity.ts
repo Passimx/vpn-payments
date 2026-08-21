@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, OneToMany, OneToOne } from 'typeorm';
 import { UserKeyEntity } from './user-key.entity';
 import { BalanceAccount } from './balance-account.entity';
+import { TransactionEntity } from './transaction.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -37,6 +38,9 @@ export class UserEntity {
 
   @OneToOne(() => BalanceAccount, (balance) => balance.user)
   readonly balanceAccount: BalanceAccount;
+
+  @OneToMany(() => TransactionEntity, (transaction) => transaction.user)
+  readonly transactions: TransactionEntity[];
 
   @Column({
     name: 'source',
