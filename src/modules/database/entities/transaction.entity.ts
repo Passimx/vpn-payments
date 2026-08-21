@@ -36,7 +36,7 @@ export class TransactionEntity {
   // Transfer - перевод денег
   // Payment - оплата
   // Deposit - пополнение баланса
-  @Column({ name: 'kind', type: 'varchar', default: 'Deposit', length: 2 ** 4 })
+  @Column({ name: 'kind', type: 'varchar', length: 2 ** 4 })
   readonly kind: 'Transfer' | 'Payment' | 'Deposit';
 
   @Column({ name: 'completed', type: 'boolean' })

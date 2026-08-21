@@ -94,7 +94,10 @@ export class WechatService {
 
     await this.em.update(
       TransactionEntity,
-      { paymentId: result.out_trade_no, completed: false },
+      {
+        meta: JsonContains({ paymentId: result.out_trade_no }),
+        completed: false,
+      },
       { completed: true },
     );
   }
