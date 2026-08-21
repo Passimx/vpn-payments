@@ -219,8 +219,9 @@ export class TelegramService {
         amount: usdAmount,
         currency: CurrencyEnum.USD,
         userId,
+        completed: false,
         type: 'Credit',
-        place: 'telegram',
+        kind: 'Deposit',
         meta: {
           place: 'telegram',
         },
@@ -326,7 +327,8 @@ export class TelegramService {
       currency: CurrencyEnum.USD,
       userId: user.id,
       type: 'Credit',
-      place: 'telegram',
+      kind: 'Deposit',
+      completed: false,
       meta: {
         place: 'telegram',
       },
@@ -1011,7 +1013,7 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                this.invoicesService.getTonInvoice(
+                await this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.TON,
@@ -1022,7 +1024,7 @@ export class TelegramService {
             [
               Markup.button.url(
                 'Tonkeeper',
-                this.invoicesService.getTonInvoice(
+                await this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.TON,
@@ -1033,7 +1035,7 @@ export class TelegramService {
             [
               Markup.button.url(
                 'Tonhub',
-                this.invoicesService.getTonInvoice(
+                await this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.TON,
@@ -1082,7 +1084,7 @@ export class TelegramService {
             [
               Markup.button.url(
                 'MyTonWallet',
-                this.invoicesService.getTonInvoice(
+                await this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.USD,
@@ -1093,7 +1095,7 @@ export class TelegramService {
             [
               Markup.button.url(
                 'Tonkeeper',
-                this.invoicesService.getTonInvoice(
+                await this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.USD,
@@ -1104,7 +1106,7 @@ export class TelegramService {
             [
               Markup.button.url(
                 'Tonhub',
-                this.invoicesService.getTonInvoice(
+                await this.invoicesService.getTonInvoice(
                   user.id,
                   amount,
                   CurrencyEnum.USD,

@@ -1,7 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
-import { PaymentsEntity } from '../database/entities/payment.entity';
 import { AnalyticEntity } from '../database/entities/analytic.entity';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -11,6 +10,7 @@ import { ServerEntity } from '../database/entities/server.entity';
 import { XrayService } from '../xray/xray-service';
 import { TrafficEntity } from '../database/entities/ traffic.entity';
 import { logger } from '../../common/logger/logger';
+import { TransactionEntity } from '../database/entities/transaction.entity';
 
 @Injectable()
 export class AnalyticsService {
@@ -47,11 +47,13 @@ export class AnalyticsService {
 
     const paymentsSum = Number(
       (await this.em
-        .createQueryBuilder(PaymentsEntity, 'payments')
-        .select('COALESCE(SUM(payments.amount), 0)', 'sum')
+        .createQueryBuilder(TransactionEntity, 'transaction')
+        .select('COALESCE(SUM(transaction.amount), 0)', 'sum')
         .where(
-          `payments."created_at"::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
+          `transaction.created_at::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
         )
+        .andWhere('transaction.kind = :kind', { kind: 'Transfer' })
+        .andWhere('transaction.completed IS TRUE')
         .getRawOne<{ sum: string }>())!.sum,
     );
 

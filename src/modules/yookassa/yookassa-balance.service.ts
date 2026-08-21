@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, JsonContains } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
@@ -82,9 +82,8 @@ export class YookassaBalanceService {
         amount,
         currency: CurrencyEnum.RUB,
         type: 'Credit',
-        place: 'yookassa',
+        kind: 'Deposit',
         completed: false,
-        paymentId,
         meta: {
           paymentId,
           place: 'yookassa',
@@ -101,7 +100,7 @@ export class YookassaBalanceService {
     paymentId: string,
   ): Promise<TransactionEntity | null> {
     return await this.em.findOne(TransactionEntity, {
-      where: { paymentId, completed: false, place: 'yookassa' },
+      where: { meta: JsonContains({ paymentId }), completed: false },
       relations: ['user'],
     });
   }
@@ -125,7 +124,7 @@ export class YookassaBalanceService {
 
     await this.em.update(
       TransactionEntity,
-      { id: balancePayment.id, place: 'yookassa' },
+      { id: balancePayment.id, completed: false },
       { completed: true },
     );
   }

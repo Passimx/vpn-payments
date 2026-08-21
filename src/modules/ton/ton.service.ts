@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Address, Slice, TonClient, Transaction } from '@ton/ton';
 import { Envs } from '../../common/env/envs';
-import { EntityManager } from 'typeorm';
+import { EntityManager, JsonContains } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
-import { UserEntity } from '../database/entities/user.entity';
 import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
 import { logger } from '../../common/logger/logger';
@@ -23,80 +22,75 @@ export class TonService {
       apiKey: Envs.crypto.ton.endpointApiKey,
     });
 
-    const transactionEntity = await this.em.findOne(TransactionEntity, {
-      where: { place: 'ton' },
-      order: { createdAt: 'DESC' },
-    });
-
     const address = Address.parse(Envs.crypto.ton.walletAddress);
-    const transactions = await client
+    const response = await client
       .getTransactions(address, {
-        limit: 500,
+        limit: 20,
       })
       .catch(() => {
         logger.error('Error while getting ton transactions.');
       });
 
-    if (!transactions || !transactions.length) return;
+    if (!response || !response.length) return;
 
-    const transactionEntities = await Promise.all(
-      transactions.map(async (transaction) => {
-        try {
-          let userId: string | undefined = undefined;
-          const payload = this.getTransactionInf(transaction);
-          if (!payload) return undefined;
+    const blockchainTransactions = response
+      .map(this.getTransactionInf)
+      .filter((transactionEntity) => !!transactionEntity);
 
-          if (payload?.message?.length) {
-            const userEntity = await this.em.findOne(UserEntity, {
-              where: { id: payload.message },
-            });
-            if (userEntity) userId = userEntity.id;
-          }
+    blockchainTransactions.map((transaction) => transaction?.message);
 
-          if (!userId) return undefined;
+    const uniqueMassages = [
+      ...new Set(
+        blockchainTransactions.map((transaction) => transaction?.message),
+      ),
+    ];
 
-          return {
-            amount: payload?.amount * (1 + Envs.crypto.allowance),
-            currency: payload?.currency,
-            type: payload?.type,
-            place: 'ton',
-            userId,
-            completed: true,
-            createdAt: new Date(transaction.now * 1e3),
-            meta: {
-              place: 'ton',
-            },
-          } as Partial<TransactionEntity>;
-        } catch (error) {
-          logger.error(error);
-          return undefined as unknown as TransactionEntity;
-        }
-      }),
-    );
-
-    const transactionsNotEmpty = transactionEntities
-      .filter((transactionEntity) => !!transactionEntity)
-      .filter(
-        (transaction) =>
-          !transactionEntity ||
-          new Date(transaction.createdAt!).getTime() >
-            new Date(transactionEntity?.createdAt).getTime(),
-      );
-
-    logger.info(transactionsNotEmpty);
+    const transactions = await this.em
+      .createQueryBuilder(TransactionEntity, 'transaction')
+      .where('transaction.id::text = ANY(:ids::text[])', {
+        ids: uniqueMassages,
+      })
+      .andWhere({ meta: JsonContains({ place: 'ton' }) })
+      .andWhere('transaction.completed IS FALSE')
+      .getMany();
 
     if (!transactions.length) return;
 
-    await this.em.insert(TransactionEntity, transactionsNotEmpty);
-    await this.addBalance(transactionsNotEmpty);
+    const updatedTransactions = transactions.map((transactionEntity) => {
+      const blockchainTransaction = blockchainTransactions.find(
+        (blockchainTransaction) =>
+          blockchainTransaction?.message === transactionEntity.id,
+      )!;
+      return {
+        ...transactionEntity,
+        amount: blockchainTransaction.amount,
+        currency: blockchainTransaction.currency,
+        completed: true,
+      };
+    });
+
+    await this.em.save(TransactionEntity, updatedTransactions);
+    await this.addBalance(updatedTransactions);
   }
 
-  public getTonInvoice(
+  public async getTonInvoice(
     userId: string,
     amount: number,
     currency: CurrencyEnum.TON | CurrencyEnum.USD,
     app: AppWalletEnum,
-  ): string {
+  ): Promise<string> {
+    const transaction = await this.em.save(TransactionEntity, {
+      userId: userId,
+      amount,
+      currency: CurrencyEnum.TON,
+      type: 'Credit',
+      kind: 'Deposit',
+      completed: false,
+      meta: {
+        place: 'ton',
+      },
+    });
+
     let paymentUrl = 'https://tonhub.com';
 
     if (app === AppWalletEnum.MY_TON_WALLET)
@@ -111,7 +105,7 @@ export class TonService {
     else
       paymentUrl += `/${Envs.crypto.ton.walletAddress}?amount=${amount * 1e9}`;
 
-    paymentUrl += `&text=${userId}`;
+    paymentUrl += `&text=${transaction.id}`;
 
     return paymentUrl;
   }
@@ -128,7 +122,7 @@ export class TonService {
     );
   }
 
-  private getTransactionInf(transaction: Transaction) {
+  private getTransactionInf = (transaction: Transaction) => {
     const msg = transaction.inMessage;
 
     if (!msg || msg.info.type !== 'internal') return;
@@ -157,7 +151,6 @@ export class TonService {
 
       return {
         currency: CurrencyEnum.USD,
-        type: 'Credit',
         amount: Number(jettonAmount) / 1e6,
         message,
       };
@@ -172,10 +165,9 @@ export class TonService {
 
       return {
         currency: CurrencyEnum.TON,
-        type: 'Credit',
         amount: Number(msg.info.value.coins) / 1e9,
         message,
       };
     }
-  }
+  };
 }

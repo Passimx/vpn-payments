@@ -27,8 +27,8 @@ export class PaymentsEntity {
   @Column({ name: 'type', type: 'varchar', length: 2 ** 4 })
   readonly type: 'Credit' | 'Debit';
 
-  @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })
-  readonly place: 'ton' | 'yookassa' | 'wechat' | 'telegram' | 'inner_service';
+  @Column({ name: 'kind', type: 'varchar', default: 'Payment', length: 2 ** 4 })
+  readonly kind: 'Transfer' | 'Payment' | 'Deposit';
 
   @Column({ name: 'completed', type: 'boolean', default: true })
   readonly completed: boolean;

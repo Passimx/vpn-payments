@@ -9,6 +9,7 @@ import {
 import { UserEntity } from './user.entity';
 import { type CurrencyEnum } from '../../transactions/types/currency.enum';
 import { TransactionMeta } from './meta/transaction-meta';
+import { PaymentMeta } from './meta/payment-meta';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
@@ -32,17 +33,17 @@ export class TransactionEntity {
   @Column({ name: 'type', type: 'varchar', length: 2 ** 4 })
   readonly type: 'Credit' | 'Debit';
 
-  @Column({ name: 'place', type: 'varchar', length: 2 ** 4 })
-  readonly place: 'ton' | 'yookassa' | 'wechat' | 'telegram' | 'inner_service';
+  // Transfer - перевод денег
+  // Payment - оплата
+  // Deposit - пополнение баланса
+  @Column({ name: 'kind', type: 'varchar', default: 'Deposit', length: 2 ** 4 })
+  readonly kind: 'Transfer' | 'Payment' | 'Deposit';
 
-  @Column({ name: 'completed', type: 'boolean', default: false })
+  @Column({ name: 'completed', type: 'boolean' })
   readonly completed: boolean;
 
-  @Column({ name: 'paymentId', type: 'varchar', unique: true, nullable: true })
-  readonly paymentId?: string;
-
   @Column({ type: 'jsonb', nullable: true })
-  readonly meta!: TransactionMeta;
+  readonly meta!: TransactionMeta | PaymentMeta;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

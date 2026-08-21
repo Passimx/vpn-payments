@@ -3,7 +3,6 @@ import crypto from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
-import { PaymentsEntity } from '../database/entities/payment.entity';
 import { PromoCodeEntity } from '../database/entities/promo-code.entity';
 import { PromoUsageEntity } from '../database/entities/promo-usage.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -17,6 +16,7 @@ import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { PurchaseResult } from './types/purchase-result.type';
 import { Envs } from '../../common/env/envs';
 import { logger } from '../../common/logger/logger';
+import { TransactionEntity } from '../database/entities/transaction.entity';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -130,12 +130,12 @@ export class KeyPurchaseService {
         });
       }
 
-      await manager.insert(PaymentsEntity, {
+      await manager.insert(TransactionEntity, {
         userId: user.id,
         amount: finalPrice,
         currency: CurrencyEnum.RUB,
-        place: 'inner_service',
         type: 'Debit',
+        kind: 'Payment',
         completed: true,
         meta: {
           vpnKeyId: createdKeyId,
@@ -335,12 +335,12 @@ export class KeyPurchaseService {
         .where('id = :id', { id: vpnKey.id })
         .execute();
 
-      await manager.insert(PaymentsEntity, {
+      await manager.insert(TransactionEntity, {
         userId: user.id,
         amount: finalPrice,
         currency: CurrencyEnum.RUB,
-        place: 'inner_service',
         type: 'Debit',
+        kind: 'Payment',
         completed: true,
         meta: {
           tariffId: tariff.id,

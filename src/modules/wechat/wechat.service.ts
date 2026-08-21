@@ -6,7 +6,7 @@ import { Envs } from '../../common/env/envs';
 import { logger } from '../../common/logger/logger';
 import { InvoiceCallbackType } from './types/invoice-callback.type';
 import { InvoiceCreateType } from './types/invoice-create.type';
-import { EntityManager } from 'typeorm';
+import { EntityManager, JsonContains } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { WechatTransactionType } from './types/wechat-transaction.type';
 import { TransactionsService } from '../transactions/transactions.service';
@@ -54,11 +54,10 @@ export class WechatService {
     const url = result.data.code_url;
     await this.em.insert(TransactionEntity, {
       userId: userId,
-      paymentId: outTradeNo,
       amount: params.amount.total / 100,
       currency: CurrencyEnum.CNY,
       type: 'Credit',
-      place: 'wechat',
+      kind: 'Deposit',
       completed: false,
       meta: {
         paymentId: outTradeNo,
@@ -81,8 +80,7 @@ export class WechatService {
 
     const transaction = await this.em.findOneOrFail(TransactionEntity, {
       where: {
-        paymentId: result.out_trade_no,
-        place: 'wechat',
+        meta: JsonContains({ paymentId: result.out_trade_no }),
         currency: CurrencyEnum.CNY,
         completed: false,
       },
@@ -96,7 +94,7 @@ export class WechatService {
 
     await this.em.update(
       TransactionEntity,
-      { paymentId: result.out_trade_no, place: 'wechat' },
+      { paymentId: result.out_trade_no, completed: false },
       { completed: true },
     );
   }
