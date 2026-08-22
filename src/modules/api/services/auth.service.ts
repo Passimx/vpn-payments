@@ -249,7 +249,7 @@ export class AuthService {
         },
       ]);
 
-      return this.getUser(payload.userId);
+      return this.getUser(payload.userId, manager);
     });
   }
 
