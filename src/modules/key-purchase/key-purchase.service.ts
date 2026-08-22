@@ -28,18 +28,18 @@ export class KeyPurchaseService {
     private readonly i18nService: I18nService,
   ) {}
 
-  public purchase(
+  public async purchase(
     userId: string,
     tariffId: string,
     promoCode?: string,
     protocol: 'xray' | 'hysteria' = 'xray',
-  ): Promise<DataResponse<string | PurchaseResult>> | DataResponse<string> {
+  ): Promise<DataResponse<string | PurchaseResult>> {
     try {
-      return this.dataSource.transaction(async (manager) => {
+      return await this.dataSource.transaction(async (manager) => {
         const account = await manager.findOneOrFail(BalanceAccount, {
           where: { userId },
           relations: ['user'],
-          lock: { mode: 'pessimistic_write' },
+          lock: { mode: 'pessimistic_write', tables: ['BalanceAccount'] },
         });
 
         const tariff = await manager.findOneOrFail(TariffEntity, {
@@ -202,20 +202,18 @@ export class KeyPurchaseService {
     });
   }
 
-  public renewKey(
+  public async renewKey(
     userId: string,
     keyId: string,
     tariffId: string,
     promoCode?: string,
-  ):
-    | Promise<DataResponse<string | PriceWithPromoResult>>
-    | DataResponse<string> {
+  ): Promise<DataResponse<string | PriceWithPromoResult>> {
     try {
-      return this.dataSource.transaction(async (manager) => {
+      return await this.dataSource.transaction(async (manager) => {
         const account = await manager.findOneOrFail(BalanceAccount, {
           where: { userId },
           relations: ['user'],
-          lock: { mode: 'pessimistic_write' },
+          lock: { mode: 'pessimistic_write', tables: ['BalanceAccount'] },
         });
 
         const vpnKey = await manager.findOne(UserKeyEntity, {

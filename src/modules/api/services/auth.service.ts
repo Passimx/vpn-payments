@@ -186,7 +186,7 @@ export class AuthService {
     payload: ExchangeBalanceDto,
   ): Promise<UserResponseDto | undefined> {
     try {
-      return this.dataSource.transaction(async (manager) => {
+      return await this.dataSource.transaction(async (manager) => {
         const account = await manager.findOne(BalanceAccount, {
           where: { userId: payload.userId },
           lock: { mode: 'pessimistic_write' },
@@ -250,7 +250,7 @@ export class AuthService {
 
   public async transfer(payload: TransferDto) {
     try {
-      return this.dataSource.transaction(async (manager) => {
+      return await this.dataSource.transaction(async (manager) => {
         const queryId = globalThis.crypto.randomUUID();
 
         const sortedIds = [payload.userId, payload.recipient].sort();
