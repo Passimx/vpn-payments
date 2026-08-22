@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Address, Slice, TonClient, Transaction } from '@ton/ton';
 import { Envs } from '../../common/env/envs';
-import { EntityManager, JsonContains } from 'typeorm';
+import { DataSource, EntityManager, JsonContains } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { OpCodeEnum } from './enums/op-code.enum';
 import { TransactionsService } from '../transactions/transactions.service';
@@ -13,6 +13,7 @@ import { AppWalletEnum } from './enums/app-wallet.enum';
 export class TonService {
   constructor(
     private readonly em: EntityManager,
+    private readonly dataSource: DataSource,
     private readonly transactionsService: TransactionsService,
   ) {}
 
@@ -69,8 +70,10 @@ export class TonService {
       };
     });
 
-    await this.em.save(TransactionEntity, updatedTransactions);
-    await this.addBalance(updatedTransactions);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(TransactionEntity, updatedTransactions);
+      await this.addBalance(updatedTransactions, manager);
+    });
   }
 
   public async getTonInvoice(
@@ -110,13 +113,17 @@ export class TonService {
     return paymentUrl;
   }
 
-  private addBalance(transactions: Partial<TransactionEntity>[]) {
+  private addBalance(
+    transactions: Partial<TransactionEntity>[],
+    manager: EntityManager,
+  ) {
     return Promise.all(
       transactions.map(async (transaction) => {
         await this.transactionsService.addBalance(
           transaction.userId!,
           transaction.amount!,
           transaction.currency!,
+          manager,
         );
       }),
     );

@@ -6,7 +6,7 @@ import { Envs } from '../../common/env/envs';
 import { logger } from '../../common/logger/logger';
 import { InvoiceCallbackType } from './types/invoice-callback.type';
 import { InvoiceCreateType } from './types/invoice-create.type';
-import { EntityManager, JsonContains } from 'typeorm';
+import { DataSource, EntityManager, JsonContains } from 'typeorm';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { WechatTransactionType } from './types/wechat-transaction.type';
 import { TransactionsService } from '../transactions/transactions.service';
@@ -19,6 +19,7 @@ export class WechatService {
   constructor(
     private readonly transactionsService: TransactionsService,
     private readonly em: EntityManager,
+    private readonly dataSource: DataSource,
   ) {
     this.initWxPay();
   }
@@ -86,20 +87,23 @@ export class WechatService {
       },
     });
 
-    await this.transactionsService.addBalance(
-      transaction.userId,
-      transaction.amount,
-      CurrencyEnum.CNY,
-    );
+    await this.dataSource.transaction(async (manager) => {
+      await this.transactionsService.addBalance(
+        transaction.userId,
+        transaction.amount,
+        CurrencyEnum.CNY,
+        manager,
+      );
 
-    await this.em.update(
-      TransactionEntity,
-      {
-        meta: JsonContains({ paymentId: result.out_trade_no }),
-        completed: false,
-      },
-      { completed: true },
-    );
+      await manager.update(
+        TransactionEntity,
+        {
+          meta: JsonContains({ paymentId: result.out_trade_no }),
+          completed: false,
+        },
+        { completed: true },
+      );
+    });
   }
 
   private initWxPay() {

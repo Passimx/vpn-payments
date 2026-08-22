@@ -12,7 +12,6 @@ export class TransactionsService {
   public static telegramStarsRate = 0.015;
 
   constructor(
-    private readonly em: EntityManager,
     @Inject(forwardRef(() => TelegramService))
     private readonly telegramService: TelegramService,
   ) {}
@@ -28,7 +27,7 @@ export class TransactionsService {
     userId: string,
     balance: number,
     currency: CurrencyEnum,
-    manager: EntityManager = this.em,
+    manager: EntityManager,
     useSource: boolean = true,
     notifyTg: boolean = true,
   ) {
@@ -157,7 +156,7 @@ export class TransactionsService {
     userId: string,
     amount: number,
     currency: CurrencyEnum,
-    manager: EntityManager = this.em,
+    manager: EntityManager,
   ) {
     return manager
       .createQueryBuilder()
@@ -173,7 +172,7 @@ export class TransactionsService {
     userId: string,
     amount: number,
     currency: CurrencyEnum,
-    manager: EntityManager = this.em,
+    manager: EntityManager,
   ): Promise<boolean> {
     const balanceAccount = await manager.findOneOrFail(BalanceAccount, {
       where: { userId },

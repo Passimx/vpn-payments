@@ -16,6 +16,7 @@ import { DataResponse } from '../api/dto/responses/data-response.dto';
 import { PurchaseResult } from './types/purchase-result.type';
 import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
+import { BalanceAccount } from '../database/entities/balance-account.entity';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -27,141 +28,129 @@ export class KeyPurchaseService {
     private readonly i18nService: I18nService,
   ) {}
 
-  async purchase(
+  public purchase(
     userId: string,
     tariffId: string,
     promoCode?: string,
     protocol: 'xray' | 'hysteria' = 'xray',
-  ): Promise<DataResponse<string | PurchaseResult>> {
-    const qr = this.dataSource.createQueryRunner();
-    await qr.connect();
-    await qr.startTransaction();
-    const manager = qr.manager;
-
+  ): Promise<DataResponse<string | PurchaseResult>> | DataResponse<string> {
     try {
-      const user = await manager.findOneOrFail(UserEntity, {
-        where: { id: userId },
-        lock: { mode: 'pessimistic_write' },
-      });
+      return this.dataSource.transaction(async (manager) => {
+        const account = await manager.findOneOrFail(BalanceAccount, {
+          where: { userId },
+          relations: ['user'],
+          lock: { mode: 'pessimistic_write' },
+        });
 
-      const tariff = await manager.findOneOrFail(TariffEntity, {
-        where: { id: tariffId, active: true },
-      });
+        const tariff = await manager.findOneOrFail(TariffEntity, {
+          where: { id: tariffId, active: true },
+        });
 
-      let finalPrice = Number(tariff.price);
-      finalPrice = this.applyVipLaunchDiscount(tariff, finalPrice);
-      let appliedPromo: PromoCodeEntity | null = null;
-      const autoTrialPromoCode =
-        finalPrice === 0
-          ? tariff.kind === 'cascade'
-            ? 'PREMIUM_TRIAL'
-            : tariff.kind === 'cdn'
-              ? 'VIP_TRIAL'
-              : 'TRIAL'
-          : undefined;
-      const effectivePromoCode = promoCode ?? autoTrialPromoCode;
+        let finalPrice = Number(tariff.price);
+        finalPrice = this.applyVipLaunchDiscount(tariff, finalPrice);
+        let appliedPromo: PromoCodeEntity | null = null;
+        const autoTrialPromoCode =
+          finalPrice === 0
+            ? tariff.kind === 'cascade'
+              ? 'PREMIUM_TRIAL'
+              : tariff.kind === 'cdn'
+                ? 'VIP_TRIAL'
+                : 'TRIAL'
+            : undefined;
+        const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 
-      if (effectivePromoCode) {
-        const priceResult = await this.getPriceWithPromo(
-          user.id,
-          tariff.id,
-          effectivePromoCode,
-        );
-        if (!priceResult.success && typeof priceResult.data === 'string')
-          return new DataResponse<string>(priceResult.data);
+        if (effectivePromoCode) {
+          const priceResult = await this.getPriceWithPromo(
+            account.userId,
+            tariff.id,
+            effectivePromoCode,
+          );
+          if (!priceResult.success && typeof priceResult.data === 'string')
+            return new DataResponse<string>(priceResult.data);
 
-        if (typeof priceResult.data !== 'string') {
-          finalPrice = priceResult.data.finalPrice;
-          appliedPromo = priceResult.data.appliedPromo;
+          if (typeof priceResult.data !== 'string') {
+            finalPrice = priceResult.data.finalPrice;
+            appliedPromo = priceResult.data.appliedPromo;
+          }
         }
-      }
 
-      // Бесплатные пробные тарифы выдаем только через соответствующий trial-промокод.
-      if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
+        // Бесплатные пробные тарифы выдаем только через соответствующий trial-промокод.
+        if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
 
-      const result = await this.transactionsService.decreaseBalanceFromAll(
-        userId,
-        finalPrice,
-        CurrencyEnum.RUB,
-        manager,
-      );
-
-      if (!result) return new DataResponse(this.t(user, 't1'));
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
-
-      let createdKeyId: string;
-
-      if (protocol === 'xray') {
-        const amKey = await this.xrayService.createXrayKey(
-          user,
-          tariff,
+        const result = await this.transactionsService.decreaseBalanceFromAll(
+          userId,
+          finalPrice,
+          CurrencyEnum.RUB,
           manager,
         );
-        if (!amKey) throw new BadRequestException('Invalid Xray key');
 
-        createdKeyId = amKey.id;
-      } else {
-        const username = crypto.randomUUID().replace(/-/g, '');
+        if (!result) return new DataResponse(this.t(account.user, 't1'));
 
-        const createResult = await this.blitzService.createUserKey({
-          username,
-          expirationDays: tariff.expirationDays,
-          note: user.id,
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
+
+        let createdKeyId: string;
+
+        if (protocol === 'xray') {
+          const amKey = await this.xrayService.createXrayKey(
+            account.user,
+            tariff,
+            manager,
+          );
+          if (!amKey) throw new BadRequestException('Invalid Xray key');
+
+          createdKeyId = amKey.id;
+        } else {
+          const username = crypto.randomUUID().replace(/-/g, '');
+
+          const createResult = await this.blitzService.createUserKey({
+            username,
+            expirationDays: tariff.expirationDays,
+            note: account.userId,
+          });
+
+          if (!createResult.success) return new DataResponse(`error`);
+
+          const uriResult = await this.blitzService.getUserKeyUri(username);
+          if (!uriResult.success || !uriResult.uri)
+            return new DataResponse('error');
+
+          createdKeyId = crypto.randomUUID().replace(/-/g, '');
+
+          await manager.insert(UserKeyEntity, {
+            id: createdKeyId,
+            protocol: 'hysteria',
+            userId: account.userId,
+            tariffId: tariff.id,
+            expiresAt,
+            status: 'active',
+          });
+        }
+
+        await manager.insert(TransactionEntity, {
+          userId: account.userId,
+          amount: finalPrice,
+          currency: CurrencyEnum.RUB,
+          type: 'Debit',
+          kind: 'Payment',
+          completed: true,
+          meta: {
+            vpnKeyId: createdKeyId,
+            tariffId: tariff.id,
+          },
         });
+        if (appliedPromo) {
+          await manager.insert(PromoUsageEntity, {
+            userId: account.userId,
+            promoCodeId: appliedPromo.id,
+          });
+        }
 
-        if (!createResult.success) return new DataResponse(`error`);
-
-        const uriResult = await this.blitzService.getUserKeyUri(username);
-        if (!uriResult.success || !uriResult.uri)
-          return new DataResponse('error');
-
-        createdKeyId = crypto.randomUUID().replace(/-/g, '');
-
-        await manager.insert(UserKeyEntity, {
-          id: createdKeyId,
-          protocol: 'hysteria',
-          userId: user.id,
-          tariffId: tariff.id,
-          expiresAt,
-          status: 'active',
-        });
-      }
-
-      await manager.insert(TransactionEntity, {
-        userId: user.id,
-        amount: finalPrice,
-        currency: CurrencyEnum.RUB,
-        type: 'Debit',
-        kind: 'Payment',
-        completed: true,
-        meta: {
-          vpnKeyId: createdKeyId,
-          tariffId: tariff.id,
-        },
+        return new DataResponse({ keyId: createdKeyId });
       });
-      if (appliedPromo) {
-        await manager.insert(PromoUsageEntity, {
-          userId: user.id,
-          promoCodeId: appliedPromo.id,
-        });
-      }
-
-      await qr.commitTransaction();
-
-      return new DataResponse({ keyId: createdKeyId });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      await qr.rollbackTransaction();
-      const msg = e instanceof Error ? e.message : 'Unknown error';
-      console.error(
-        '[KeyPurchase] purchase: unexpected error',
-        msg,
-        e instanceof Error ? e.stack : undefined,
-      );
       return new DataResponse(`error`);
-    } finally {
-      await qr.release();
     }
   }
 
@@ -213,153 +202,143 @@ export class KeyPurchaseService {
     });
   }
 
-  async renewKey(
+  public renewKey(
     userId: string,
     keyId: string,
     tariffId: string,
     promoCode?: string,
-  ): Promise<DataResponse<string | PriceWithPromoResult>> {
-    const qr = this.dataSource.createQueryRunner();
-    await qr.connect();
-    await qr.startTransaction();
-    const manager = qr.manager;
-
-    const returnFunc = async (
-      payload: DataResponse<string | PriceWithPromoResult>,
-    ) => {
-      await qr.rollbackTransaction();
-      return payload;
-    };
-
+  ):
+    | Promise<DataResponse<string | PriceWithPromoResult>>
+    | DataResponse<string> {
     try {
-      const user = await manager.findOneOrFail(UserEntity, {
-        where: { id: userId },
-        lock: { mode: 'pessimistic_write' },
-      });
+      return this.dataSource.transaction(async (manager) => {
+        const account = await manager.findOneOrFail(BalanceAccount, {
+          where: { userId },
+          relations: ['user'],
+          lock: { mode: 'pessimistic_write' },
+        });
 
-      const vpnKey = await manager.findOne(UserKeyEntity, {
-        where: { id: keyId, userId: user.id },
-        relations: ['tariff'],
-      });
-      if (!vpnKey) return await returnFunc(new DataResponse('key_not_found'));
+        const vpnKey = await manager.findOne(UserKeyEntity, {
+          where: { id: keyId, userId: account.userId },
+          relations: ['tariff'],
+        });
+        if (!vpnKey) return new DataResponse('key_not_found');
 
-      if (!vpnKey.tariffId || !vpnKey.tariff)
-        return await returnFunc(new DataResponse('tariff_not_found'));
+        if (!vpnKey.tariffId || !vpnKey.tariff)
+          return new DataResponse('tariff_not_found');
 
-      const tariff = await manager.findOneOrFail(TariffEntity, {
-        where: { id: tariffId, active: true },
-      });
+        const tariff = await manager.findOneOrFail(TariffEntity, {
+          where: { id: tariffId, active: true },
+        });
 
-      let finalPrice = Number(tariff.price);
-      finalPrice = this.applyVipLaunchDiscount(tariff, finalPrice);
-      let appliedPromo: PromoCodeEntity | null = null;
-      const autoTrialPromoCode =
-        finalPrice === 0
-          ? tariff.kind === 'cascade'
-            ? 'PREMIUM_TRIAL'
-            : tariff.kind === 'cdn'
-              ? 'VIP_TRIAL'
-              : 'TRIAL'
-          : undefined;
-      const effectivePromoCode = promoCode ?? autoTrialPromoCode;
+        let finalPrice = Number(tariff.price);
+        finalPrice = this.applyVipLaunchDiscount(tariff, finalPrice);
+        let appliedPromo: PromoCodeEntity | null = null;
+        const autoTrialPromoCode =
+          finalPrice === 0
+            ? tariff.kind === 'cascade'
+              ? 'PREMIUM_TRIAL'
+              : tariff.kind === 'cdn'
+                ? 'VIP_TRIAL'
+                : 'TRIAL'
+            : undefined;
+        const effectivePromoCode = promoCode ?? autoTrialPromoCode;
 
-      if (effectivePromoCode) {
-        const priceResult = await this.getPriceWithPromo(
-          user.id,
-          tariff.id,
-          effectivePromoCode,
+        if (effectivePromoCode) {
+          const priceResult = await this.getPriceWithPromo(
+            account.userId,
+            tariff.id,
+            effectivePromoCode,
+          );
+          if (!priceResult.success || typeof priceResult.data === 'string')
+            return priceResult;
+
+          finalPrice = priceResult.data.finalPrice;
+          appliedPromo = priceResult.data.appliedPromo;
+        }
+
+        if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
+
+        const result = await this.transactionsService.decreaseBalanceFromAll(
+          userId,
+          finalPrice,
+          CurrencyEnum.RUB,
+          manager,
         );
-        if (!priceResult.success || typeof priceResult.data === 'string')
-          return await returnFunc(priceResult);
 
-        finalPrice = priceResult.data.finalPrice;
-        appliedPromo = priceResult.data.appliedPromo;
-      }
+        if (!result) return new DataResponse('t1');
 
-      if (finalPrice === 0 && !appliedPromo)
-        return await returnFunc(new DataResponse('error'));
+        if (vpnKey.protocol === 'hysteria') {
+          const isConnected = await this.blitzService.checkConnection();
+          if (!isConnected) return new DataResponse('t2');
 
-      const result = await this.transactionsService.decreaseBalanceFromAll(
-        userId,
-        finalPrice,
-        CurrencyEnum.RUB,
-        manager,
-      );
+          const editResult = await this.blitzService.editUser({
+            userId: vpnKey.userId,
+            expirationDays: tariff.expirationDays,
+            renewCreationDate: true,
+          });
 
-      if (!result) return await returnFunc(new DataResponse('t1'));
+          if (!editResult.success) return new DataResponse('error');
+        } else if (vpnKey.protocol === 'xray') {
+          const reactivated = await this.xrayService.reactivateXrayKey(
+            vpnKey.id,
+          );
+          if (!reactivated) return new DataResponse('error');
+        }
 
-      if (vpnKey.protocol === 'hysteria') {
-        const isConnected = await this.blitzService.checkConnection();
-        if (!isConnected) return await returnFunc(new DataResponse('t2'));
+        const base = new Date(vpnKey.expiresAt);
+        const expiresAt = Date.now() < base.getTime() ? base : new Date();
 
-        const editResult = await this.blitzService.editUser({
-          userId: vpnKey.userId,
-          expirationDays: tariff.expirationDays,
-          renewCreationDate: true,
-        });
+        expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
 
-        if (!editResult.success)
-          return await returnFunc(new DataResponse('error'));
-      } else if (vpnKey.protocol === 'xray') {
-        const reactivated = await this.xrayService.reactivateXrayKey(vpnKey.id);
-        if (!reactivated) return await returnFunc(new DataResponse('error'));
-      }
-
-      const base = new Date(vpnKey.expiresAt);
-      const expiresAt = Date.now() < base.getTime() ? base : new Date();
-
-      expiresAt.setDate(expiresAt.getDate() + tariff.expirationDays);
-
-      const countTrafficLimitDelta = tariff.trafficLimit ?? null;
-      const updatePayload: {
-        expiresAt: Date;
-        status: 'active';
-        tariffId: string;
-        countTrafficLimit?: () => string;
-      } = {
-        expiresAt,
-        status: 'active',
-        tariffId: tariff.id,
-      };
-      if (countTrafficLimitDelta != null && countTrafficLimitDelta > 0) {
-        updatePayload.countTrafficLimit = () =>
-          `COALESCE(count_traffic_limit, 0) + ${countTrafficLimitDelta}`;
-      }
-
-      await manager
-        .createQueryBuilder()
-        .update(UserKeyEntity)
-        .set(updatePayload)
-        .where('id = :id', { id: vpnKey.id })
-        .execute();
-
-      await manager.insert(TransactionEntity, {
-        userId: user.id,
-        amount: finalPrice,
-        currency: CurrencyEnum.RUB,
-        type: 'Debit',
-        kind: 'Payment',
-        completed: true,
-        meta: {
+        const countTrafficLimitDelta = tariff.trafficLimit ?? null;
+        const updatePayload: {
+          expiresAt: Date;
+          status: 'active';
+          tariffId: string;
+          countTrafficLimit?: () => string;
+        } = {
+          expiresAt,
+          status: 'active',
           tariffId: tariff.id,
-          vpnKeyId: vpnKey.id,
-        },
-      });
+        };
+        if (countTrafficLimitDelta != null && countTrafficLimitDelta > 0) {
+          updatePayload.countTrafficLimit = () =>
+            `COALESCE(count_traffic_limit, 0) + ${countTrafficLimitDelta}`;
+        }
 
-      if (appliedPromo) {
-        await manager.insert(PromoUsageEntity, {
-          userId: user.id,
-          promoCodeId: appliedPromo.id,
+        await manager
+          .createQueryBuilder()
+          .update(UserKeyEntity)
+          .set(updatePayload)
+          .where('id = :id', { id: vpnKey.id })
+          .execute();
+
+        await manager.insert(TransactionEntity, {
+          userId: account.userId,
+          amount: finalPrice,
+          currency: CurrencyEnum.RUB,
+          type: 'Debit',
+          kind: 'Payment',
+          completed: true,
+          meta: {
+            tariffId: tariff.id,
+            vpnKeyId: vpnKey.id,
+          },
         });
-      }
 
-      await qr.commitTransaction();
-      return new DataResponse(vpnKey.id, true);
+        if (appliedPromo) {
+          await manager.insert(PromoUsageEntity, {
+            userId: account.userId,
+            promoCodeId: appliedPromo.id,
+          });
+        }
+
+        return new DataResponse(vpnKey.id, true);
+      });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      return await returnFunc(new DataResponse('error'));
-    } finally {
-      await qr.release();
+      return new DataResponse('error');
     }
   }
 

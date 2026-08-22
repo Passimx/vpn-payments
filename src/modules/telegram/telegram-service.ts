@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Context, Input, Markup, Telegraf } from 'telegraf';
 
-import { EntityManager } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -39,6 +39,7 @@ export class TelegramService {
 
   constructor(
     private readonly em: EntityManager,
+    private readonly dataSource: DataSource,
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => AnalyticsService))
@@ -292,17 +293,20 @@ export class TelegramService {
     });
     if (!transaction) return;
 
-    await this.transactionsService.addBalance(
-      transaction.userId,
-      starsPaid * TransactionsService.telegramStarsRate,
-      CurrencyEnum.USD,
-    );
+    await this.dataSource.transaction(async (manager) => {
+      await this.transactionsService.addBalance(
+        transaction.userId,
+        starsPaid * TransactionsService.telegramStarsRate,
+        CurrencyEnum.USD,
+        manager,
+      );
 
-    await this.em.update(
-      TransactionEntity,
-      { id: transaction.id },
-      { completed: true },
-    );
+      await manager.update(
+        TransactionEntity,
+        { id: transaction.id },
+        { completed: true },
+      );
+    });
   };
 
   onPayTelegramStars = async (ctx: Context) => {
@@ -1998,12 +2002,7 @@ export class TelegramService {
         ),
       ],
       [Markup.button.callback(`⭐ Telegram Stars`, 'ON_STARS')],
-      [
-        Markup.button.callback(
-          `💎 ${this.t(user, 'ton_payment')} (+${Envs.crypto.allowance * 100}%)`,
-          'BTN_8',
-        ),
-      ],
+      [Markup.button.callback(`💎 ${this.t(user, 'ton_payment')}`, 'BTN_8')],
     ];
 
     const extra = Markup.inlineKeyboard([

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager, JsonContains } from 'typeorm';
+import { DataSource, EntityManager, JsonContains } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
@@ -21,6 +21,7 @@ export type YooKassaWebhookPayload = {
 export class YookassaBalanceService {
   constructor(
     private readonly em: EntityManager,
+    private readonly dataSource: DataSource,
     private readonly transactionsService: TransactionsService,
   ) {}
 
@@ -112,20 +113,22 @@ export class YookassaBalanceService {
 
     const balancePayment = await this.getPaymentByPaymentId(payment.id);
     if (!balancePayment) return;
-    if (balancePayment.completed) return;
 
     const amount = Number(balancePayment.amount);
 
-    await this.transactionsService.addBalance(
-      balancePayment.userId,
-      amount,
-      CurrencyEnum.RUB,
-    );
+    await this.dataSource.transaction(async (manager) => {
+      await this.transactionsService.addBalance(
+        balancePayment.userId,
+        amount,
+        CurrencyEnum.RUB,
+        manager,
+      );
 
-    await this.em.update(
-      TransactionEntity,
-      { id: balancePayment.id, completed: false },
-      { completed: true },
-    );
+      await manager.update(
+        TransactionEntity,
+        { id: balancePayment.id, completed: false },
+        { completed: true },
+      );
+    });
   }
 }

@@ -22,6 +22,7 @@ import { ChangeExtendTariffIdDto } from '../dto/requests/change-extend-tariff-id
 import { TariffEntity } from '../../database/entities/tariff.entity';
 import { TransactionEntity } from '../../database/entities/transaction.entity';
 import { TransferDto } from '../dto/requests/transfer.dto';
+import { logger } from '../../../common/logger/logger';
 
 @Injectable()
 export class AuthService {
@@ -181,130 +182,146 @@ export class AuthService {
     return this.em.exists(UserEntity, { where: { id: id } });
   }
 
-  public async transfer(payload: TransferDto) {
-    return this.dataSource.transaction(async (manager) => {
-      const queryId = globalThis.crypto.randomUUID();
-
-      const sortedIds = [payload.userId, payload.recipient].sort();
-
-      const accountFirst = await manager.findOne(BalanceAccount, {
-        where: { userId: sortedIds[0] },
-        lock: { mode: 'pessimistic_write' }, // Поток подождет, а не упадет с ошибкой
-      });
-
-      const accountSecond = await manager.findOne(BalanceAccount, {
-        where: { userId: sortedIds[1] },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      const senderBalance =
-        sortedIds[0] === payload.userId ? accountFirst : accountSecond;
-      const recipientBalance =
-        sortedIds[0] === payload.recipient ? accountFirst : accountSecond;
-
-      if (!senderBalance || !recipientBalance) return;
-
-      const amount = senderBalance[payload.currency];
-      if (!amount || amount < payload.amount) return;
-
-      await this.transactionsService.decreaseBalance(
-        payload.userId,
-        payload.amount,
-        payload.currency,
-        manager,
-      );
-
-      await this.transactionsService.addBalance(
-        payload.recipient,
-        payload.amount,
-        payload.currency,
-        manager,
-        false,
-        true,
-      );
-      await manager.insert(TransactionEntity, [
-        {
-          currency: payload.currency,
-          amount: payload.amount,
-          kind: 'Transfer',
-          type: 'Debit',
-          completed: true,
-          userId: payload.userId,
-          meta: {
-            queryId,
-            comment: payload.comment,
-          },
-        },
-        {
-          currency: payload.currency,
-          amount: payload.amount,
-          kind: 'Transfer',
-          type: 'Credit',
-          completed: true,
-          userId: payload.recipient,
-          meta: {
-            queryId,
-            comment: payload.comment,
-          },
-        },
-      ]);
-
-      return this.getUser(payload.userId, manager);
-    });
-  }
-
   public async exchange(
     payload: ExchangeBalanceDto,
   ): Promise<UserResponseDto | undefined> {
-    const user = await this.getUser(payload.userId);
-    if (!user) return;
+    try {
+      return this.dataSource.transaction(async (manager) => {
+        const account = await manager.findOne(BalanceAccount, {
+          where: { userId: payload.userId },
+          lock: { mode: 'pessimistic_write' },
+        });
 
-    if (
-      !user.balance[payload.from] ||
-      user.balance[payload.from] < payload.amountFrom
-    )
-      return;
+        if (!account) return;
 
-    await this.transactionsService.decreaseBalance(
-      payload.userId,
-      payload.amountFrom,
-      payload.from,
-    );
+        if (
+          !account[payload.from] ||
+          account[payload.from] < payload.amountFrom
+        )
+          return;
 
-    await this.em.save(TransactionEntity, {
-      amount: payload.amountFrom,
-      currency: payload.from,
-      userId: payload.userId,
-      type: 'Debit',
-      kind: 'Exchange',
-      completed: true,
-    });
+        const amountTo = await this.transactionsService.convert(
+          payload.amountFrom,
+          payload.from,
+          payload.to,
+        );
 
-    const amountTo = await this.transactionsService.convert(
-      payload.amountFrom,
-      payload.from,
-      payload.to,
-    );
+        await this.transactionsService.decreaseBalance(
+          payload.userId,
+          payload.amountFrom,
+          payload.from,
+          manager,
+        );
 
-    await this.transactionsService.addBalance(
-      payload.userId,
-      amountTo,
-      payload.to,
-      undefined,
-      false,
-      false,
-    );
+        await this.transactionsService.addBalance(
+          payload.userId,
+          amountTo,
+          payload.to,
+          manager,
+          false,
+          false,
+        );
 
-    await this.em.save(TransactionEntity, {
-      amount: amountTo,
-      currency: payload.to,
-      userId: payload.userId,
-      type: 'Credit',
-      kind: 'Exchange',
-      completed: true,
-    });
+        await manager.insert(TransactionEntity, [
+          {
+            amount: payload.amountFrom,
+            currency: payload.from,
+            userId: payload.userId,
+            type: 'Debit',
+            kind: 'Exchange',
+            completed: true,
+          },
+          {
+            amount: amountTo,
+            currency: payload.to,
+            userId: payload.userId,
+            type: 'Credit',
+            kind: 'Exchange',
+            completed: true,
+          },
+        ]);
 
-    return this.getUser(payload.userId);
+        return this.getUser(payload.userId, manager);
+      });
+    } catch (error) {
+      logger.error(error);
+    }
+  }
+
+  public async transfer(payload: TransferDto) {
+    try {
+      return this.dataSource.transaction(async (manager) => {
+        const queryId = globalThis.crypto.randomUUID();
+
+        const sortedIds = [payload.userId, payload.recipient].sort();
+
+        const accountFirst = await manager.findOne(BalanceAccount, {
+          where: { userId: sortedIds[0] },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        const accountSecond = await manager.findOne(BalanceAccount, {
+          where: { userId: sortedIds[1] },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        const senderBalance =
+          sortedIds[0] === payload.userId ? accountFirst : accountSecond;
+        const recipientBalance =
+          sortedIds[0] === payload.recipient ? accountFirst : accountSecond;
+
+        if (!senderBalance || !recipientBalance) return;
+
+        const amount = senderBalance[payload.currency];
+        if (!amount || amount < payload.amount) return;
+
+        await this.transactionsService.decreaseBalance(
+          payload.userId,
+          payload.amount,
+          payload.currency,
+          manager,
+        );
+
+        await this.transactionsService.addBalance(
+          payload.recipient,
+          payload.amount,
+          payload.currency,
+          manager,
+          false,
+          true,
+        );
+        await manager.insert(TransactionEntity, [
+          {
+            currency: payload.currency,
+            amount: payload.amount,
+            kind: 'Transfer',
+            type: 'Debit',
+            completed: true,
+            userId: payload.userId,
+            meta: {
+              queryId,
+              comment: payload.comment,
+            },
+          },
+          {
+            currency: payload.currency,
+            amount: payload.amount,
+            kind: 'Transfer',
+            type: 'Credit',
+            completed: true,
+            userId: payload.recipient,
+            meta: {
+              queryId,
+              comment: payload.comment,
+            },
+          },
+        ]);
+
+        return this.getUser(payload.userId, manager);
+      });
+    } catch (error) {
+      logger.error(error);
+    }
   }
 
   public async createAccount(body: CreateAccountDto) {
