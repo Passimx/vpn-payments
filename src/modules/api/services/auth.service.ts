@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager, Not } from 'typeorm';
+import { DataSource, EntityManager, Not } from 'typeorm';
 import { UserEntity } from '../../database/entities/user.entity';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -21,10 +21,12 @@ import { TransactionsService } from '../../transactions/transactions.service';
 import { ChangeExtendTariffIdDto } from '../dto/requests/change-extend-tariff-id.dto';
 import { TariffEntity } from '../../database/entities/tariff.entity';
 import { TransactionEntity } from '../../database/entities/transaction.entity';
+import { TransferDto } from '../dto/requests/transfer.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
     private readonly keyPurchaseService: KeyPurchaseService,
@@ -105,8 +107,11 @@ export class AuthService {
     return this.getUser(key.userId);
   }
 
-  public async getUser(id: string): Promise<UserResponseDto> {
-    const user = await this.em.findOneOrFail(UserEntity, {
+  public async getUser(
+    id: string,
+    manger: EntityManager = this.em,
+  ): Promise<UserResponseDto> {
+    const user = await manger.findOneOrFail(UserEntity, {
       where: { id },
       relations: ['keys', 'balanceAccount', 'keys.tariff', 'transactions'],
       order: {
@@ -172,6 +177,82 @@ export class AuthService {
     return this.getUser(payload.userId);
   }
 
+  public userIsExists(id: string) {
+    return this.em.exists(UserEntity, { where: { id: id } });
+  }
+
+  public async transfer(payload: TransferDto) {
+    return this.dataSource.transaction(async (manager) => {
+      const queryId = globalThis.crypto.randomUUID();
+
+      const sortedIds = [payload.userId, payload.recipient].sort();
+
+      const accountFirst = await manager.findOne(BalanceAccount, {
+        where: { userId: sortedIds[0] },
+        lock: { mode: 'pessimistic_write' }, // Поток подождет, а не упадет с ошибкой
+      });
+
+      const accountSecond = await manager.findOne(BalanceAccount, {
+        where: { userId: sortedIds[1] },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      const senderBalance =
+        sortedIds[0] === payload.userId ? accountFirst : accountSecond;
+      const recipientBalance =
+        sortedIds[0] === payload.recipient ? accountFirst : accountSecond;
+
+      if (!senderBalance || !recipientBalance) return;
+
+      const amount = senderBalance[payload.currency];
+      if (!amount || amount < payload.amount) return;
+
+      await this.transactionsService.decreaseBalance(
+        payload.userId,
+        payload.amount,
+        payload.currency,
+        manager,
+      );
+
+      await this.transactionsService.addBalance(
+        payload.recipient,
+        payload.amount,
+        payload.currency,
+        manager,
+        false,
+        true,
+      );
+      await manager.insert(TransactionEntity, [
+        {
+          currency: payload.currency,
+          amount: payload.amount,
+          kind: 'Transfer',
+          type: 'Debit',
+          completed: true,
+          userId: payload.userId,
+          meta: {
+            queryId,
+            comment: payload.comment,
+          },
+        },
+        {
+          currency: payload.currency,
+          amount: payload.amount,
+          kind: 'Transfer',
+          type: 'Credit',
+          completed: true,
+          userId: payload.recipient,
+          meta: {
+            queryId,
+            comment: payload.comment,
+          },
+        },
+      ]);
+
+      return this.getUser(payload.userId);
+    });
+  }
+
   public async exchange(
     payload: ExchangeBalanceDto,
   ): Promise<UserResponseDto | undefined> {
@@ -209,6 +290,7 @@ export class AuthService {
       payload.userId,
       amountTo,
       payload.to,
+      undefined,
       false,
       false,
     );

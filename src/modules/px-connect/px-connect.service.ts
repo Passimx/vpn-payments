@@ -16,6 +16,7 @@ import { GetTariffsDto } from '../api/dto/requests/get-tariffs.dto';
 import { ExtendKeyDto } from '../api/dto/requests/extend-key.dto';
 import { ExchangeBalanceDto } from '../api/dto/requests/exchange-balance.dto';
 import { ChangeExtendTariffIdDto } from '../api/dto/requests/change-extend-tariff-id.dto';
+import { TransferDto } from '../api/dto/requests/transfer.dto';
 
 @Injectable()
 class PxConnectService {
@@ -40,6 +41,7 @@ class PxConnectService {
     this.px.onAction((routes) => {
       routes.on(EventsEnum.GET_APPS, this.getApps);
       routes.on(EventsEnum.EXCHANGE, this.exchange);
+      routes.on(EventsEnum.TRANSFER, this.transfer);
       routes.on(EventsEnum.CREATE_KEY, this.createKey);
       routes.on(EventsEnum.EXTEND_KEY, this.extendKey);
       routes.on(EventsEnum.REMOVE_KEY, this.removeKey);
@@ -49,6 +51,7 @@ class PxConnectService {
       routes.on(EventsEnum.GET_CURRENCY, this.getCurrency);
       routes.on(EventsEnum.CREATE_ACCOUNT, this.createAccount);
       routes.on(EventsEnum.UPDATE_USER_INF, this.updateUserInf);
+      routes.on(EventsEnum.GET_IS_EXISTS_USER, this.getIsExistsUser);
       routes.on(EventsEnum.CREATE_TON_INVOICE, this.createTonInvoice);
       routes.on(EventsEnum.CREATE_SBER_INVOICE, this.createSberInvoice);
       routes.on(EventsEnum.CREATE_WECHAT_INVOICE, this.createWechatInvoice);
@@ -60,7 +63,7 @@ class PxConnectService {
     });
   };
 
-  private readonly changeExtendTariffId = async (
+  private readonly changeExtendTariffId = (
     ctx: Context<ChangeExtendTariffIdDto>,
   ) => {
     const payload = ctx.payload;
@@ -69,28 +72,42 @@ class PxConnectService {
     return this.authService.changeExtendTariffId(payload);
   };
 
-  private readonly exchange = async (ctx: Context<ExchangeBalanceDto>) => {
+  private readonly getIsExistsUser = (ctx: Context<string>) => {
+    const payload = ctx.payload;
+    if (!payload) return;
+
+    return this.authService.userIsExists(payload);
+  };
+
+  private readonly transfer = (ctx: Context<TransferDto>) => {
+    const payload = ctx.payload;
+    if (!payload) return;
+
+    return this.authService.transfer(payload);
+  };
+
+  private readonly exchange = (ctx: Context<ExchangeBalanceDto>) => {
     const payload = ctx.payload;
     if (!payload) return;
 
     return this.authService.exchange(payload);
   };
 
-  private readonly removeKey = async (ctx: Context<string>) => {
+  private readonly removeKey = (ctx: Context<string>) => {
     const id = ctx.payload;
     if (!id) return;
 
     return this.authService.deleteKey(id);
   };
 
-  private extendKey = async (ctx: Context<ExtendKeyDto>) => {
+  private extendKey = (ctx: Context<ExtendKeyDto>) => {
     const payload = ctx.payload;
     if (!payload) return;
 
     return this.authService.extendKey(payload);
   };
 
-  private createKey = async (ctx: Context<UserKeyEntity>) => {
+  private createKey = (ctx: Context<UserKeyEntity>) => {
     const key = ctx.payload;
     if (!key) return;
 
@@ -125,7 +142,7 @@ class PxConnectService {
     return this.authService.getUser(user.id);
   };
 
-  private getUserInf = async (ctx: Context<string>) => {
+  private getUserInf = (ctx: Context<string>) => {
     const id = ctx.payload;
     if (!id?.length) return;
 
@@ -149,13 +166,13 @@ class PxConnectService {
     return this.authService.getUser(key.userId);
   };
 
-  private createAccount = async (ctx: Context<{ languageCode: string }>) => {
+  private createAccount = (ctx: Context<{ languageCode: string }>) => {
     if (!ctx.payload?.languageCode) return;
 
     return this.authService.createAccount(ctx.payload);
   };
 
-  private createWechatInvoice = async (ctx: Context<CreateInvoiceType>) => {
+  private createWechatInvoice = (ctx: Context<CreateInvoiceType>) => {
     const payload = ctx.payload;
     if (!payload) return;
 
@@ -165,7 +182,7 @@ class PxConnectService {
     );
   };
 
-  private createSberInvoice = async (ctx: Context<CreateInvoiceType>) => {
+  private createSberInvoice = (ctx: Context<CreateInvoiceType>) => {
     const payload = ctx.payload;
     if (!payload) return;
 

@@ -10,6 +10,7 @@ import { UserEntity } from './user.entity';
 import { type CurrencyEnum } from '../../transactions/types/currency.enum';
 import { DepositMeta } from './meta/deposit-meta';
 import { PaymentMeta } from './meta/payment-meta';
+import { TransferMeta } from './meta/transfer-meta';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
@@ -41,7 +42,7 @@ export class TransactionEntity {
   readonly completed: boolean;
 
   @Column({ type: 'jsonb', nullable: true })
-  readonly meta!: DepositMeta | PaymentMeta;
+  readonly meta!: DepositMeta | PaymentMeta | TransferMeta;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   readonly createdAt: Date;

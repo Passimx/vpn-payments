@@ -28,10 +28,11 @@ export class TransactionsService {
     userId: string,
     balance: number,
     currency: CurrencyEnum,
+    manager: EntityManager = this.em,
     useSource: boolean = true,
     notifyTg: boolean = true,
   ) {
-    await this.em
+    await manager
       .createQueryBuilder()
       .update(BalanceAccount)
       .set({
@@ -47,12 +48,12 @@ export class TransactionsService {
         currency,
       );
 
-    const user = await this.em.findOneOrFail(UserEntity, {
+    const user = await manager.findOneOrFail(UserEntity, {
       where: { id: userId },
     });
 
     if (!user.source || !useSource) return;
-    const userEntity = await this.em.findOne(UserEntity, {
+    const userEntity = await manager.findOne(UserEntity, {
       where: { id: user.source },
     });
     if (!userEntity) return;
@@ -64,7 +65,8 @@ export class TransactionsService {
     if (daysDiff > 90) return;
 
     const amount = Math.floor(balance * 0.3);
-    if (amount > 0) await this.addBalance(user.source, amount, currency);
+    if (amount > 0)
+      await this.addBalance(user.source, amount, currency, manager);
   }
 
   public async getCurrencyPrice() {
@@ -153,14 +155,15 @@ export class TransactionsService {
 
   public async decreaseBalance(
     userId: string,
-    balance: number,
+    amount: number,
     currency: CurrencyEnum,
+    manager: EntityManager = this.em,
   ) {
-    return this.em
+    return manager
       .createQueryBuilder()
       .update(BalanceAccount)
       .set({
-        [currency]: () => `${currency} - ${balance}`,
+        [currency]: () => `${currency} - ${amount}`,
       })
       .where('user_id = :userId', { userId })
       .execute();

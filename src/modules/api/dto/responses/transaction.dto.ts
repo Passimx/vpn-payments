@@ -2,6 +2,7 @@ import { TransactionEntity } from '../../../database/entities/transaction.entity
 import type { CurrencyEnum } from '../../../transactions/types/currency.enum';
 import { DepositMeta } from '../../../database/entities/meta/deposit-meta';
 import { PaymentMeta } from '../../../database/entities/meta/payment-meta';
+import { TransferMeta } from '../../../database/entities/meta/transfer-meta';
 
 export class TransactionDto {
   readonly id: string;
@@ -16,7 +17,7 @@ export class TransactionDto {
 
   readonly completed: boolean;
 
-  readonly meta!: DepositMeta | PaymentMeta;
+  readonly meta!: DepositMeta | PaymentMeta | TransferMeta;
 
   readonly createdAt: Date;
 
