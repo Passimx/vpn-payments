@@ -52,7 +52,7 @@ export class AnalyticsService {
         .where(
           `transaction.created_at::DATE = DATE(NOW() AT TIME ZONE 'Europe/Moscow')`,
         )
-        .andWhere('transaction.kind = :kind', { kind: 'Transfer' })
+        .andWhere('transaction.kind = :kind', { kind: 'Payment' })
         .andWhere('transaction.completed IS TRUE')
         .getRawOne<{ sum: string }>())!.sum,
     );
