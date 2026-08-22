@@ -222,24 +222,23 @@ export class AuthService {
           false,
         );
 
-        await manager.insert(TransactionEntity, [
-          {
-            amount: payload.amountFrom,
-            currency: payload.from,
-            userId: payload.userId,
-            type: 'Debit',
-            kind: 'Exchange',
-            completed: true,
-          },
-          {
-            amount: amountTo,
-            currency: payload.to,
-            userId: payload.userId,
-            type: 'Credit',
-            kind: 'Exchange',
-            completed: true,
-          },
-        ]);
+        await manager.insert(TransactionEntity, {
+          amount: payload.amountFrom,
+          currency: payload.from,
+          userId: payload.userId,
+          type: 'Debit',
+          kind: 'Exchange',
+          completed: true,
+        });
+
+        await manager.insert(TransactionEntity, {
+          amount: amountTo,
+          currency: payload.to,
+          userId: payload.userId,
+          type: 'Credit',
+          kind: 'Exchange',
+          completed: true,
+        });
 
         return this.getUser(payload.userId, manager);
       });
@@ -290,32 +289,30 @@ export class AuthService {
           false,
           true,
         );
-        await manager.insert(TransactionEntity, [
-          {
-            currency: payload.currency,
-            amount: payload.amount,
-            kind: 'Transfer',
-            type: 'Debit',
-            completed: true,
-            userId: payload.userId,
-            meta: {
-              queryId,
-              comment: payload.comment,
-            },
+        await manager.insert(TransactionEntity, {
+          currency: payload.currency,
+          amount: payload.amount,
+          kind: 'Transfer',
+          type: 'Debit',
+          completed: true,
+          userId: payload.userId,
+          meta: {
+            queryId,
+            comment: payload.comment,
           },
-          {
-            currency: payload.currency,
-            amount: payload.amount,
-            kind: 'Transfer',
-            type: 'Credit',
-            completed: true,
-            userId: payload.recipient,
-            meta: {
-              queryId,
-              comment: payload.comment,
-            },
+        });
+        await manager.insert(TransactionEntity, {
+          currency: payload.currency,
+          amount: payload.amount,
+          kind: 'Transfer',
+          type: 'Credit',
+          completed: true,
+          userId: payload.recipient,
+          meta: {
+            queryId,
+            comment: payload.comment,
           },
-        ]);
+        });
 
         return this.getUser(payload.userId, manager);
       });
