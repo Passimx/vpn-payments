@@ -17,6 +17,7 @@ import { PurchaseResult } from './types/purchase-result.type';
 import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
+import { logger } from '../../common/logger/logger';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -39,7 +40,7 @@ export class KeyPurchaseService {
         const account = await manager.findOneOrFail(BalanceAccount, {
           where: { userId },
           relations: ['user'],
-          lock: { mode: 'pessimistic_write', tables: ['BalanceAccount'] },
+          lock: { mode: 'pessimistic_write', tables: ['balance_account'] },
         });
 
         const tariff = await manager.findOneOrFail(TariffEntity, {
@@ -148,8 +149,8 @@ export class KeyPurchaseService {
 
         return new DataResponse({ keyId: createdKeyId });
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
+    } catch (error) {
+      logger.error(error);
       return new DataResponse(`error`);
     }
   }
@@ -213,7 +214,7 @@ export class KeyPurchaseService {
         const account = await manager.findOneOrFail(BalanceAccount, {
           where: { userId },
           relations: ['user'],
-          lock: { mode: 'pessimistic_write', tables: ['BalanceAccount'] },
+          lock: { mode: 'pessimistic_write', tables: ['balance_account'] },
         });
 
         const vpnKey = await manager.findOne(UserKeyEntity, {
@@ -334,8 +335,8 @@ export class KeyPurchaseService {
 
         return new DataResponse(vpnKey.id, true);
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
+      logger.error(e);
       return new DataResponse('error');
     }
   }

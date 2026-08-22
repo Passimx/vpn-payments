@@ -38,8 +38,8 @@ export class AuthService {
   public async verifyTokenAsync(token: string): Promise<TokenType | undefined> {
     try {
       return this.jwtService.verifyAsync<TokenType>(token);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
+    } catch (error) {
+      logger.error(error);
       return undefined;
     }
   }
