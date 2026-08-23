@@ -15,7 +15,8 @@ export class ExtendKeyDto {
   @IsUUID()
   readonly tariffId: string;
 
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   readonly userId: string;
 
   @IsNumber()
@@ -23,8 +24,8 @@ export class ExtendKeyDto {
   @Min(1)
   readonly seqno: number;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   @IsNotEmpty()
   readonly promoCode?: string;
 }

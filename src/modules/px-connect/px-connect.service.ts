@@ -6,7 +6,7 @@ import { InvoicesService } from '../transactions/invoices.service';
 import { TelegramService } from '../telegram/telegram-service';
 import { CreateTonInvoiceType } from './types/create-ton-invoice.type';
 import { CreateInvoiceType } from './types/create-invoice.type';
-import { PxConnect, Context } from './import';
+import { Context, PxConnect } from './import';
 import { AuthService } from '../api/services/auth.service';
 import { EntityManager } from 'typeorm';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
@@ -18,6 +18,8 @@ import { ExchangeBalanceDto } from '../api/dto/requests/exchange-balance.dto';
 import { ChangeExtendTariffIdDto } from '../api/dto/requests/change-extend-tariff-id.dto';
 import { TransferDto } from '../api/dto/requests/transfer.dto';
 import { CreateKeyDto } from '../api/dto/requests/create-key.dto';
+import { ClassConstructor, plainToClass } from 'class-transformer';
+import { validateSync, ValidationError } from 'class-validator';
 
 @Injectable()
 class PxConnectService {
@@ -68,7 +70,7 @@ class PxConnectService {
     ctx: Context<ChangeExtendTariffIdDto>,
   ) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!this.validate(ChangeExtendTariffIdDto, ctx.payload)) return;
 
     return this.authService.changeExtendTariffId(payload);
   };
@@ -82,14 +84,31 @@ class PxConnectService {
 
   private readonly transfer = (ctx: Context<TransferDto>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!this.validate(TransferDto, ctx.payload)) return;
 
     return this.authService.transfer(payload);
   };
 
+  private validate(
+    classConstructor: ClassConstructor<unknown>,
+    payload: Record<string, any> | undefined,
+  ): boolean {
+    if (!payload) return false;
+    const classInstance: Record<string, unknown> = plainToClass(
+      classConstructor,
+      payload,
+      {
+        enableImplicitConversion: false,
+      },
+    ) as Record<string, unknown>;
+    const errors: ValidationError[] = validateSync(classInstance);
+
+    return errors.length === 0;
+  }
+
   private readonly exchange = (ctx: Context<ExchangeBalanceDto>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!this.validate(ExchangeBalanceDto, ctx.payload)) return;
 
     return this.authService.exchange(payload);
   };
@@ -103,14 +122,14 @@ class PxConnectService {
 
   private extendKey = (ctx: Context<ExtendKeyDto>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!this.validate(ExtendKeyDto, ctx.payload)) return;
 
     return this.authService.extendKey(payload);
   };
 
   private createKey = (ctx: Context<CreateKeyDto>) => {
     const payload = ctx.payload;
-    if (!payload) return;
+    if (!this.validate(CreateKeyDto, ctx.payload)) return;
 
     return this.authService.createKey(payload);
   };

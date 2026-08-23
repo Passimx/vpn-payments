@@ -1,7 +1,16 @@
-import { IsInt, IsNumber, IsUUID, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class CreateKeyDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   readonly userId: string;
 
   @IsUUID()
@@ -12,7 +21,13 @@ export class CreateKeyDto {
   @Min(1)
   readonly seqno: number;
 
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   protocol?: string = 'xray';
 
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   readonly promoCode?: string;
 }

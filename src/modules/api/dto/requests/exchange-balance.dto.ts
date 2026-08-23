@@ -1,13 +1,36 @@
-import { PriceType } from '../../../transactions/types/price.type';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { CurrencyEnum } from '../../../transactions/types/currency.enum';
+import {
+  precision,
+  scale,
+} from '../../../database/entities/balance-account.entity';
 
 export class ExchangeBalanceDto {
+  @IsString()
+  @IsNotEmpty()
   readonly userId: string;
 
+  @IsNumber()
+  @Max(10 ** (precision - scale))
+  @Min(0.1 ** scale)
   readonly amountFrom: number;
 
-  readonly from: keyof PriceType;
+  @IsEnum(CurrencyEnum)
+  readonly from: CurrencyEnum;
 
-  readonly to: keyof PriceType;
+  @IsEnum(CurrencyEnum)
+  readonly to: CurrencyEnum;
 
+  @IsNumber()
+  @IsInt()
+  @Min(1)
   readonly seqno: number;
 }
