@@ -82,10 +82,11 @@ export class TonService {
     currency: CurrencyEnum.TON | CurrencyEnum.USD,
     app: AppWalletEnum,
   ): Promise<string> {
+    console.log([amount, currency, app]);
     const transaction = await this.em.save(TransactionEntity, {
       userId: userId,
       amount,
-      currency: CurrencyEnum.TON,
+      currency,
       type: 'Credit',
       kind: 'Deposit',
       completed: false,
@@ -101,12 +102,11 @@ export class TonService {
     if (app === AppWalletEnum.TON_KEEPER)
       paymentUrl = 'https://app.tonkeeper.com';
 
-    paymentUrl += '/transfer';
+    paymentUrl += `/transfer/${Envs.crypto.ton.walletAddress}`;
 
     if (currency === CurrencyEnum.USD)
-      paymentUrl += `/${Envs.crypto.ton.jettonWalletAddress}?amount=${amount * 1e6}&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs`;
-    else
-      paymentUrl += `/${Envs.crypto.ton.walletAddress}?amount=${amount * 1e9}`;
+      paymentUrl += `?amount=${amount * 1e6}&jetton=EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs`;
+    else paymentUrl += `?amount=${amount * 1e9}`;
 
     paymentUrl += `&text=${transaction.id}`;
 
