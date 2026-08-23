@@ -1,7 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CryptoPriceType } from './types/crypto-price.type';
 import { EntityManager } from 'typeorm';
-import { UserEntity } from '../database/entities/user.entity';
 import { TelegramService } from '../telegram/telegram-service';
 import { CurrencyEnum } from './types/currency.enum';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
@@ -23,15 +22,13 @@ export class TransactionsService {
   private cache: CryptoPriceType | null = null;
   private readonly TTL = 60 * 60 * 1000;
 
-  public async addBalance(
+  public addBalance(
     userId: string,
     balance: number,
     currency: CurrencyEnum,
     manager: EntityManager,
-    useSource: boolean = true,
-    notifyTg: boolean = true,
   ) {
-    await manager
+    return manager
       .createQueryBuilder()
       .update(BalanceAccount)
       .set({
@@ -39,33 +36,6 @@ export class TransactionsService {
       })
       .where('user_id = :userId', { userId })
       .execute();
-
-    if (notifyTg)
-      await this.telegramService.sendMessageAddBalance(
-        userId,
-        balance,
-        currency,
-      );
-
-    const user = await manager.findOneOrFail(UserEntity, {
-      where: { id: userId },
-    });
-
-    if (!user.source || !useSource) return;
-    const userEntity = await manager.findOne(UserEntity, {
-      where: { id: user.source },
-    });
-    if (!userEntity) return;
-
-    const diffInMs = Math.abs(
-      new Date().getTime() - new Date(user.createdAt).getTime(),
-    );
-    const daysDiff = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    if (daysDiff > 90) return;
-
-    const amount = Math.floor(balance * 0.3);
-    if (amount > 0)
-      await this.addBalance(user.source, amount, currency, manager);
   }
 
   public async getCurrencyPrice() {
@@ -127,7 +97,7 @@ export class TransactionsService {
   public async getUserTotalBalance(
     balanceAccount: BalanceAccount,
     currency: CurrencyEnum,
-  ) {
+  ): Promise<number | undefined> {
     const currencyPrice = await this.getCurrencyPrice();
     if (!currencyPrice) return 0;
     let sum = 0;
@@ -141,6 +111,7 @@ export class TransactionsService {
         key as CurrencyEnum,
         currency,
       );
+      if (!converted) return;
       sum += converted;
     }
     const fixedString = sum.toFixed(12);
@@ -152,10 +123,11 @@ export class TransactionsService {
     return Number(truncatedString);
   }
 
-  public async decreaseBalance(
+  public decreaseBalance(
     userId: string,
     amount: number,
     currency: CurrencyEnum,
+    seqno: number,
     manager: EntityManager,
   ) {
     return manager
@@ -163,8 +135,10 @@ export class TransactionsService {
       .update(BalanceAccount)
       .set({
         [currency]: () => `${currency} - ${amount}`,
+        seqno: () => 'seqno + 1',
       })
       .where('user_id = :userId', { userId })
+      .andWhere('seqno = :seqno', { seqno })
       .execute();
   }
 
@@ -182,7 +156,13 @@ export class TransactionsService {
     if (!currencyPrice) return false;
 
     if (amount > 0 && balanceAccount.rub > 0) {
-      amount = await this.convert(amount, currency, CurrencyEnum.RUB);
+      const convertResult = await this.convert(
+        amount,
+        currency,
+        CurrencyEnum.RUB,
+      );
+      if (!convertResult) return false;
+      amount = convertResult;
       currency = CurrencyEnum.RUB;
 
       if (balanceAccount.rub >= amount) {
@@ -195,7 +175,14 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.cny) {
-      amount = await this.convert(amount, currency, CurrencyEnum.CNY);
+      const convertResult = await this.convert(
+        amount,
+        currency,
+        CurrencyEnum.CNY,
+      );
+      if (!convertResult) return false;
+      amount = convertResult;
+
       currency = CurrencyEnum.CNY;
 
       if (balanceAccount.cny >= amount) {
@@ -208,7 +195,13 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.ton) {
-      amount = await this.convert(amount, currency, CurrencyEnum.TON);
+      const convertResult = await this.convert(
+        amount,
+        currency,
+        CurrencyEnum.TON,
+      );
+      if (!convertResult) return false;
+      amount = convertResult;
       currency = CurrencyEnum.TON;
 
       if (balanceAccount.ton >= amount) {
@@ -221,7 +214,14 @@ export class TransactionsService {
     }
 
     if (amount > 0 && balanceAccount.usd) {
-      amount = await this.convert(amount, currency, CurrencyEnum.USD);
+      const convertResult = await this.convert(
+        amount,
+        currency,
+        CurrencyEnum.USD,
+      );
+      if (!convertResult) return false;
+      amount = convertResult;
+
       // currency = 'usd';
 
       if (balanceAccount.usd >= amount) {
@@ -239,12 +239,16 @@ export class TransactionsService {
     return true;
   }
 
-  public async convert(amount: number, from: CurrencyEnum, to: CurrencyEnum) {
+  public async convert(
+    amount: number,
+    from: CurrencyEnum,
+    to: CurrencyEnum,
+  ): Promise<number | undefined> {
     if (typeof amount === 'string') amount = Number(amount);
     const currencyPrice = await this.getCurrencyPrice();
-    if (!currencyPrice) return 0;
+    if (!currencyPrice) return;
 
-    let result = 0;
+    let result: number | undefined = 0;
 
     if (from === to) result = amount;
     else if (currencyPrice[from]?.[to]) {
@@ -253,9 +257,11 @@ export class TransactionsService {
       result = amount / currencyPrice[to][from];
     } else if (from !== CurrencyEnum.USD && to !== CurrencyEnum.USD) {
       const inUsd = await this.convert(amount, from, CurrencyEnum.USD);
+      if (!inUsd) return;
       result = await this.convert(inUsd, CurrencyEnum.USD, to);
     }
 
+    if (!result) return;
     const fixedString = result.toFixed(12);
     const dotIndex = fixedString.indexOf('.');
 

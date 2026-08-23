@@ -1,4 +1,12 @@
-import { IsUUID } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class ExtendKeyDto {
   @IsUUID()
@@ -9,4 +17,14 @@ export class ExtendKeyDto {
 
   @IsUUID()
   readonly userId: string;
+
+  @IsNumber()
+  @IsInt()
+  @Min(1)
+  readonly seqno: number;
+
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  readonly promoCode?: string;
 }

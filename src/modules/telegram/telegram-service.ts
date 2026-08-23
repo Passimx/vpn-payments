@@ -321,6 +321,7 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
       CurrencyEnum.USD,
     );
+    if (!correctAmount) return;
 
     const starsAmount = Math.ceil(
       correctAmount / TransactionsService.telegramStarsRate,
@@ -364,6 +365,7 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
       CurrencyEnum.RUB,
     );
+    if (!convertedAmount) return;
 
     const result = await this.invoicesService.getSberInvoice(
       user.id,
@@ -387,9 +389,16 @@ export class TelegramService {
       return;
     }
 
+    const convertResult = await this.transactionsService.convert(
+      amount,
+      this.t(user, 't11') as CurrencyEnum,
+      CurrencyEnum.RUB,
+    );
+    if (!convertResult) return;
+
     await ctx
       .editMessageText(
-        `${this.t(user, 'ru_payment_message')}\n${this.t(user, 'deposit_amount')}: ${this.transactionsService.formatNumber(await this.transactionsService.convert(amount, this.t(user, 't11') as CurrencyEnum, CurrencyEnum.RUB), '₽')}`,
+        `${this.t(user, 'ru_payment_message')}\n${this.t(user, 'deposit_amount')}: ${this.transactionsService.formatNumber(convertResult, '₽')}`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
@@ -423,6 +432,7 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
       CurrencyEnum.CNY,
     );
+    if (!convertedAmount) return;
 
     const result = await this.invoicesService.getWechatInvoice(
       user.id,
@@ -506,6 +516,7 @@ export class TelegramService {
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
+    if (!balance) return;
 
     await ctx
       .editMessageText(
@@ -787,6 +798,8 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
     );
 
+    if (!price100 || !price200 || !price300 || !price1000) return;
+
     this.amountMap.set(user.telegramId, 0);
     await ctx
       .editMessageText(
@@ -873,6 +886,7 @@ export class TelegramService {
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
+    if (!balance) return;
 
     if (!tariffButtons.length) {
       await ctx
@@ -911,26 +925,31 @@ export class TelegramService {
       ? this.formatTrafficLimit(limitBytes)
       : this.t(user, 'unlimited');
 
-    const originalPriceFormatted = this.transactionsService.formatNumber(
-      await this.transactionsService.convert(
-        tariff.price,
-        CurrencyEnum.RUB,
-        this.t(user, 't11') as CurrencyEnum,
-      ),
-      this.t(user, 't10'),
-    );
     const vipDiscount =
       tariff.kind === 'cdn' ? this.getVipLaunchDiscount() : null;
+    if (!vipDiscount) return;
+    const convertResult1 = await this.transactionsService.convert(
+      tariff.price,
+      CurrencyEnum.RUB,
+      this.t(user, 't11') as CurrencyEnum,
+    );
+    const convertResult2 = await this.transactionsService.convert(
+      Math.round(Number(tariff.price) * (1 - vipDiscount / 100)),
+      CurrencyEnum.RUB,
+      this.t(user, 't11') as CurrencyEnum,
+    );
+    if (!convertResult1 || !convertResult2) return;
+
+    const originalPriceFormatted = this.transactionsService.formatNumber(
+      convertResult1,
+      this.t(user, 't10'),
+    );
 
     let banner = '';
     let priceText = originalPriceFormatted;
     if (vipDiscount) {
       const discountedPriceFormatted = this.transactionsService.formatNumber(
-        await this.transactionsService.convert(
-          Math.round(Number(tariff.price) * (1 - vipDiscount / 100)),
-          CurrencyEnum.RUB,
-          this.t(user, 't11') as CurrencyEnum,
-        ),
+        convertResult2,
         this.t(user, 't10'),
       );
       banner = `🔥🔥🔥 <b>${this.t(user, 'sale_banner')} −${vipDiscount}%</b> 🔥🔥🔥\n\n`;
@@ -995,6 +1014,7 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
       CurrencyEnum.TON,
     );
+    if (!amount) return;
 
     await ctx
       .editMessageText(
@@ -1066,6 +1086,7 @@ export class TelegramService {
       this.t(user, 't11') as CurrencyEnum,
       CurrencyEnum.USD,
     );
+    if (!amount) return;
 
     await ctx
       .editMessageText(
@@ -1373,12 +1394,13 @@ export class TelegramService {
         return;
       }
 
-      const result = await this.keyPurchaseService.renewKey(
-        user.id,
-        id,
-        renewTariffId,
+      const result = await this.keyPurchaseService.renewKey({
+        userId: user.id,
+        keyId: id,
+        tariffId: renewTariffId,
         promoCode,
-      );
+        seqno: user.balanceAccount.seqno,
+      });
       if (!result.success && typeof result.data === 'string') {
         await ctx
           .editMessageText(`❌ ${this.t(user, result.data)}`, {
@@ -1416,12 +1438,13 @@ export class TelegramService {
       if (telegramId && promo?.id === id && !promo?.isRenew)
         this.pendingPromo.delete(telegramId);
 
-      const result = await this.keyPurchaseService.purchase(
-        user.id,
-        id,
+      const result = await this.keyPurchaseService.purchase({
+        userId: user.id,
+        tariffId: id,
+        seqno: user.balanceAccount.seqno,
         promoCode,
         protocol,
-      );
+      });
       if (!result.success && typeof result.data === 'string') {
         await ctx
           .editMessageText(`❌ ${this.t(user, result.data)}`, {
@@ -1667,10 +1690,17 @@ export class TelegramService {
         promoCode: promoText,
         isRenew: true,
       });
-      if (typeof priceResult.data !== 'string')
+      if (typeof priceResult.data !== 'string') {
+        const convertResult = await this.transactionsService.convert(
+          priceResult.data.finalPrice,
+          CurrencyEnum.RUB,
+          this.t(user, 't11') as CurrencyEnum,
+        );
+        if (!convertResult) return false;
+
         await ctx
           .reply(
-            `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.data.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
+            `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(convertResult, this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
             {
               parse_mode: 'HTML',
               ...Markup.inlineKeyboard([
@@ -1690,16 +1720,24 @@ export class TelegramService {
             },
           )
           .catch(logger.error);
+      }
     } else {
       this.pendingPromo.set(telegramId, {
         id: tariffId,
         promoCode: promoText,
         isRenew: false,
       });
-      if (typeof priceResult.data !== 'string')
+      if (typeof priceResult.data !== 'string') {
+        const convertedResult = await this.transactionsService.convert(
+          priceResult.data.finalPrice,
+          CurrencyEnum.RUB,
+          this.t(user, 't11') as CurrencyEnum,
+        );
+        if (!convertedResult) return false;
+
         await ctx
           .reply(
-            `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(priceResult.data.finalPrice, CurrencyEnum.RUB, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
+            `✅ ${this.t(user, 'promo_activated')}. ${this.t(user, 'price')}: <b>${this.transactionsService.formatNumber(convertedResult, this.t(user, 't10'))}</b>\n${this.t(user, 'click')} ${this.t(user, 'buy')}:`,
             {
               parse_mode: 'HTML',
               ...Markup.inlineKeyboard([
@@ -1714,6 +1752,7 @@ export class TelegramService {
             },
           )
           .catch(logger.error);
+      }
     }
     return true;
   }
@@ -1770,10 +1809,17 @@ export class TelegramService {
     });
     if (!user?.telegramId) return;
 
+    const convertedResult = await this.transactionsService.convert(
+      addBalance,
+      currency,
+      this.t(user, 't11') as CurrencyEnum,
+    );
+    if (!convertedResult) return;
+
     await bot.telegram
       .sendMessage(
         user.telegramId,
-        `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(await this.transactionsService.convert(addBalance, currency, this.t(user, 't11') as CurrencyEnum), this.t(user, 't10'))}</b>`,
+        `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(convertedResult, this.t(user, 't10'))}</b>`,
         { parse_mode: 'HTML' },
       )
       .catch(logger.error);
@@ -1799,6 +1845,7 @@ export class TelegramService {
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
+    if (!balance) return;
 
     await bot.telegram
       .sendMessage(
@@ -1870,11 +1917,12 @@ export class TelegramService {
         continue;
       }
 
-      const result = await this.keyPurchaseService.renewKey(
-        user.id,
-        key.id,
-        key.autoExtendTariffId,
-      );
+      const result = await this.keyPurchaseService.renewKey({
+        userId: user.id,
+        keyId: key.id,
+        tariffId: key.autoExtendTariffId,
+        seqno: user.balanceAccount.seqno,
+      });
 
       if (!result.success) keys.push(key);
     }
@@ -2055,22 +2103,29 @@ export class TelegramService {
         const displayPrice = vipDiscount
           ? Math.round(Number(t.price) * (1 - vipDiscount / 100))
           : Number(t.price);
+
+        const convertResult1 = await this.transactionsService.convert(
+          displayPrice,
+          CurrencyEnum.RUB,
+          this.t(user, 't11') as CurrencyEnum,
+        );
+
+        const convertResult2 = await this.transactionsService.convert(
+          Number(t.price),
+          CurrencyEnum.RUB,
+          this.t(user, 't11') as CurrencyEnum,
+        );
+
+        if (!convertResult1 || !convertResult2) return [];
+
         const formattedPrice = this.transactionsService.formatNumber(
-          await this.transactionsService.convert(
-            displayPrice,
-            CurrencyEnum.RUB,
-            this.t(user, 't11') as CurrencyEnum,
-          ),
+          convertResult1,
           this.t(user, 't10'),
         );
         let label = `${this.formatTariffLabel(user.languageCode, t)} — ${formattedPrice}`;
         if (vipDiscount) {
           const originalFormatted = this.transactionsService.formatNumber(
-            await this.transactionsService.convert(
-              Number(t.price),
-              CurrencyEnum.RUB,
-              this.t(user, 't11') as CurrencyEnum,
-            ),
+            convertResult2,
             this.t(user, 't10'),
           );
           const strikethrough = (s: string) =>

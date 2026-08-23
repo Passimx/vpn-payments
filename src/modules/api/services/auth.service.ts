@@ -13,7 +13,10 @@ import { XrayService } from '../../xray/xray-service';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
 import { KeyIdDto } from '../dto/requests/key-id.dto';
 import { RefInfoDto, RefInfoUserItemDto } from '../dto/responses/ref-info.dto';
-import { BalanceAccount } from '../../database/entities/balance-account.entity';
+import {
+  BalanceAccount,
+  scale,
+} from '../../database/entities/balance-account.entity';
 import { CreateAccountDto } from '../dto/requests/create-account.dto';
 import { StringsUtil } from '../../../common/utils/strings.util';
 import { ExchangeBalanceDto } from '../dto/requests/exchange-balance.dto';
@@ -23,12 +26,12 @@ import { TariffEntity } from '../../database/entities/tariff.entity';
 import { TransactionEntity } from '../../database/entities/transaction.entity';
 import { TransferDto } from '../dto/requests/transfer.dto';
 import { logger } from '../../../common/logger/logger';
+import { CreateKeyDto } from '../dto/requests/create-key.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly dataSource: DataSource,
-    private readonly em: EntityManager,
     private readonly jwtService: JwtService,
     private readonly keyPurchaseService: KeyPurchaseService,
     private readonly xrayService: XrayService,
@@ -47,11 +50,7 @@ export class AuthService {
   public async extendKey(
     body: ExtendKeyDto,
   ): Promise<UserResponseDto | undefined> {
-    const result = await this.keyPurchaseService.renewKey(
-      body.userId,
-      body.keyId,
-      body.tariffId,
-    );
+    const result = await this.keyPurchaseService.renewKey(body);
 
     if (!result.success && typeof result.data === 'string') return;
 
@@ -59,7 +58,7 @@ export class AuthService {
   }
 
   public async getServers() {
-    const servers = await this.em.find(ServerEntity, {
+    const servers = await this.dataSource.manager.find(ServerEntity, {
       where: { canCreateKey: true, code: Not('white') },
     });
 
@@ -72,7 +71,7 @@ export class AuthService {
     userId: string,
     { keyId }: KeyIdDto,
   ): Promise<UserResponseDto> {
-    await this.em
+    await this.dataSource.manager
       .createQueryBuilder()
       .update(UserKeyEntity)
       .set({
@@ -85,32 +84,28 @@ export class AuthService {
   }
 
   public async createKey(
-    userId: string,
-    tariffId: string,
+    body: CreateKeyDto,
   ): Promise<UserResponseDto | undefined> {
-    const result = await this.keyPurchaseService.purchase(
-      userId,
-      tariffId,
-      undefined,
-      'xray',
-    );
+    const result = await this.keyPurchaseService.purchase(body);
 
     if (!result.success && typeof result.data === 'string') return;
 
-    return this.getUser(userId);
+    return this.getUser(body.userId);
   }
 
   public async deleteKey(keyId: string): Promise<UserResponseDto | undefined> {
-    const key = await this.em.findOne(UserKeyEntity, { where: { id: keyId } });
+    const key = await this.dataSource.manager.findOne(UserKeyEntity, {
+      where: { id: keyId },
+    });
     if (!key) return;
 
-    await this.em.softDelete(UserKeyEntity, { id: keyId });
+    await this.dataSource.manager.softDelete(UserKeyEntity, { id: keyId });
     return this.getUser(key.userId);
   }
 
   public async getUser(
     id: string,
-    manger: EntityManager = this.em,
+    manger: EntityManager = this.dataSource.manager,
   ): Promise<UserResponseDto> {
     const user = await manger.findOneOrFail(UserEntity, {
       where: { id },
@@ -127,7 +122,7 @@ export class AuthService {
   public async getKeyInfo(
     keyId: string,
   ): Promise<{ body: string; userinfo: string } | null> {
-    const key = await this.em.findOne(UserKeyEntity, {
+    const key = await this.dataSource.manager.findOne(UserKeyEntity, {
       where: { id: keyId },
       relations: ['user', 'tariff'],
     });
@@ -163,13 +158,13 @@ export class AuthService {
 
   public async changeExtendTariffId(payload: ChangeExtendTariffIdDto) {
     if (payload.tariffId !== null) {
-      const tariff = await this.em.findOne(TariffEntity, {
+      const tariff = await this.dataSource.manager.findOne(TariffEntity, {
         where: { id: payload.tariffId, active: true },
       });
       if (!tariff) return;
     }
 
-    await this.em.update(
+    await this.dataSource.manager.update(
       UserKeyEntity,
       { id: payload.keyId, userId: payload.userId },
       { autoExtendTariffId: payload.tariffId },
@@ -179,16 +174,23 @@ export class AuthService {
   }
 
   public userIsExists(id: string) {
-    return this.em.exists(UserEntity, { where: { id: id } });
+    return this.dataSource.manager.exists(UserEntity, { where: { id: id } });
   }
 
   public async exchange(
     payload: ExchangeBalanceDto,
   ): Promise<UserResponseDto | undefined> {
+    const amountTo = await this.transactionsService.convert(
+      payload.amountFrom,
+      payload.from,
+      payload.to,
+    );
+    if (!amountTo) return;
+
     try {
       return await this.dataSource.transaction(async (manager) => {
         const account = await manager.findOne(BalanceAccount, {
-          where: { userId: payload.userId },
+          where: { userId: payload.userId, seqno: payload.seqno },
           lock: { mode: 'pessimistic_write' },
         });
 
@@ -200,36 +202,29 @@ export class AuthService {
         )
           return;
 
-        const amountTo = await this.transactionsService.convert(
-          payload.amountFrom,
-          payload.from,
-          payload.to,
-        );
-
-        await this.transactionsService.decreaseBalance(
-          payload.userId,
-          payload.amountFrom,
-          payload.from,
-          manager,
-        );
-
-        await this.transactionsService.addBalance(
-          payload.userId,
-          amountTo,
-          payload.to,
-          manager,
-          false,
-          false,
-        );
-
-        await manager.insert(TransactionEntity, {
-          amount: payload.amountFrom,
-          currency: payload.from,
-          userId: payload.userId,
-          type: 'Debit',
-          kind: 'Exchange',
-          completed: true,
-        });
+        await Promise.all([
+          this.transactionsService.decreaseBalance(
+            payload.userId,
+            payload.amountFrom,
+            payload.from,
+            payload.seqno,
+            manager,
+          ),
+          this.transactionsService.addBalance(
+            payload.userId,
+            amountTo,
+            payload.to,
+            manager,
+          ),
+          manager.insert(TransactionEntity, {
+            amount: payload.amountFrom,
+            currency: payload.from,
+            userId: payload.userId,
+            type: 'Debit',
+            kind: 'Exchange',
+            completed: true,
+          }),
+        ]);
 
         await manager.insert(TransactionEntity, {
           amount: amountTo,
@@ -248,59 +243,64 @@ export class AuthService {
   }
 
   public async transfer(payload: TransferDto) {
+    if (payload.userId === payload.recipient) return;
+    if (payload.amount <= 0) return;
+
+    const decimalParts = payload.amount.toString().split('.');
+    if (decimalParts[1] && decimalParts[1].length > scale) return;
+
     try {
       return await this.dataSource.transaction(async (manager) => {
         const queryId = globalThis.crypto.randomUUID();
 
-        const sortedIds = [payload.userId, payload.recipient].sort();
-
-        const accountFirst = await manager.findOne(BalanceAccount, {
-          where: { userId: sortedIds[0] },
+        const accounts = await manager.find(BalanceAccount, {
+          where: [
+            { userId: payload.recipient },
+            { userId: payload.userId, seqno: payload.seqno },
+          ],
           lock: { mode: 'pessimistic_write' },
         });
 
-        const accountSecond = await manager.findOne(BalanceAccount, {
-          where: { userId: sortedIds[1] },
-          lock: { mode: 'pessimistic_write' },
-        });
-
-        const senderBalance =
-          sortedIds[0] === payload.userId ? accountFirst : accountSecond;
-        const recipientBalance =
-          sortedIds[0] === payload.recipient ? accountFirst : accountSecond;
+        const senderBalance = accounts.find(
+          (acc) => acc.userId === payload.userId,
+        );
+        const recipientBalance = accounts.find(
+          (acc) => acc.userId === payload.recipient,
+        );
 
         if (!senderBalance || !recipientBalance) return;
 
         const amount = senderBalance[payload.currency];
         if (!amount || amount < payload.amount) return;
 
-        await this.transactionsService.decreaseBalance(
-          payload.userId,
-          payload.amount,
-          payload.currency,
-          manager,
-        );
+        await Promise.all([
+          this.transactionsService.decreaseBalance(
+            payload.userId,
+            payload.amount,
+            payload.currency,
+            payload.seqno,
+            manager,
+          ),
+          this.transactionsService.addBalance(
+            payload.recipient,
+            payload.amount,
+            payload.currency,
+            manager,
+          ),
+          manager.insert(TransactionEntity, {
+            currency: payload.currency,
+            amount: payload.amount,
+            kind: 'Transfer',
+            type: 'Debit',
+            completed: true,
+            userId: payload.userId,
+            meta: {
+              queryId,
+              comment: payload.comment,
+            },
+          }),
+        ]);
 
-        await this.transactionsService.addBalance(
-          payload.recipient,
-          payload.amount,
-          payload.currency,
-          manager,
-          false,
-          true,
-        );
-        await manager.insert(TransactionEntity, {
-          currency: payload.currency,
-          amount: payload.amount,
-          kind: 'Transfer',
-          type: 'Debit',
-          completed: true,
-          userId: payload.userId,
-          meta: {
-            queryId,
-            comment: payload.comment,
-          },
-        });
         await manager.insert(TransactionEntity, {
           currency: payload.currency,
           amount: payload.amount,
@@ -323,12 +323,12 @@ export class AuthService {
 
   public async createAccount(body: CreateAccountDto) {
     const id = crypto.randomUUID().replace(/-/g, '');
-    await this.em.insert(UserEntity, {
+    await this.dataSource.manager.insert(UserEntity, {
       id,
       languageCode: body.languageCode,
     });
 
-    await this.em.insert(BalanceAccount, {
+    await this.dataSource.manager.insert(BalanceAccount, {
       userId: id,
     });
 
@@ -342,7 +342,7 @@ export class AuthService {
 
   public async getRefInfo(userId: string): Promise<DataResponse<RefInfoDto>> {
     const [users, allCount, activeCount] = await Promise.all([
-      this.em
+      this.dataSource.manager
         .createQueryBuilder(UserEntity, 'u')
         .select('u2.id', 'id')
         .addSelect('COUNT(DISTINCT u.id)', 'allCount')
@@ -362,8 +362,8 @@ export class AuthService {
         .limit(5)
         .getRawMany<RefInfoUserItemDto>(),
 
-      this.em.count(UserEntity, { where: { source: userId } }),
-      this.em.count(UserEntity, {
+      this.dataSource.manager.count(UserEntity, { where: { source: userId } }),
+      this.dataSource.manager.count(UserEntity, {
         where: {
           source: userId,
           keys: { status: 'active' },

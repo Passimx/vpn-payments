@@ -17,6 +17,7 @@ import { ExtendKeyDto } from '../api/dto/requests/extend-key.dto';
 import { ExchangeBalanceDto } from '../api/dto/requests/exchange-balance.dto';
 import { ChangeExtendTariffIdDto } from '../api/dto/requests/change-extend-tariff-id.dto';
 import { TransferDto } from '../api/dto/requests/transfer.dto';
+import { CreateKeyDto } from '../api/dto/requests/create-key.dto';
 
 @Injectable()
 class PxConnectService {
@@ -107,11 +108,11 @@ class PxConnectService {
     return this.authService.extendKey(payload);
   };
 
-  private createKey = (ctx: Context<UserKeyEntity>) => {
-    const key = ctx.payload;
-    if (!key) return;
+  private createKey = (ctx: Context<CreateKeyDto>) => {
+    const payload = ctx.payload;
+    if (!payload) return;
 
-    return this.authService.createKey(key.userId, key.tariffId);
+    return this.authService.createKey(payload);
   };
 
   private getTariffs = async (ctx: Context<string>) => {

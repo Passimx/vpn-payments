@@ -9,5 +9,7 @@ export class TransferDto {
 
   readonly recipient: string;
 
+  readonly seqno: number;
+
   readonly comment?: string;
 }

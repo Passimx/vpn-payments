@@ -18,6 +18,8 @@ import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { BalanceAccount } from '../database/entities/balance-account.entity';
 import { logger } from '../../common/logger/logger';
+import { ExtendKeyDto } from '../api/dto/requests/extend-key.dto';
+import { CreateKeyDto } from '../api/dto/requests/create-key.dto';
 
 @Injectable()
 export class KeyPurchaseService {
@@ -30,15 +32,15 @@ export class KeyPurchaseService {
   ) {}
 
   public async purchase(
-    userId: string,
-    tariffId: string,
-    promoCode?: string,
-    protocol: 'xray' | 'hysteria' = 'xray',
+    body: CreateKeyDto,
   ): Promise<DataResponse<string | PurchaseResult>> {
+    if (!body.protocol) body.protocol = 'xray';
+    const { userId, tariffId, seqno, promoCode, protocol } = body;
+
     try {
       return await this.dataSource.transaction(async (manager) => {
         const account = await manager.findOneOrFail(BalanceAccount, {
-          where: { userId },
+          where: { userId, seqno },
           relations: ['user'],
           lock: { mode: 'pessimistic_write', tables: ['balance_account'] },
         });
@@ -204,15 +206,14 @@ export class KeyPurchaseService {
   }
 
   public async renewKey(
-    userId: string,
-    keyId: string,
-    tariffId: string,
-    promoCode?: string,
+    body: ExtendKeyDto,
   ): Promise<DataResponse<string | PriceWithPromoResult>> {
+    const { userId, keyId, promoCode, tariffId, seqno } = body;
+
     try {
       return await this.dataSource.transaction(async (manager) => {
         const account = await manager.findOneOrFail(BalanceAccount, {
-          where: { userId },
+          where: { userId, seqno },
           relations: ['user'],
           lock: { mode: 'pessimistic_write', tables: ['balance_account'] },
         });

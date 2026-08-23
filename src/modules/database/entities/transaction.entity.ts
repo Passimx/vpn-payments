@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -13,6 +14,8 @@ import { PaymentMeta } from './meta/payment-meta';
 import { TransferMeta } from './meta/transfer-meta';
 
 @Entity({ name: 'transactions' })
+@Index(['userId'])
+@Index(['createdAt'])
 export class TransactionEntity {
   @PrimaryGeneratedColumn('uuid')
   readonly id: string;

@@ -8,4 +8,6 @@ export class ExchangeBalanceDto {
   readonly from: keyof PriceType;
 
   readonly to: keyof PriceType;
+
+  readonly seqno: number;
 }
