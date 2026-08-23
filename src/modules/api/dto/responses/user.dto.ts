@@ -6,7 +6,7 @@ import { UserKeyDto } from './user-key.dto';
 export class UserResponseDto {
   readonly id: string;
 
-  readonly balance: Record<CurrencyEnum, number>;
+  readonly balance: Record<CurrencyEnum, number> & { seqno: number };
 
   readonly keys: UserKeyDto[];
 
@@ -29,6 +29,7 @@ export class UserResponseDto {
         cny: user.balanceAccount.cny,
         usd: user.balanceAccount.usd,
         ton: user.balanceAccount.ton,
+        seqno: user.balanceAccount.seqno,
       },
       keys,
       transactions,
