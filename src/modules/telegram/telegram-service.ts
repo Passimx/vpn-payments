@@ -125,10 +125,10 @@ export class TelegramService {
     return this.i18nService.t(lang, key);
   }
 
-  private getVipLaunchDiscount(): number | null {
+  private getVipLaunchDiscount(): number {
     const { discountPercent, discountUntil } = Envs.vipLaunch;
-    if (!discountPercent || !discountUntil) return null;
-    if (new Date() > discountUntil) return null;
+    if (!discountPercent || !discountUntil) return 0;
+    if (new Date() > discountUntil) return 0;
     return discountPercent;
   }
 
@@ -925,9 +925,7 @@ export class TelegramService {
       ? this.formatTrafficLimit(limitBytes)
       : this.t(user, 'unlimited');
 
-    const vipDiscount =
-      tariff.kind === 'cdn' ? this.getVipLaunchDiscount() : null;
-    if (!vipDiscount) return;
+    const vipDiscount = tariff.kind === 'cdn' ? this.getVipLaunchDiscount() : 0;
     const convertResult1 = await this.transactionsService.convert(
       tariff.price,
       CurrencyEnum.RUB,
