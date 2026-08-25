@@ -1,4 +1,4 @@
-import { Check, Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { Check, Column, Entity, Index, JoinColumn, OneToOne } from 'typeorm';
 import { UserEntity } from './user.entity';
 
 export const scale = 5;
@@ -6,6 +6,7 @@ export const precision = 12;
 
 @Entity({ name: 'balance_account' })
 @Check('check_balance', 'rub >= 0 AND cny >= 0 AND ton >= 0 AND usd >= 0')
+@Index(['userId'])
 export class BalanceAccount {
   @Column({ name: 'user_id', type: 'varchar', primary: true })
   readonly userId: string;

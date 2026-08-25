@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, EntityManager, Not } from 'typeorm';
+import { DataSource, EntityManager, MoreThanOrEqual, Not } from 'typeorm';
 import { UserEntity } from '../../database/entities/user.entity';
 import { DataResponse } from '../dto/responses/data-response.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -207,7 +207,6 @@ export class AuthService {
             payload.userId,
             payload.amountFrom,
             payload.from,
-            payload.seqno,
             manager,
           ),
           this.transactionsService.addBalance(
@@ -257,35 +256,28 @@ export class AuthService {
     if (decimalParts[1] && decimalParts[1].length > scale) return;
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const success = await this.dataSource.transaction(async (manager) => {
         const queryId = globalThis.crypto.randomUUID();
 
         const accounts = await manager.find(BalanceAccount, {
           where: [
             { userId: payload.recipient },
-            { userId: payload.userId, seqno: payload.seqno },
+            {
+              userId: payload.userId,
+              seqno: payload.seqno,
+              [payload.currency]: MoreThanOrEqual(payload.amount),
+            },
           ],
           lock: { mode: 'pessimistic_write' },
         });
 
-        const senderBalance = accounts.find(
-          (acc) => acc.userId === payload.userId,
-        );
-        const recipientBalance = accounts.find(
-          (acc) => acc.userId === payload.recipient,
-        );
-
-        if (!senderBalance || !recipientBalance) return;
-
-        const amount = senderBalance[payload.currency];
-        if (!amount || amount < payload.amount) return;
+        if (accounts?.length !== 2) return false;
 
         await Promise.all([
           this.transactionsService.decreaseBalance(
             payload.userId,
             payload.amount,
             payload.currency,
-            payload.seqno,
             manager,
           ),
           this.transactionsService.addBalance(
@@ -294,35 +286,39 @@ export class AuthService {
             payload.currency,
             manager,
           ),
-          manager.insert(TransactionEntity, {
-            currency: payload.currency,
-            amount: payload.amount,
-            kind: 'Transfer',
-            type: 'Debit',
-            completed: true,
-            userId: payload.userId,
-            meta: {
-              queryId,
-              comment: payload.comment,
+          manager.insert(TransactionEntity, [
+            {
+              currency: payload.currency,
+              amount: payload.amount,
+              kind: 'Transfer',
+              type: 'Debit',
+              completed: true,
+              userId: payload.userId,
+              meta: {
+                queryId,
+                comment: payload.comment,
+              },
+              createdAt: () => 'CURRENT_TIMESTAMP',
             },
-          }),
+            {
+              currency: payload.currency,
+              amount: payload.amount,
+              kind: 'Transfer',
+              type: 'Credit',
+              completed: true,
+              userId: payload.recipient,
+              meta: {
+                queryId,
+                comment: payload.comment,
+              },
+              createdAt: () => "CURRENT_TIMESTAMP + INTERVAL '1 microsecond'",
+            },
+          ]),
         ]);
-
-        await manager.insert(TransactionEntity, {
-          currency: payload.currency,
-          amount: payload.amount,
-          kind: 'Transfer',
-          type: 'Credit',
-          completed: true,
-          userId: payload.recipient,
-          meta: {
-            queryId,
-            comment: payload.comment,
-          },
-        });
-
-        return this.getUser(payload.userId, manager);
+        return true;
       });
+
+      if (success) return this.getUser(payload.userId);
     } catch (error) {
       logger.error(error);
     }

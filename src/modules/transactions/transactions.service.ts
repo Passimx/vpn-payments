@@ -127,7 +127,6 @@ export class TransactionsService {
     userId: string,
     amount: number,
     currency: CurrencyEnum,
-    seqno: number,
     manager: EntityManager,
   ) {
     return manager
@@ -138,7 +137,6 @@ export class TransactionsService {
         seqno: () => 'seqno + 1',
       })
       .where('user_id = :userId', { userId })
-      .andWhere('seqno = :seqno', { seqno })
       .execute();
   }
 

@@ -85,6 +85,7 @@ describe(`${AuthService.name} -> transfer()`, () => {
 
     await dataSource.manager.delete(BalanceAccount, { userId: Not(IsNull()) });
     await dataSource.manager.delete(UserEntity, { id: Not(IsNull()) });
+    await dataSource.manager.delete(TransactionEntity, { id: Not(IsNull()) });
   });
 
   afterAll(async () => {
@@ -103,6 +104,11 @@ describe(`${AuthService.name} -> transfer()`, () => {
     const amount = 1;
     const currency = CurrencyEnum.RUB;
     const transactionsService = new TransactionsService({} as TelegramService);
+
+    const transactionsCountBefore = await dataSource.manager.count(
+      TransactionEntity,
+      {},
+    );
 
     jest
       .spyOn(transactionsService, 'addBalance')
@@ -128,8 +134,14 @@ describe(`${AuthService.name} -> transfer()`, () => {
       userId: balanceAccounts[0].userId,
     });
 
+    const transactionsCountAfter = await dataSource.manager.count(
+      TransactionEntity,
+      {},
+    );
+
     expect(result).toBeUndefined();
     expect(balanceAccounts[0][currency]).toBe(balanceAccount[currency]);
+    expect(transactionsCountBefore).toBe(transactionsCountAfter);
   });
 
   it('should successfully transfer money between accounts', async () => {
@@ -155,6 +167,35 @@ describe(`${AuthService.name} -> transfer()`, () => {
 
     expect(user1.rub).toBe(balanceAccounts[0].rub - amount);
     expect(user2.rub).toBe(balanceAccounts[1].rub + amount);
+  });
+
+  it('should fail if incorrect seqno', async () => {
+    const amount = 100;
+    const currency = CurrencyEnum.RUB;
+
+    const transactionsCountBefore = await dataSource.manager.count(
+      TransactionEntity,
+      {},
+    );
+
+    await service.transfer({
+      userId: balanceAccounts[0].userId,
+      amount,
+      currency,
+      recipient: balanceAccounts[1].userId,
+      seqno: 2,
+    });
+
+    const transactionsCountAfter = await dataSource.manager.count(
+      TransactionEntity,
+      {},
+    );
+    const balanceAccount = await balanceAccountRepository.findOneByOrFail({
+      userId: balanceAccounts[0].userId,
+    });
+
+    expect(transactionsCountBefore).toBe(transactionsCountAfter);
+    expect(balanceAccount[currency]).toBe(balanceAccount[currency]);
   });
 
   it(`should handle concurrent transfers between same users without deadlocks`, async () => {
