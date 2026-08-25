@@ -91,7 +91,7 @@ describe(`${AuthService.name} -> transfer()`, () => {
   afterAll(async () => {
     // Drop test scheme
     if (dataSource?.isInitialized) {
-      await dataSource.query(`DROP SCHEMA IF EXISTS ${testSchema} CASCADE;`);
+      // await dataSource.query(`DROP SCHEMA IF EXISTS ${testSchema} CASCADE;`);
       await dataSource.destroy();
     }
   });

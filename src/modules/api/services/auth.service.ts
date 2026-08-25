@@ -185,22 +185,18 @@ export class AuthService {
       payload.from,
       payload.to,
     );
-    if (!amountTo) return;
+    if (!amountTo || amountTo <= 0 || !payload.seqno) return;
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
-        const account = await manager.findOne(BalanceAccount, {
-          where: { userId: payload.userId, seqno: payload.seqno },
+      const result = await this.dataSource.transaction(async (manager) => {
+        await manager.findOneOrFail(BalanceAccount, {
+          where: {
+            userId: payload.userId,
+            seqno: payload.seqno,
+            [payload.amountFrom]: MoreThanOrEqual(payload.amountFrom),
+          },
           lock: { mode: 'pessimistic_write' },
         });
-
-        if (!account) return;
-
-        if (
-          !account[payload.from] ||
-          account[payload.from] < payload.amountFrom
-        )
-          return;
 
         await Promise.all([
           this.transactionsService.decreaseBalance(
@@ -215,27 +211,32 @@ export class AuthService {
             payload.to,
             manager,
           ),
-          manager.insert(TransactionEntity, {
-            amount: payload.amountFrom,
-            currency: payload.from,
-            userId: payload.userId,
-            type: 'Debit',
-            kind: 'Exchange',
-            completed: true,
-          }),
+          manager.insert(TransactionEntity, [
+            {
+              amount: payload.amountFrom,
+              currency: payload.from,
+              userId: payload.userId,
+              type: 'Debit',
+              kind: 'Exchange',
+              completed: true,
+              createdAt: () => 'CURRENT_TIMESTAMP',
+            },
+            {
+              amount: amountTo,
+              currency: payload.to,
+              userId: payload.userId,
+              type: 'Credit',
+              kind: 'Exchange',
+              completed: true,
+              createdAt: () => "CURRENT_TIMESTAMP + INTERVAL '1 millisecond'",
+            },
+          ]),
         ]);
 
-        await manager.insert(TransactionEntity, {
-          amount: amountTo,
-          currency: payload.to,
-          userId: payload.userId,
-          type: 'Credit',
-          kind: 'Exchange',
-          completed: true,
-        });
-
-        return this.getUser(payload.userId, manager);
+        return true;
       });
+
+      if (result) return this.getUser(payload.userId);
     } catch (error) {
       logger.error(error);
     }
