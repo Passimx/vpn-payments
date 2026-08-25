@@ -1,7 +1,8 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class ChangeExtendTariffIdDto {
   @IsUUID()
+  @IsOptional()
   readonly tariffId: string;
 
   @IsUUID()

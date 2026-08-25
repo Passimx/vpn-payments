@@ -82,7 +82,6 @@ export class TonService {
     currency: CurrencyEnum.TON | CurrencyEnum.USD,
     app: AppWalletEnum,
   ): Promise<string> {
-    console.log([amount, currency, app]);
     const transaction = await this.em.save(TransactionEntity, {
       userId: userId,
       amount,
