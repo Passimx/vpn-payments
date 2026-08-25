@@ -152,9 +152,22 @@ export class TonService {
         ? slice.loadRef().beginParse()
         : slice;
 
+      if (payloadSlice.remainingBits < 32) {
+        return {
+          currency: CurrencyEnum.USD,
+          amount: Number(jettonAmount) / 1e6,
+          message: undefined,
+        };
+      }
+
       const payloadOp = payloadSlice.loadUint(32);
 
-      if (payloadOp === 0) message = payloadSlice.loadStringTail();
+      if (payloadOp === 0) {
+        message =
+          payloadSlice.remainingBits > 0
+            ? payloadSlice.loadStringTail()
+            : undefined;
+      }
 
       return {
         currency: CurrencyEnum.USD,
