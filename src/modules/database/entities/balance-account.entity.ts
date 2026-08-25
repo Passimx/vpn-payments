@@ -80,7 +80,7 @@ export class BalanceAccount {
   usd: number;
 
   @Column({ name: 'seqno', default: 1 })
-  readonly seqno: number;
+  seqno: number;
 
   @OneToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

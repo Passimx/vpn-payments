@@ -232,7 +232,9 @@ export class TransactionsService {
     }
 
     if (amount > 0) return false;
-    await manager.save(balanceAccount);
+
+    balanceAccount.seqno++;
+    await manager.save(BalanceAccount, balanceAccount);
 
     return true;
   }
