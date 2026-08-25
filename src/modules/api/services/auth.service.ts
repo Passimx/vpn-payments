@@ -193,7 +193,7 @@ export class AuthService {
           where: {
             userId: payload.userId,
             seqno: payload.seqno,
-            [payload.amountFrom]: MoreThanOrEqual(payload.amountFrom),
+            [payload.from]: MoreThanOrEqual(payload.amountFrom),
           },
           lock: { mode: 'pessimistic_write' },
         });
