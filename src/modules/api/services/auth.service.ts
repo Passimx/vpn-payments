@@ -311,7 +311,7 @@ export class AuthService {
                 queryId,
                 comment: payload.comment,
               },
-              createdAt: () => "CURRENT_TIMESTAMP + INTERVAL '1 microsecond'",
+              createdAt: () => "CURRENT_TIMESTAMP + INTERVAL '1 millisecond'",
             },
           ]),
         ]);
