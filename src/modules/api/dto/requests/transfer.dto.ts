@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import {
@@ -33,11 +34,13 @@ export class TransferDto {
 
   @IsNumber()
   @IsInt()
-  @Min(1)
+  @Min(2 ** 0)
+  @Max(2 ** 15)
   readonly seqno: number;
 
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(2 ** 6)
   readonly comment?: string;
 }

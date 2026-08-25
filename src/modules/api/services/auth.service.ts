@@ -243,8 +243,15 @@ export class AuthService {
   }
 
   public async transfer(payload: TransferDto) {
-    if (payload.userId === payload.recipient) return;
-    if (payload.amount <= 0) return;
+    if (
+      !payload.userId?.length ||
+      !payload.recipient?.length ||
+      !payload.seqno ||
+      !payload.amount ||
+      payload.amount <= 0 ||
+      payload.userId === payload.recipient
+    )
+      return;
 
     const decimalParts = payload.amount.toString().split('.');
     if (decimalParts[1] && decimalParts[1].length > scale) return;
