@@ -93,6 +93,7 @@ export class WechatService {
         transaction.amount,
         CurrencyEnum.CNY,
         manager,
+        true,
       );
 
       await manager.update(

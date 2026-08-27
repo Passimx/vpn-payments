@@ -22,13 +22,14 @@ export class TransactionsService {
   private cache: CryptoPriceType | null = null;
   private readonly TTL = 60 * 60 * 1000;
 
-  public addBalance(
+  public async addBalance(
     userId: string,
     balance: number,
     currency: CurrencyEnum,
     manager: EntityManager,
+    notifyTg: boolean = false,
   ) {
-    return manager
+    await manager
       .createQueryBuilder()
       .update(BalanceAccount)
       .set({
@@ -36,6 +37,13 @@ export class TransactionsService {
       })
       .where('user_id = :userId', { userId })
       .execute();
+
+    if (notifyTg)
+      await this.telegramService.sendMessageAddBalance(
+        userId,
+        balance,
+        currency,
+      );
   }
 
   public async getCurrencyPrice() {

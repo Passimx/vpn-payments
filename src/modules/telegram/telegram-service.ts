@@ -299,6 +299,7 @@ export class TelegramService {
         starsPaid * TransactionsService.telegramStarsRate,
         CurrencyEnum.USD,
         manager,
+        true,
       );
 
       await manager.update(

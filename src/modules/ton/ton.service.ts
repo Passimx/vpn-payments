@@ -123,6 +123,7 @@ export class TonService {
           transaction.amount!,
           transaction.currency!,
           manager,
+          true,
         );
       }),
     );

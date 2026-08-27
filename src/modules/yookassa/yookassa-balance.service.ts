@@ -122,6 +122,7 @@ export class YookassaBalanceService {
         amount,
         CurrencyEnum.RUB,
         manager,
+        true,
       );
 
       await manager.update(
