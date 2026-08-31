@@ -12,6 +12,7 @@ import { type CurrencyEnum } from '../../transactions/types/currency.enum';
 import { DepositMeta } from './meta/deposit-meta';
 import { PaymentMeta } from './meta/payment-meta';
 import { TransferMeta } from './meta/transfer-meta';
+import { precision, scale } from './balance-account.entity';
 
 @Entity({ name: 'transactions' })
 @Index(['userId'])
@@ -20,7 +21,7 @@ export class TransactionEntity {
   @PrimaryGeneratedColumn('uuid')
   readonly id: string;
 
-  @Column({ name: 'amount', type: 'numeric' })
+  @Column({ name: 'amount', type: 'numeric', precision, scale })
   readonly amount: number;
 
   @Column({ name: 'currency', type: 'varchar' })
