@@ -137,11 +137,12 @@ export class TransactionsService {
   }
 
   public async convert(
-    amount: number | string,
+    amount: number | string | undefined,
     from: CurrencyEnum,
     to: CurrencyEnum,
   ): Promise<number | undefined> {
     try {
+      if (amount === undefined) return undefined;
       const bnAmount = new BigNumber(amount);
 
       if (!bnAmount.isFinite() || bnAmount.isNegative()) {
@@ -207,7 +208,7 @@ export class TransactionsService {
     currency: CurrencyEnum,
   ): Promise<number | undefined> {
     const currencyPrice = await this.getCurrencyPrice();
-    if (!currencyPrice) return 0;
+    if (!currencyPrice) return undefined;
     let sum = 0;
 
     for (const [key, value] of Object.entries(balanceAccount)) {

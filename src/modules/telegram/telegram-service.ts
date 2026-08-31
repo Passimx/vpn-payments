@@ -1808,17 +1808,10 @@ export class TelegramService {
     });
     if (!user?.telegramId) return;
 
-    const convertedResult = await this.transactionsService.convert(
-      addBalance,
-      currency,
-      this.t(user, 't11') as CurrencyEnum,
-    );
-    if (!convertedResult) return;
-
     await bot.telegram
       .sendMessage(
         user.telegramId,
-        `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(convertedResult, this.t(user, 't10'))}</b>`,
+        `${this.t(user, 'improve_balance')} <b>${this.transactionsService.formatNumber(addBalance, currency)}</b>`,
         { parse_mode: 'HTML' },
       )
       .catch(logger.error);

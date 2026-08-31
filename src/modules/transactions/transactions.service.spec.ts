@@ -168,7 +168,7 @@ describe(`${TransactionsService.name} -> convert()`, () => {
       expect(inRub).toBeDefined();
 
       const backToUsd = await service.convert(
-        inRub!,
+        inRub,
         CurrencyEnum.RUB,
         CurrencyEnum.USD,
       );
@@ -196,7 +196,7 @@ describe(`${TransactionsService.name} -> convert()`, () => {
       expect(inRub).toBeDefined();
 
       const backToUsd = await service.convert(
-        inRub!,
+        inRub,
         CurrencyEnum.RUB,
         CurrencyEnum.USD,
       );
@@ -364,7 +364,7 @@ describe(`${TransactionsService.name} -> convert()`, () => {
       expect(inRub).toBeDefined();
 
       const backToUsd = await service.convert(
-        inRub!,
+        inRub,
         CurrencyEnum.RUB,
         CurrencyEnum.USD,
       );
@@ -787,7 +787,7 @@ describe(`${TransactionsService.name} -> getTotalBalance()`, () => {
     );
   });
 
-  it('should return 0 when currency prices are unavailable', async () => {
+  it('should return undefined when currency prices are unavailable', async () => {
     const balanceAccount = {
       rub: 100,
       usd: 10,
@@ -807,7 +807,7 @@ describe(`${TransactionsService.name} -> getTotalBalance()`, () => {
       CurrencyEnum.RUB,
     );
 
-    expect(result).toBe(0);
+    expect(result).toBeUndefined();
     expect(convertSpy).not.toHaveBeenCalled();
   });
 
