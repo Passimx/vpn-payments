@@ -57,10 +57,12 @@ describe(`${AuthService.name} -> transfer()`, () => {
 
     const balanceAccountsArray = arr.map((user) => ({
       userId: user.id,
-      ton: setAmount,
       cny: setAmount,
       rub: setAmount,
       usd: setAmount,
+      ton: setAmount,
+      ethereum: setAmount,
+      bitcoin: setAmount,
     }));
 
     await dataSource.manager.save(UserEntity, arr);
@@ -91,7 +93,7 @@ describe(`${AuthService.name} -> transfer()`, () => {
   afterAll(async () => {
     // Drop test scheme
     if (dataSource?.isInitialized) {
-      // await dataSource.query(`DROP SCHEMA IF EXISTS ${testSchema} CASCADE;`);
+      await dataSource.query(`DROP SCHEMA IF EXISTS ${testSchema} CASCADE;`);
       await dataSource.destroy();
     }
   });
@@ -333,7 +335,7 @@ describe(`${AuthService.name} -> transfer()`, () => {
   });
 
   it(`should not transfer if scale >  ${scale}`, async () => {
-    const amount = 1 / 10 ** (scale + 1);
+    const amount = 10 ** (-scale - 1);
     const currency = CurrencyEnum.RUB;
 
     const result1 = await service.transfer({

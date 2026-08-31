@@ -3,8 +3,14 @@ import { CryptoPriceType } from './types/crypto-price.type';
 import { EntityManager } from 'typeorm';
 import { TelegramService } from '../telegram/telegram-service';
 import { CurrencyEnum } from './types/currency.enum';
-import { BalanceAccount } from '../database/entities/balance-account.entity';
+import {
+  BalanceAccount,
+  precision,
+  scale,
+} from '../database/entities/balance-account.entity';
 import { logger } from '../../common/logger/logger';
+import BigNumber from 'bignumber.js';
+import { PriceType } from './types/price.type';
 
 @Injectable()
 export class TransactionsService {
@@ -46,63 +52,157 @@ export class TransactionsService {
       );
   }
 
-  public async getCurrencyPrice() {
-    if (this.cache) return this.cache;
-
-    const [cbrCurrencyBase, cryptoCurrencyBase] = await Promise.all([
-      this.getCBRCurrencyBase(),
-      this.getCryptoCurrencyBase(),
-    ]);
-
-    if (!cbrCurrencyBase || !cryptoCurrencyBase) return;
-
-    const usdInRub = cbrCurrencyBase.usdCurrency.rate;
-    const cnyInRub = cbrCurrencyBase.cnyCurrency.rate;
-    const tonInUsd = cryptoCurrencyBase.ton.usd;
-
-    const priceInUsd = {
-      usd: 1,
-      cny: cnyInRub / usdInRub,
-      rub: 1 / usdInRub,
-      ton: tonInUsd,
-    };
-
-    this.cache = {
-      usd: {
-        usd: 1,
-        cny: priceInUsd.usd / priceInUsd.cny,
-        rub: priceInUsd.usd / priceInUsd.rub,
-        ton: priceInUsd.usd / priceInUsd.ton,
-      },
-      cny: {
-        usd: priceInUsd.cny / priceInUsd.usd,
-        cny: 1,
-        rub: priceInUsd.cny / priceInUsd.rub,
-        ton: priceInUsd.cny / priceInUsd.ton,
-      },
-      rub: {
-        usd: priceInUsd.rub / priceInUsd.usd,
-        cny: priceInUsd.rub / priceInUsd.cny,
-        rub: 1,
-        ton: priceInUsd.rub / priceInUsd.ton,
-      },
-      ton: {
-        usd: priceInUsd.ton / priceInUsd.usd,
-        cny: priceInUsd.ton / priceInUsd.cny,
-        rub: priceInUsd.ton / priceInUsd.rub,
-        ton: 1,
-      },
-    };
-
-    setTimeout(() => {
-      this.cache = null;
-      this.getCurrencyPrice();
-    }, this.TTL);
-
-    return this.cache;
+  public decreaseBalance(
+    userId: string,
+    amount: number,
+    currency: CurrencyEnum,
+    manager: EntityManager,
+  ) {
+    return manager
+      .createQueryBuilder()
+      .update(BalanceAccount)
+      .set({
+        [currency]: () => `${currency} - ${amount}`,
+        seqno: () => 'seqno + 1',
+      })
+      .where('user_id = :userId', { userId })
+      .execute();
   }
 
-  public async getUserTotalBalance(
+  public async decreaseBalanceFromAll(
+    balanceAccount: BalanceAccount,
+    amount: number,
+    currency: CurrencyEnum,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const clonedBalanceAccount = structuredClone(balanceAccount);
+
+    const currencyPrice = await this.getCurrencyPrice();
+    if (!currencyPrice) return false;
+
+    const currencyOrder: CurrencyEnum[] = [
+      CurrencyEnum.RUB,
+      CurrencyEnum.CNY,
+      CurrencyEnum.USD,
+      CurrencyEnum.TON,
+      CurrencyEnum.ETHEREUM,
+      CurrencyEnum.BITCOIN,
+    ];
+
+    let remainingAmount = new BigNumber(amount);
+
+    for (const targetCurrency of currencyOrder) {
+      if (remainingAmount.isLessThanOrEqualTo(0)) break;
+
+      const currentBalance = new BigNumber(
+        clonedBalanceAccount[targetCurrency] || 0,
+      );
+      if (currentBalance.isLessThanOrEqualTo(0)) continue;
+
+      const convertResult = await this.convert(
+        remainingAmount.toNumber(),
+        currency,
+        targetCurrency as unknown as CurrencyEnum,
+      );
+      if (!convertResult) return false;
+
+      const neededInTargetCurrency = new BigNumber(convertResult);
+
+      if (currentBalance.isGreaterThanOrEqualTo(neededInTargetCurrency)) {
+        const updatedBalance = currentBalance.minus(neededInTargetCurrency);
+        clonedBalanceAccount[targetCurrency] = updatedBalance.toNumber();
+
+        remainingAmount = new BigNumber(0);
+      } else {
+        clonedBalanceAccount[targetCurrency] = 0;
+
+        const leftoverInTarget = neededInTargetCurrency.minus(currentBalance);
+        const leftoverInSrcResult = await this.convert(
+          leftoverInTarget.toString(),
+          targetCurrency,
+          currency,
+        );
+        if (!leftoverInSrcResult) return false;
+
+        remainingAmount = new BigNumber(leftoverInSrcResult);
+      }
+    }
+
+    if (remainingAmount.isGreaterThan(0)) return false;
+
+    clonedBalanceAccount.seqno++;
+    await manager.save(BalanceAccount, clonedBalanceAccount);
+
+    return true;
+  }
+
+  public async convert(
+    amount: number | string,
+    from: CurrencyEnum,
+    to: CurrencyEnum,
+  ): Promise<number | undefined> {
+    try {
+      const bnAmount = new BigNumber(amount);
+
+      if (!bnAmount.isFinite() || bnAmount.isNegative()) {
+        return undefined;
+      }
+
+      if (bnAmount.isZero()) {
+        return 0;
+      }
+
+      const currencyPrice = await this.getCurrencyPrice();
+
+      if (!currencyPrice) {
+        return undefined;
+      }
+
+      if (from === to) {
+        return bnAmount.dp(scale, BigNumber.ROUND_DOWN).toNumber();
+      }
+
+      let result: BigNumber | undefined;
+
+      if (currencyPrice[from]?.[to] !== undefined) {
+        const rate = new BigNumber(currencyPrice[from][to]);
+
+        if (!rate.isFinite() || rate.isZero() || rate.isNegative()) {
+          return undefined;
+        }
+
+        result = bnAmount.multipliedBy(rate);
+      } else if (currencyPrice[to]?.[from] !== undefined) {
+        const rate = new BigNumber(currencyPrice[to][from]);
+
+        if (!rate.isFinite() || rate.isZero() || rate.isNegative()) {
+          return undefined;
+        }
+
+        result = bnAmount.dividedBy(rate);
+      } else if (from !== CurrencyEnum.USD && to !== CurrencyEnum.USD) {
+        const fromUsdRate = currencyPrice[from]?.[CurrencyEnum.USD];
+
+        const usdToRate = currencyPrice[CurrencyEnum.USD]?.[to];
+
+        if (fromUsdRate === undefined || usdToRate === undefined) {
+          return undefined;
+        }
+
+        result = bnAmount.multipliedBy(fromUsdRate).multipliedBy(usdToRate);
+      }
+
+      if (!result) {
+        return undefined;
+      }
+
+      return result.dp(scale, BigNumber.ROUND_DOWN).toNumber();
+    } catch (error) {
+      logger.error(error);
+    }
+  }
+
+  public async getTotalBalance(
     balanceAccount: BalanceAccount,
     currency: CurrencyEnum,
   ): Promise<number | undefined> {
@@ -122,161 +222,73 @@ export class TransactionsService {
       if (!converted) return;
       sum += converted;
     }
-    const fixedString = sum.toFixed(12);
+    const fixedString = sum.toFixed(precision);
     const dotIndex = fixedString.indexOf('.');
 
     if (dotIndex === -1) return sum;
 
-    const truncatedString = fixedString.substring(0, dotIndex + 6);
+    const truncatedString = fixedString.substring(0, dotIndex + scale + 1);
     return Number(truncatedString);
   }
 
-  public decreaseBalance(
-    userId: string,
-    amount: number,
-    currency: CurrencyEnum,
-    manager: EntityManager,
-  ) {
-    return manager
-      .createQueryBuilder()
-      .update(BalanceAccount)
-      .set({
-        [currency]: () => `${currency} - ${amount}`,
-        seqno: () => 'seqno + 1',
-      })
-      .where('user_id = :userId', { userId })
-      .execute();
-  }
+  public async getCurrencyPrice() {
+    if (this.cache) return this.cache;
 
-  public async decreaseBalanceFromAll(
-    userId: string,
-    amount: number,
-    currency: CurrencyEnum,
-    manager: EntityManager,
-  ): Promise<boolean> {
-    const balanceAccount = await manager.findOneOrFail(BalanceAccount, {
-      where: { userId },
-    });
+    const [cbrCurrencyBase, cryptoCurrencyBase] = await Promise.all([
+      this.getCBRCurrencyBase(),
+      this.getCryptoCurrencyBase(),
+    ]);
 
-    const currencyPrice = await this.getCurrencyPrice();
-    if (!currencyPrice) return false;
+    if (!cbrCurrencyBase || !cryptoCurrencyBase) return;
 
-    if (amount > 0 && balanceAccount.rub > 0) {
-      const convertResult = await this.convert(
-        amount,
-        currency,
-        CurrencyEnum.RUB,
-      );
-      if (!convertResult) return false;
-      amount = convertResult;
-      currency = CurrencyEnum.RUB;
+    BigNumber.config({ DECIMAL_PLACES: 20 });
 
-      if (balanceAccount.rub >= amount) {
-        balanceAccount.rub -= amount;
-        amount = 0;
-      } else {
-        amount -= balanceAccount.rub;
-        balanceAccount.rub = 0;
+    const usdInRub = cbrCurrencyBase.usdCurrency.rate;
+    const cnyInRub = cbrCurrencyBase.cnyCurrency.rate;
+    const tonInUsd = cryptoCurrencyBase.ton.usd;
+    const bitcoinInUsd = cryptoCurrencyBase.bitcoin.usd;
+    const ethereumInUsd = cryptoCurrencyBase.ethereum.usd;
+
+    const priceInUsdBN: Record<string, BigNumber> = {
+      usd: new BigNumber(1),
+      cny: new BigNumber(cnyInRub).dividedBy(usdInRub),
+      rub: new BigNumber(1).dividedBy(usdInRub),
+      ton: new BigNumber(tonInUsd),
+      bitcoin: new BigNumber(bitcoinInUsd),
+      ethereum: new BigNumber(ethereumInUsd),
+    };
+
+    const currencies: CurrencyEnum[] = [
+      CurrencyEnum.USD,
+      CurrencyEnum.CNY,
+      CurrencyEnum.RUB,
+      CurrencyEnum.TON,
+      CurrencyEnum.BITCOIN,
+      CurrencyEnum.ETHEREUM,
+    ];
+    const cache = {} as CryptoPriceType;
+
+    for (const from of currencies) {
+      cache[from] = {} as PriceType;
+      for (const to of currencies) {
+        if (from === to) {
+          cache[from][to] = 1;
+        } else {
+          cache[from][to] = priceInUsdBN[from]
+            .dividedBy(priceInUsdBN[to])
+            .toNumber();
+        }
       }
     }
 
-    if (amount > 0 && balanceAccount.cny) {
-      const convertResult = await this.convert(
-        amount,
-        currency,
-        CurrencyEnum.CNY,
-      );
-      if (!convertResult) return false;
-      amount = convertResult;
+    this.cache = cache;
 
-      currency = CurrencyEnum.CNY;
+    setTimeout(() => {
+      this.cache = null;
+      this.getCurrencyPrice();
+    }, this.TTL);
 
-      if (balanceAccount.cny >= amount) {
-        balanceAccount.cny -= amount;
-        amount = 0;
-      } else {
-        amount -= balanceAccount.cny;
-        balanceAccount.cny = 0;
-      }
-    }
-
-    if (amount > 0 && balanceAccount.ton) {
-      const convertResult = await this.convert(
-        amount,
-        currency,
-        CurrencyEnum.TON,
-      );
-      if (!convertResult) return false;
-      amount = convertResult;
-      currency = CurrencyEnum.TON;
-
-      if (balanceAccount.ton >= amount) {
-        balanceAccount.ton -= amount;
-        amount = 0;
-      } else {
-        amount -= balanceAccount.ton;
-        balanceAccount.ton = 0;
-      }
-    }
-
-    if (amount > 0 && balanceAccount.usd) {
-      const convertResult = await this.convert(
-        amount,
-        currency,
-        CurrencyEnum.USD,
-      );
-      if (!convertResult) return false;
-      amount = convertResult;
-
-      // currency = 'usd';
-
-      if (balanceAccount.usd >= amount) {
-        balanceAccount.usd -= amount;
-        amount = 0;
-      } else {
-        amount -= balanceAccount.usd;
-        balanceAccount.usd = 0;
-      }
-    }
-
-    if (amount > 0) return false;
-
-    balanceAccount.seqno++;
-    await manager.save(BalanceAccount, balanceAccount);
-
-    return true;
-  }
-
-  public async convert(
-    amount: number,
-    from: CurrencyEnum,
-    to: CurrencyEnum,
-  ): Promise<number | undefined> {
-    if (typeof amount === 'string') amount = Number(amount);
-    const currencyPrice = await this.getCurrencyPrice();
-    if (!currencyPrice) return;
-
-    let result: number | undefined = 0;
-
-    if (from === to) result = amount;
-    else if (currencyPrice[from]?.[to]) {
-      result = amount * currencyPrice[from][to];
-    } else if (currencyPrice[to]?.[from]) {
-      result = amount / currencyPrice[to][from];
-    } else if (from !== CurrencyEnum.USD && to !== CurrencyEnum.USD) {
-      const inUsd = await this.convert(amount, from, CurrencyEnum.USD);
-      if (!inUsd) return;
-      result = await this.convert(inUsd, CurrencyEnum.USD, to);
-    }
-
-    if (!result) return;
-    const fixedString = result.toFixed(12);
-    const dotIndex = fixedString.indexOf('.');
-
-    if (dotIndex === -1) return result;
-
-    const truncatedString = fixedString.substring(0, dotIndex + 6);
-    return Number(truncatedString);
+    return this.cache;
   }
 
   public formatNumber(value: number, symdol: string) {
@@ -296,7 +308,7 @@ export class TransactionsService {
       const formattedDate = `${day}-${month}-${year}`;
 
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,ethereum,bitcoin,solana,usd&vs_currencies=usd,rub,cny,eur&date=${formattedDate}&localization=false`,
+        `https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,ethereum,bitcoin,usd&vs_currencies=usd,rub,cny,eur&date=${formattedDate}&localization=false`,
       ).catch(() => {});
       if (!response) return;
       const data = (await response.json()) as Partial<{
@@ -304,7 +316,6 @@ export class TransactionsService {
         ton: { usd: number };
         bitcoin: { usd: number };
         ethereum: { usd: number };
-        solana: { usd: number };
       }>;
 
       data.ton = data['the-open-network'];
@@ -314,7 +325,6 @@ export class TransactionsService {
         ton: { usd: number };
         bitcoin: { usd: number };
         ethereum: { usd: number };
-        solana: { usd: number };
       };
     } catch (e) {
       logger.error(e);

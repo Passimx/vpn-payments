@@ -81,7 +81,7 @@ export class KeyPurchaseService {
         if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
 
         const result = await this.transactionsService.decreaseBalanceFromAll(
-          userId,
+          account,
           finalPrice,
           CurrencyEnum.RUB,
           manager,
@@ -260,7 +260,7 @@ export class KeyPurchaseService {
         if (finalPrice === 0 && !appliedPromo) return new DataResponse('error');
 
         const result = await this.transactionsService.decreaseBalanceFromAll(
-          userId,
+          account,
           finalPrice,
           CurrencyEnum.RUB,
           manager,

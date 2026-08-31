@@ -27,6 +27,7 @@ import { TransactionEntity } from '../../database/entities/transaction.entity';
 import { TransferDto } from '../dto/requests/transfer.dto';
 import { logger } from '../../../common/logger/logger';
 import { CreateKeyDto } from '../dto/requests/create-key.dto';
+import BigNumber from 'bignumber.js';
 
 @Injectable()
 export class AuthService {
@@ -253,8 +254,13 @@ export class AuthService {
     )
       return;
 
-    const decimalParts = payload.amount.toString().split('.');
-    if (decimalParts[1] && decimalParts[1].length > scale) return;
+    const amount = new BigNumber(payload.amount);
+    const MIN_LIMIT = new BigNumber(10 ** -scale);
+
+    // No less than 10 ** -scale
+    if (!amount.gte(MIN_LIMIT)) return;
+    // Max scale decimal places allowed
+    if (amount.dp() ?? 0 <= scale) return;
 
     try {
       const success = await this.dataSource.transaction(async (manager) => {

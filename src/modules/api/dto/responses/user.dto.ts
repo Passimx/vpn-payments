@@ -29,6 +29,8 @@ export class UserResponseDto {
         cny: user.balanceAccount.cny,
         usd: user.balanceAccount.usd,
         ton: user.balanceAccount.ton,
+        bitcoin: user.balanceAccount.bitcoin,
+        ethereum: user.balanceAccount.ethereum,
         seqno: user.balanceAccount.seqno,
       },
       keys,

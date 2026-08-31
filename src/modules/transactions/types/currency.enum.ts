@@ -3,4 +3,6 @@ export enum CurrencyEnum {
   RUB = 'rub',
   USD = 'usd',
   TON = 'ton',
+  BITCOIN = 'bitcoin',
+  ETHEREUM = 'ethereum',
 }

@@ -513,7 +513,7 @@ export class TelegramService {
 
     this.amountMap.delete(telegramId!);
 
-    const balance = await this.transactionsService.getUserTotalBalance(
+    const balance = await this.transactionsService.getTotalBalance(
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
@@ -883,7 +883,7 @@ export class TelegramService {
     kind: 'base' | 'premium' | 'cdn' = 'base',
   ): Promise<void> {
     const tariffButtons = await this.tariffsButtons(user, kind);
-    const balance = await this.transactionsService.getUserTotalBalance(
+    const balance = await this.transactionsService.getTotalBalance(
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
@@ -1840,7 +1840,7 @@ export class TelegramService {
     }
 
     const tariffButtons = await this.tariffsButtons(user, 'base');
-    const balance = await this.transactionsService.getUserTotalBalance(
+    const balance = await this.transactionsService.getTotalBalance(
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
