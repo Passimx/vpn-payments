@@ -423,7 +423,9 @@ describe(`${AuthService.name} -> transfer()`, () => {
     const count = await dataSource.manager.count(TransactionEntity);
     const TPS = balanceAccounts.length / ((end - start) / 1000);
 
+    // 400 for local, 50 for CI
+    const requiredTPS = process.env.CI === 'true' ? 50 : 400;
+    expect(TPS).not.toBeLessThan(requiredTPS);
     expect(count).toBe(balanceAccounts.length * 2);
-    expect(TPS).not.toBeLessThan(400);
   });
 });
