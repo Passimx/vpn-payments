@@ -30,7 +30,17 @@ describe(`${AuthService.name} -> transfer()`, () => {
   let balanceAccountRepository: Repository<BalanceAccount>;
 
   beforeAll(async () => {
-    pgContainer = await new PostgreSqlContainer('postgres:17-alpine').start();
+    pgContainer = await new PostgreSqlContainer('postgres:17-alpine')
+      .withCommand([
+        'postgres',
+        '-c',
+        'fsync=off',
+        '-c',
+        'synchronous_commit=off',
+        '-c',
+        'full_page_writes=off',
+      ])
+      .start();
 
     const containerOptions = {
       ...dbOptions,
