@@ -12,10 +12,15 @@ import { JwtService } from '@nestjs/jwt';
 import { KeyPurchaseService } from '../../key-purchase/key-purchase.service';
 import { XrayService } from '../../xray/xray-service';
 import { CurrencyEnum } from '../../transactions/types/currency.enum';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
 import { dbOptions } from '../../database/database.module';
 
 describe(`${AuthService.name} -> transfer()`, () => {
   let dataSource: DataSource;
+  let pgContainer: StartedPostgreSqlContainer;
   let service: AuthService;
   const testSchema = `test_schema_${Date.now()}`;
   let balanceAccounts: BalanceAccount[] = [];
@@ -25,19 +30,30 @@ describe(`${AuthService.name} -> transfer()`, () => {
   let balanceAccountRepository: Repository<BalanceAccount>;
 
   beforeAll(async () => {
-    const initClient = new DataSource(dbOptions);
+    pgContainer = await new PostgreSqlContainer('postgres:17-alpine').start();
+
+    const containerOptions = {
+      ...dbOptions,
+      host: pgContainer.getHost(),
+      port: pgContainer.getPort(),
+      database: pgContainer.getDatabase(),
+      username: pgContainer.getUsername(),
+      password: pgContainer.getPassword(),
+    };
+
+    const initClient = new DataSource(containerOptions);
     await initClient.initialize();
     await initClient.query(`CREATE SCHEMA IF NOT EXISTS ${testSchema};`);
     await initClient.destroy();
 
     dataSource = new DataSource({
-      ...dbOptions,
+      ...containerOptions,
       schema: testSchema,
       synchronize: true,
     });
 
     await dataSource.initialize();
-  });
+  }, 60 * 1000);
 
   beforeEach(async () => {
     balanceAccountRepository = dataSource.getRepository(BalanceAccount);
@@ -91,10 +107,12 @@ describe(`${AuthService.name} -> transfer()`, () => {
   });
 
   afterAll(async () => {
-    // Drop test scheme
     if (dataSource?.isInitialized) {
-      await dataSource.query(`DROP SCHEMA IF EXISTS ${testSchema} CASCADE;`);
       await dataSource.destroy();
+    }
+
+    if (pgContainer) {
+      await pgContainer.stop();
     }
   });
 

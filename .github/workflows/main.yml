@@ -14,8 +14,27 @@ jobs:
     secrets:
       GH_TOKEN: ${{ secrets.GIT_HUB_TOKEN }}
 
-  build:
+  test:
     needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test
+
+  build:
+    needs: [version, test]
     uses: Passimx/ci-cd-workflows/.github/workflows/build.yml@main
     with:
       ORGANIZATION_NAME: ${{ vars.ORGANIZATION_NAME }}

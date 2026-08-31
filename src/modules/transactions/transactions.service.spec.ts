@@ -10,6 +10,10 @@ import { dbOptions } from '../database/database.module';
 import { UserEntity } from '../database/entities/user.entity';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { CryptoPriceType } from './types/crypto-price.type';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
 
 const mockCurrencyPrice: CryptoPriceType = {
   usd: {
@@ -396,6 +400,7 @@ describe(`${TransactionsService.name} -> convert()`, () => {
 
 describe(`${TransactionsService.name} -> decreaseBalanceFromAll()`, () => {
   let dataSource: DataSource;
+  let pgContainer: StartedPostgreSqlContainer;
   const testSchema = `test_schema_${Date.now()}`;
   const setAmount = 10000;
   let user: UserEntity;
@@ -403,19 +408,30 @@ describe(`${TransactionsService.name} -> decreaseBalanceFromAll()`, () => {
   let service: TransactionsService;
 
   beforeAll(async () => {
-    const initClient = new DataSource(dbOptions);
+    pgContainer = await new PostgreSqlContainer('postgres:17-alpine').start();
+
+    const containerOptions = {
+      ...dbOptions,
+      host: pgContainer.getHost(),
+      port: pgContainer.getPort(),
+      database: pgContainer.getDatabase(),
+      username: pgContainer.getUsername(),
+      password: pgContainer.getPassword(),
+    };
+
+    const initClient = new DataSource(containerOptions);
     await initClient.initialize();
     await initClient.query(`CREATE SCHEMA IF NOT EXISTS ${testSchema};`);
     await initClient.destroy();
 
     dataSource = new DataSource({
-      ...dbOptions,
+      ...containerOptions,
       schema: testSchema,
       synchronize: true,
     });
 
     await dataSource.initialize();
-  });
+  }, 60 * 1000);
 
   beforeEach(async () => {
     user = await dataSource.manager.save(UserEntity, {
@@ -450,8 +466,11 @@ describe(`${TransactionsService.name} -> decreaseBalanceFromAll()`, () => {
 
   afterAll(async () => {
     if (dataSource?.isInitialized) {
-      await dataSource.query(`DROP SCHEMA IF EXISTS ${testSchema} CASCADE;`);
       await dataSource.destroy();
+    }
+
+    if (pgContainer) {
+      await pgContainer.stop();
     }
   });
 
