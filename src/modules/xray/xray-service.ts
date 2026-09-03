@@ -523,16 +523,15 @@ export class XrayService {
     xPaddingHeader: 'X-Client-Version',
     xPaddingPlacement: 'queryInHeader',
     xPaddingMethod: 'tokenish',
-    sessionPlacement: 'header', // для старой версии Happ
-    sessionKey: 'X-Upload-Token', // для старой версии Happ
-    sessionIDPlacement: 'header', // для новой версии Happ
-    sessionIDKey: 'X-Upload-Token', // для новой версии Happ
+    sessionPlacement: 'header', // старый Happ / xray < 26.6.22
+    sessionKey: 'X-Upload-Token', // старый Happ / xray < 26.6.22
+    sessionIDPlacement: 'header', // Happ новый xray > 26.6.22
+    sessionIDKey: 'X-Upload-Token', // Happ новый xray > 26.6.22
+    sessionIDTable: 'Base62', // Happ 4.3.0 / xray 26.6.22+
+    sessionIDLength: '16-32', // Happ 4.3.0 / xray 26.6.22+
     seqPlacement: 'query',
     seqKey: 'chunk_id',
     uplinkHTTPMethod: 'GET',
-    scMaxBufferedPosts: 30,
-    scStreamUpServerSecs: '20-80',
-    enableXmux: true,
     xmux: {
       maxConcurrency: '16-32',
       cMaxReuseTimes: 1000,
