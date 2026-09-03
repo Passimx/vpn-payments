@@ -514,30 +514,35 @@ export class XrayService {
     return uris.join('\n');
   }
 
-  // Расширенные xhttp-параметры, вередаем query `extra`, так как передаются методом ГЕТ
-  // (URL-кодированный JSON). Значения Будут совпадать с теме что записаны в конфиг xray на сервере, в поеле: xhttpSettings
+  // Query `extra` — URL-кодированный JSON. Happ 4.3.0 парсит его как XhttpSettingsBean
+  // Поэтому session/padding кладём во вложенный extra; xray один раз разворачивает extra.
   private static readonly VIP_XHTTP_EXTRA = {
-    xPaddingBytes: '100-1000',
-    xPaddingObfsMode: true,
-    xPaddingKey: 'hash',
-    xPaddingHeader: 'X-Client-Version',
-    xPaddingPlacement: 'queryInHeader',
-    xPaddingMethod: 'tokenish',
-    sessionPlacement: 'header', // старый Happ / xray < 26.6.22
-    sessionKey: 'X-Upload-Token', // старый Happ / xray < 26.6.22
-    sessionIDPlacement: 'header', // Happ новый xray > 26.6.22
-    sessionIDKey: 'X-Upload-Token', // Happ новый xray > 26.6.22
-    sessionIDTable: 'Base62', // Happ 4.3.0 / xray 26.6.22+
-    sessionIDLength: '16-32', // Happ 4.3.0 / xray 26.6.22+
-    seqPlacement: 'query',
-    seqKey: 'chunk_id',
-    uplinkHTTPMethod: 'GET',
-    xmux: {
-      maxConcurrency: '16-32',
-      cMaxReuseTimes: 1000,
-      hMaxRequestTimes: '600-900',
-      hMaxReusableSecs: '100',
-      hKeepAlivePeriod: 20000,
+    scMaxConcurrentPosts: 100,
+    scMaxEachPostBytes: 1000000,
+    scMinPostsIntervalMs: 30,
+    extra: {
+      xPaddingBytes: '100-1000',
+      xPaddingObfsMode: true,
+      xPaddingKey: 'hash',
+      xPaddingHeader: 'X-Client-Version',
+      xPaddingPlacement: 'queryInHeader',
+      xPaddingMethod: 'tokenish',
+      sessionPlacement: 'header',
+      sessionKey: 'X-Upload-Token',
+      sessionIDPlacement: 'header',
+      sessionIDKey: 'X-Upload-Token',
+      sessionIDTable: 'Base62',
+      sessionIDLength: '16-32',
+      seqPlacement: 'query',
+      seqKey: 'chunk_id',
+      uplinkHTTPMethod: 'GET',
+      xmux: {
+        maxConcurrency: '16-32',
+        cMaxReuseTimes: 1000,
+        hMaxRequestTimes: '600-900',
+        hMaxReusableSecs: '100',
+        hKeepAlivePeriod: 20000,
+      },
     },
   };
 
