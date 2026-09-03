@@ -514,35 +514,35 @@ export class XrayService {
     return uris.join('\n');
   }
 
-  // Query `extra` — URL-кодированный JSON. Happ 4.3.0 парсит его как XhttpSettingsBean
-  // Поэтому session/padding кладём во вложенный extra; xray один раз разворачивает extra.
+  // Query `extra` — URL-кодированный JSON. Happ 4.3.0 кладёт его целиком в
+  // xhttpSettings.extra (JsonObject), затем Xray один раз unmarshals extra.
   private static readonly VIP_XHTTP_EXTRA = {
-    scMaxConcurrentPosts: 100,
-    scMaxEachPostBytes: 1000000,
+    xPaddingBytes: '100-1000',
+    xPaddingObfsMode: true,
+    xPaddingKey: 'hash',
+    xPaddingHeader: 'X-Client-Version',
+    xPaddingPlacement: 'queryInHeader',
+    xPaddingMethod: 'tokenish',
+    sessionPlacement: 'header',
+    sessionKey: 'X-Upload-Token',
+    sessionIDPlacement: 'header',
+    sessionIDKey: 'X-Upload-Token',
+    sessionIDTable: 'Base62',
+    sessionIDLength: '16-32',
+    seqPlacement: 'query',
+    seqKey: 'chunk_id',
+    uplinkHTTPMethod: 'GET',
+    uplinkDataPlacement: 'header',
+    uplinkDataKey: 'X-Data',
+    uplinkChunkSize: '200-400',
+    scMaxEachPostBytes: 8000,
     scMinPostsIntervalMs: 30,
-    extra: {
-      xPaddingBytes: '100-1000',
-      xPaddingObfsMode: true,
-      xPaddingKey: 'hash',
-      xPaddingHeader: 'X-Client-Version',
-      xPaddingPlacement: 'queryInHeader',
-      xPaddingMethod: 'tokenish',
-      sessionPlacement: 'header',
-      sessionKey: 'X-Upload-Token',
-      sessionIDPlacement: 'header',
-      sessionIDKey: 'X-Upload-Token',
-      sessionIDTable: 'Base62',
-      sessionIDLength: '16-32',
-      seqPlacement: 'query',
-      seqKey: 'chunk_id',
-      uplinkHTTPMethod: 'GET',
-      xmux: {
-        maxConcurrency: '16-32',
-        cMaxReuseTimes: 1000,
-        hMaxRequestTimes: '600-900',
-        hMaxReusableSecs: '100',
-        hKeepAlivePeriod: 20000,
-      },
+    xmux: {
+      maxConcurrency: '16-32',
+      cMaxReuseTimes: 1000,
+      hMaxRequestTimes: '600-900',
+      hMaxReusableSecs: '100',
+      hKeepAlivePeriod: 20000,
     },
   };
 
