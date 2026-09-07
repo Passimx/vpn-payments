@@ -495,14 +495,14 @@ export class XrayService {
       }
 
       const data = await this.getServerParams(host);
-      if (!data) break;
+      if (!data) continue;
 
       const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
 
       const opts = exit ? this.euCascadeOptsFromServer(exit) : null;
       if (exit && !opts) continue;
       const port = String(opts?.linkPort ?? defaultPort);
-      if (!/^\d+$/.test(port)) break;
+      if (!/^\d+$/.test(port)) continue;
 
       const code = exit ? exit.code : host.code;
       const label = `${this.t(user, `${code}_flag`)} ${this.t(user, `${code}_name`)}`;
