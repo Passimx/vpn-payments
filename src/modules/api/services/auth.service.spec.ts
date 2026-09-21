@@ -19,6 +19,8 @@ import {
 import { dbOptions } from '../../database/database.module';
 
 describe(`${AuthService.name} -> transfer()`, () => {
+  // 400 for local, 50 for CI
+  const requiredTPS = process.env.CI === 'true' ? 50 : 400;
   let dataSource: DataSource;
   let pgContainer: StartedPostgreSqlContainer;
   let service: AuthService;
@@ -402,7 +404,7 @@ describe(`${AuthService.name} -> transfer()`, () => {
     expect(result).toBeUndefined();
   });
 
-  it(`should be fast: parallel TPS more than 400 `, async () => {
+  it(`should be fast: parallel TPS more than ${requiredTPS} `, async () => {
     const start = Date.now();
     const amount = 1;
     const currency = CurrencyEnum.RUB;
@@ -423,8 +425,6 @@ describe(`${AuthService.name} -> transfer()`, () => {
     const count = await dataSource.manager.count(TransactionEntity);
     const TPS = balanceAccounts.length / ((end - start) / 1000);
 
-    // 400 for local, 50 for CI
-    const requiredTPS = process.env.CI === 'true' ? 50 : 400;
     expect(TPS).not.toBeLessThan(requiredTPS);
     expect(count).toBe(balanceAccounts.length * 2);
   });

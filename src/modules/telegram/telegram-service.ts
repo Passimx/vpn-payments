@@ -517,7 +517,7 @@ export class TelegramService {
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
-    if (!balance) return;
+    if (balance === undefined) return;
 
     await ctx
       .editMessageText(
@@ -887,7 +887,7 @@ export class TelegramService {
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
-    if (!balance) return;
+    if (balance === undefined) return;
 
     if (!tariffButtons.length) {
       await ctx
@@ -1837,7 +1837,7 @@ export class TelegramService {
       user.balanceAccount,
       this.t(user, 't11') as CurrencyEnum,
     );
-    if (!balance) return;
+    if (balance === undefined) return;
 
     await bot.telegram
       .sendMessage(
