@@ -937,7 +937,7 @@ export class TelegramService {
       CurrencyEnum.RUB,
       this.t(user, 't11') as CurrencyEnum,
     );
-    if (!convertResult1 || !convertResult2) return;
+    if (convertResult1 == null || convertResult2 == null) return;
 
     const originalPriceFormatted = this.transactionsService.formatNumber(
       convertResult1,
@@ -1695,7 +1695,7 @@ export class TelegramService {
           CurrencyEnum.RUB,
           this.t(user, 't11') as CurrencyEnum,
         );
-        if (!convertResult) return false;
+        if (convertResult == null) return false;
 
         await ctx
           .reply(
@@ -1732,7 +1732,7 @@ export class TelegramService {
           CurrencyEnum.RUB,
           this.t(user, 't11') as CurrencyEnum,
         );
-        if (!convertedResult) return false;
+        if (convertedResult == null) return false;
 
         await ctx
           .reply(
@@ -2108,7 +2108,7 @@ export class TelegramService {
           this.t(user, 't11') as CurrencyEnum,
         );
 
-        if (!convertResult1 || !convertResult2) return [];
+        if (convertResult1 == null || convertResult2 == null) return [];
 
         const formattedPrice = this.transactionsService.formatNumber(
           convertResult1,

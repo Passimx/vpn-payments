@@ -495,14 +495,14 @@ export class XrayService {
       }
 
       const data = await this.getServerParams(host);
-      if (!data) break;
+      if (!data) continue;
 
       const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
 
       const opts = exit ? this.euCascadeOptsFromServer(exit) : null;
       if (exit && !opts) continue;
       const port = String(opts?.linkPort ?? defaultPort);
-      if (!/^\d+$/.test(port)) break;
+      if (!/^\d+$/.test(port)) continue;
 
       const code = exit ? exit.code : host.code;
       const label = `${this.t(user, `${code}_flag`)} ${this.t(user, `${code}_name`)}`;
@@ -514,8 +514,8 @@ export class XrayService {
     return uris.join('\n');
   }
 
-  // Расширенные xhttp-параметры, вередаем query `extra`, так как передаются методом ГЕТ
-  // (URL-кодированный JSON). Значения Будут совпадать с теме что записаны в конфиг xray на сервере, в поеле: xhttpSettings
+  // Query `extra` — URL-кодированный JSON. Happ 4.3.0 кладёт его целиком в
+  // xhttpSettings.extra (JsonObject), затем Xray один раз unmarshals extra.
   private static readonly VIP_XHTTP_EXTRA = {
     xPaddingBytes: '100-1000',
     xPaddingObfsMode: true,
@@ -523,16 +523,20 @@ export class XrayService {
     xPaddingHeader: 'X-Client-Version',
     xPaddingPlacement: 'queryInHeader',
     xPaddingMethod: 'tokenish',
-    sessionPlacement: 'header', // для старой версии Happ
-    sessionKey: 'X-Upload-Token', // для старой версии Happ
-    sessionIDPlacement: 'header', // для новой версии Happ
-    sessionIDKey: 'X-Upload-Token', // для новой версии Happ
+    sessionPlacement: 'header',
+    sessionKey: 'X-Upload-Token',
+    sessionIDPlacement: 'header',
+    sessionIDKey: 'X-Upload-Token',
+    sessionIDTable: 'Base62',
+    sessionIDLength: '16-32',
     seqPlacement: 'query',
     seqKey: 'chunk_id',
     uplinkHTTPMethod: 'GET',
-    scMaxBufferedPosts: 30,
-    scStreamUpServerSecs: '20-80',
-    enableXmux: true,
+    uplinkDataPlacement: 'header',
+    uplinkDataKey: 'X-Data',
+    uplinkChunkSize: '200-400',
+    scMaxEachPostBytes: 8000,
+    scMinPostsIntervalMs: 30,
     xmux: {
       maxConcurrency: '16-32',
       cMaxReuseTimes: 1000,
