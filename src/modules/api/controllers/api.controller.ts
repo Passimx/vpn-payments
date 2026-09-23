@@ -1,5 +1,5 @@
-import { Controller, Get, Header, Param, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Get, Header, Param, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { Public } from '../../../common/guards/public.decorator';
 import { Envs } from '../../../common/env/envs';
@@ -36,7 +36,12 @@ export class ApiController {
 
   @Public()
   @Get('keys-info/:keyId')
-  async getKeyInfo(@Param('keyId') keyId: string, @Res() res: Response) {
+  async getKeyInfo(
+    @Param('keyId') keyId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (isIncyRequest(req)) return this.getIncyKeyInfo(keyId, res);
     const result = await this.authService.getKeyInfo(keyId);
     if (!result) return res.status(404).send('Not found');
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -94,4 +99,13 @@ export class ApiController {
     `;
     return res.send(html);
   }
+}
+
+function isIncyRequest(req: Request): boolean {
+  const client = req.get('x-client');
+  if (typeof client === 'string' && client.toLowerCase() === 'incy')
+    return true;
+
+  const ua = req.get('user-agent');
+  return typeof ua === 'string' && ua.toLowerCase().startsWith('incy');
 }
