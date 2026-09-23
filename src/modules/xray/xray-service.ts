@@ -382,6 +382,18 @@ export class XrayService {
     }
   }
 
+  public async patchServerKeys(serverId: string) {
+    const server = await this.em.findOne(ServerEntity, {
+      where: { id: serverId },
+    });
+    if (!server) throw new NotFoundException(`Server ${serverId} not found`);
+
+    await this.warmServerParamsCache(server);
+    await this.patchActiveKeysToServer(server);
+
+    return { ok: true, id: server.id, code: server.code, host: server.host };
+  }
+
   public async createServer(dto: CreateServerDto) {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
@@ -477,12 +489,14 @@ export class XrayService {
   public async buildSubscriptionUri(
     keyId: string,
     user: UserEntity,
-  ): Promise<string | null> {
+    client: 'default' | 'incy' = 'default',
+  ): Promise<{ content: string; format: 'lines' | 'xray-json' } | null> {
     const key = await this.em.findOne(UserKeyEntity, { where: { id: keyId } });
     if (!key) return null;
 
     const targets = await this.getKeyTargets(key);
     const uris: string[] = [];
+    const incyConfigs: object[] = [];
 
     for (const { host, exit, isCdn } of targets) {
       // VIP сервера
@@ -490,7 +504,13 @@ export class XrayService {
         if (!host.cdnDomain) continue;
         const country = host.code.replace(/^vip-/, '');
         const label = `${this.t(user, `${country}_flag`)} ${this.t(user, `${country}_name`)} ${this.t(user, 'vip')}`;
-        uris.push(this.buildCdnXhttpUri(keyId, host.cdnDomain, label));
+        if (client === 'incy') {
+          incyConfigs.push(
+            this.buildIncyCdnConfig(keyId, host.cdnDomain, label),
+          );
+        } else {
+          uris.push(this.buildCdnXhttpUri(keyId, host.cdnDomain, label));
+        }
         continue;
       }
 
@@ -511,7 +531,11 @@ export class XrayService {
       uris.push(uri);
     }
 
-    return uris.join('\n');
+    if (incyConfigs.length > 0 && uris.length === 0) {
+      return { content: JSON.stringify(incyConfigs), format: 'xray-json' };
+    }
+    if (uris.length === 0) return null;
+    return { content: uris.join('\n'), format: 'lines' };
   }
 
   // Query `extra` — URL-кодированный JSON. Happ 4.3.0 кладёт его целиком в
@@ -560,6 +584,70 @@ export class XrayService {
       `&alpn=h2%2Chttp%2F1.1&type=xhttp&path=%2Fpoll&mode=packet-up&fp=firefox&extra=${extra}` +
       `#${encodeURIComponent(label)}`
     );
+  }
+
+  // Сервер VIP требует packet-up и тот же extra, что у Happ. Полный JSON
+  // уходит в xray-core как есть, ссылка Happ не меняется.
+  private buildIncyCdnConfig(keyId: string, cdnDomain: string, label: string) {
+    return {
+      remarks: label,
+      meta: { serverDescription: label },
+      inbounds: [
+        {
+          tag: 'socks-in',
+          listen: '127.0.0.1',
+          port: 10808,
+          protocol: 'socks',
+          settings: { udp: true },
+          sniffing: {
+            enabled: true,
+            destOverride: ['http', 'tls', 'quic'],
+          },
+        },
+      ],
+      outbounds: [
+        {
+          tag: 'proxy',
+          protocol: 'vless',
+          settings: {
+            vnext: [
+              {
+                address: cdnDomain,
+                port: 443,
+                users: [{ id: keyId, encryption: 'none' }],
+              },
+            ],
+          },
+          streamSettings: {
+            network: 'xhttp',
+            security: 'tls',
+            tlsSettings: {
+              serverName: cdnDomain,
+              fingerprint: 'firefox',
+              alpn: ['h2', 'http/1.1'],
+            },
+            xhttpSettings: {
+              path: '/poll',
+              host: cdnDomain,
+              mode: 'packet-up',
+              extra: XrayService.VIP_XHTTP_EXTRA,
+            },
+          },
+        },
+        { tag: 'direct', protocol: 'freedom' },
+        { tag: 'block', protocol: 'blackhole' },
+      ],
+      routing: {
+        domainStrategy: 'AsIs',
+        rules: [
+          {
+            type: 'field',
+            network: 'tcp,udp',
+            outboundTag: 'proxy',
+          },
+        ],
+      },
+    };
   }
 
   private async createKey(

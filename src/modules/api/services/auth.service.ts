@@ -122,7 +122,13 @@ export class AuthService {
 
   public async getKeyInfo(
     keyId: string,
-  ): Promise<{ body: string; userinfo: string } | null> {
+    client: 'default' | 'incy' = 'default',
+  ): Promise<{
+    body: string;
+    userinfo: string;
+    title: string;
+    format: 'lines' | 'xray-json';
+  } | null> {
     const key = await this.dataSource.manager.findOne(UserKeyEntity, {
       where: { id: keyId },
       relations: ['user', 'tariff'],
@@ -131,15 +137,24 @@ export class AuthService {
 
     const kindLabel = key.tariff?.kind === 'cdn' ? 'VIP' : 'BASE';
     let title = `🌐PassimX ${kindLabel} (ID ${StringsUtil.getShortName(keyId)})`;
+    const expire = Math.floor(new Date(key.expiresAt).getTime() / 1000);
+    const download = Number(key.countTrafficUsed ?? 0);
+    const limit = Number(key.countTrafficLimit ?? 0);
+    const totalPart = limit > 0 ? `; total=${limit}` : '';
+    const userinfo = `upload=0; download=${download}${totalPart}; expire=${expire}`;
 
     let uris: string = '';
     if (key.status === 'active') {
       const result = await this.xrayService.buildSubscriptionUri(
         key.id,
         key.user,
+        client,
       );
       if (!result) return null;
-      uris += result;
+      if (result.format === 'xray-json') {
+        return { body: result.content, userinfo, title, format: 'xray-json' };
+      }
+      uris += result.content;
     } else title += ` (${this.keyPurchaseService.t(key.user, 'expired_key')})`;
 
     const body =
@@ -148,13 +163,7 @@ export class AuthService {
       '#subscription-auto-update-enable: 1\n' +
       uris;
 
-    const expire = Math.floor(new Date(key.expiresAt).getTime() / 1000);
-    const download = Number(key.countTrafficUsed ?? 0);
-    const limit = Number(key.countTrafficLimit ?? 0);
-    const totalPart = limit > 0 ? `; total=${limit}` : '';
-    const userinfo = `upload=0; download=${download}${totalPart}; expire=${expire}`;
-
-    return { body, userinfo };
+    return { body, userinfo, title, format: 'lines' };
   }
 
   public async changeExtendTariffId(payload: ChangeExtendTariffIdDto) {
