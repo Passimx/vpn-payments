@@ -34,7 +34,8 @@ jobs:
 #        run: npm test
 
   build:
-    needs: [version, test]
+#    needs: [version, test]
+    needs: [version]
     uses: Passimx/ci-cd-workflows/.github/workflows/build.yml@main
     with:
       ORGANIZATION_NAME: ${{ vars.ORGANIZATION_NAME }}
