@@ -5,6 +5,7 @@ import { XrayService } from '../xray/xray-service';
 import { TelegramService } from '../telegram/telegram-service';
 import { AnalyticsService } from '../telegram/analytics.service';
 import { logger } from '../../common/logger/logger';
+import { YookassaBalanceService } from '../yookassa/yookassa-balance.service';
 
 @Injectable()
 export class ScheduleService {
@@ -15,6 +16,7 @@ export class ScheduleService {
     private readonly xrayService: XrayService,
     private readonly telegramService: TelegramService,
     private readonly analyticsService: AnalyticsService,
+    private readonly yookassaBalanceService: YookassaBalanceService,
   ) {
     this.runners = new Set<string>();
   }
@@ -23,6 +25,10 @@ export class ScheduleService {
   public async scanTonTransactions() {
     await this.rubJob(this.tonService.scanTransactions.name, () =>
       this.tonService.scanTransactions(),
+    );
+    await this.rubJob(
+      this.yookassaBalanceService.scanPendingPayments.name,
+      () => this.yookassaBalanceService.scanPendingPayments(),
     );
   }
 

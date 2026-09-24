@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, EntityManager, JsonContains } from 'typeorm';
+import { DataSource, EntityManager, JsonContains, MoreThan } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Envs } from '../../common/env/envs';
 import { TransactionEntity } from '../database/entities/transaction.entity';
 import { logger } from '../../common/logger/logger';
 import { TransactionsService } from '../transactions/transactions.service';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
-import fetch from 'node-fetch';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import { ProxyAgent, fetch } from 'undici';
+
+const yookassaProxy = new ProxyAgent('http://217.177.11.88:8888');
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -61,11 +62,9 @@ export class YookassaBalanceService {
         },
       });
 
-      const proxyAgent = new HttpsProxyAgent('http://217.177.11.88:8888');
-
       const res = await fetch('https://api.yookassa.ru/v3/payments', {
         method: 'POST',
-        agent: proxyAgent,
+        dispatcher: yookassaProxy,
         headers,
         body,
       });
@@ -111,6 +110,51 @@ export class YookassaBalanceService {
       where: { meta: JsonContains({ paymentId }), completed: false },
       relations: ['user'],
     });
+  }
+
+  async scanPendingPayments(): Promise<void> {
+    const pending = await this.em.find(TransactionEntity, {
+      where: {
+        completed: false,
+        createdAt: MoreThan(new Date(Date.now() - 60 * 60 * 1000)),
+        meta: JsonContains({ place: 'yookassa' }),
+      },
+    });
+
+    const shopId = (Envs.yookassa.walletNumber || '').trim();
+    const secretKey = (Envs.yookassa.accessToken || '').trim();
+    if (!shopId || !secretKey) return;
+
+    const authHeader =
+      'Basic ' +
+      Buffer.from(`${shopId}:${secretKey}`, 'utf8').toString('base64');
+
+    for (const transaction of pending) {
+      const paymentId = (transaction.meta as { paymentId?: string } | undefined)
+        ?.paymentId;
+      if (!paymentId) continue;
+
+      const res = await fetch(
+        `https://api.yookassa.ru/v3/payments/${paymentId}`,
+        {
+          dispatcher: yookassaProxy,
+          headers: { Authorization: authHeader },
+        },
+      );
+      if (!res.ok) continue;
+
+      const payment = (await res.json()) as { id: string; status: string };
+      if (payment.status !== 'succeeded') continue;
+
+      await this.handleWebhook({
+        event: 'payment.succeeded',
+        object: {
+          id: payment.id,
+          status: payment.status,
+          amount: { value: String(transaction.amount), currency: 'RUB' },
+        },
+      });
+    }
   }
 
   async handleWebhook(payload: YooKassaWebhookPayload): Promise<void> {
