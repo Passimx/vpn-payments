@@ -6,6 +6,8 @@ import { TransactionEntity } from '../database/entities/transaction.entity';
 import { logger } from '../../common/logger/logger';
 import { TransactionsService } from '../transactions/transactions.service';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
+import fetch from 'node-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export type YooKassaWebhookPayload = {
   event?: string;
@@ -38,29 +40,34 @@ export class YookassaBalanceService {
       const authHeader =
         'Basic ' +
         Buffer.from(`${shopId}:${secretKey}`, 'utf8').toString('base64');
+      const headers = {
+        'Content-Type': 'application/json',
+        'Idempotence-Key': idempotenceKey,
+        Authorization: authHeader,
+      };
+      const body: string = JSON.stringify({
+        amount: {
+          value: amount.toFixed(2),
+          currency: 'RUB',
+        },
+        capture: true,
+        description: `user:${userId}`,
+        confirmation: {
+          type: 'redirect',
+          return_url: 'tg://resolve?domain=passimx_vpn_bot',
+        },
+        metadata: {
+          userId,
+        },
+      });
+
+      const proxyAgent = new HttpsProxyAgent('http://217.177.11.88:8888');
 
       const res = await fetch('https://api.yookassa.ru/v3/payments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotence-Key': idempotenceKey,
-          Authorization: authHeader,
-        },
-        body: JSON.stringify({
-          amount: {
-            value: amount.toFixed(2),
-            currency: 'RUB',
-          },
-          capture: true,
-          description: `user:${userId}`,
-          confirmation: {
-            type: 'redirect',
-            return_url: 'tg://resolve?domain=passimx_vpn_bot',
-          },
-          metadata: {
-            userId,
-          },
-        }),
+        agent: proxyAgent,
+        headers,
+        body,
       });
 
       if (!res.ok) return;
