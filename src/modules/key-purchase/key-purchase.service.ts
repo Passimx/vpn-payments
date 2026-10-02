@@ -283,7 +283,7 @@ export class KeyPurchaseService {
           const reactivated = await this.xrayService.reactivateXrayKey(
             vpnKey.id,
           );
-          if (!reactivated) return new DataResponse('error');
+          if (!reactivated) throw new BadRequestException('Invalid Xray key');
         }
 
         const base = new Date(vpnKey.expiresAt);

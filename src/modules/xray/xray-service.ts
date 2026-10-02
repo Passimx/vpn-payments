@@ -173,7 +173,6 @@ export class XrayService {
     keyId: string,
     manager: EntityManager = this.em,
   ): Promise<boolean> {
-    let result = true;
     const keyEntity = await manager.findOne(UserKeyEntity, {
       where: { id: keyId },
       relations: ['user'],
@@ -182,13 +181,19 @@ export class XrayService {
     if (!keyEntity) return false;
 
     const targets = await this.getKeyTargets(keyEntity, manager);
+    if (!targets.length) return true;
 
+    let created = 0;
     for (const { host, exit, isCdn } of targets) {
       const isCreated = await this.createKey(keyEntity, host, exit, isCdn);
-      if (!isCreated) result = false;
+      if (isCreated) created++;
+      else
+        logger.error(
+          `[reactivateXrayKey] skipped unreachable ${host.code} for ${keyId}`,
+        );
     }
 
-    return result;
+    return created > 0;
   }
 
   private euCascadeOptsFromServer(
