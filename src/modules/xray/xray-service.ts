@@ -586,7 +586,7 @@ export class XrayService {
     return (
       `vless://${keyId}@${cdnDomain}:443` +
       `?encryption=none&security=tls&sni=${cdnDomain}&host=${cdnDomain}` +
-      `&alpn=h2%2Chttp%2F1.1&type=xhttp&path=%2Fpoll&mode=packet-up&fp=firefox&extra=${extra}` +
+      `&alpn=h2%2Chttp%2F1.1&type=xhttp&path=%2Fpoll%2F&mode=packet-up&fp=firefox&extra=${extra}` +
       `#${encodeURIComponent(label)}`
     );
   }
@@ -632,7 +632,7 @@ export class XrayService {
               alpn: ['h2', 'http/1.1'],
             },
             xhttpSettings: {
-              path: '/poll',
+              path: '/poll/',
               host: cdnDomain,
               mode: 'packet-up',
               extra: XrayService.VIP_XHTTP_EXTRA,

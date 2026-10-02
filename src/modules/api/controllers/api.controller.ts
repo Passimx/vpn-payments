@@ -6,7 +6,7 @@ import { Envs } from '../../../common/env/envs';
 import { I18nService } from '../../i18n/i18n.service';
 import { EntityManager } from 'typeorm';
 import { UserKeyEntity } from '../../database/entities/user-key.entity';
-import { logger } from '../../../common/logger/logger';
+// import { logger } from '../../../common/logger/logger';
 
 @Controller()
 export class ApiController {
@@ -19,7 +19,7 @@ export class ApiController {
   @Public()
   @Get('keys-info/incy/:keyId')
   async getIncyKeyInfo(@Param('keyId') keyId: string, @Res() res: Response) {
-    logger.info(`[сработал эндпоинт incy] ${keyId}`);
+    // logger.info(`[сработал эндпоинт incy] ${keyId}`);
     const result = await this.authService.getKeyInfo(keyId, 'incy');
     if (!result) return res.status(404).send('Not found');
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
