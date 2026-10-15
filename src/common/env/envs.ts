@@ -53,6 +53,9 @@ export const Envs = {
   yookassa: {
     walletNumber: String(process.env.YOOKASSA_WALLET_NUMBER),
     accessToken: process.env.YOOKASSA_ACCESS_TOKEN,
+    proxyUrl: process.env.YOOKASSA_PROXY_URL?.length
+      ? String(process.env.YOOKASSA_PROXY_URL)
+      : 'http://130.17.14.150:8888',
   },
   wechat: {
     key: process.env.WECHAT_KEY,

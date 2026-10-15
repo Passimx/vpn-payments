@@ -8,7 +8,9 @@ import { TransactionsService } from '../transactions/transactions.service';
 import { CurrencyEnum } from '../transactions/types/currency.enum';
 import { ProxyAgent, fetch } from 'undici';
 
-const yookassaProxy = new ProxyAgent('http://217.177.11.88:8888');
+const yookassaProxy = Envs.yookassa.proxyUrl
+  ? new ProxyAgent(Envs.yookassa.proxyUrl)
+  : undefined;
 
 export type YooKassaWebhookPayload = {
   event?: string;
