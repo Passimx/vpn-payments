@@ -4,6 +4,7 @@ import { ScheduleService } from './schedule.service';
 import { TonModule } from '../ton/ton.module';
 import { XrayModule } from '../xray/xray.module';
 import { TelegramModule } from '../telegram/telegram.module';
+import { YookassaModule } from '../yookassa/yookassa.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { TelegramModule } from '../telegram/telegram.module';
     TonModule,
     XrayModule,
     TelegramModule,
+    YookassaModule,
   ],
   providers: [ScheduleService],
 })
