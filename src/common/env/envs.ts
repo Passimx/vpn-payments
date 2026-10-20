@@ -55,7 +55,7 @@ export const Envs = {
     accessToken: process.env.YOOKASSA_ACCESS_TOKEN,
     proxyUrl: process.env.YOOKASSA_PROXY_URL?.length
       ? String(process.env.YOOKASSA_PROXY_URL)
-      : 'http://94.26.228.132:8888',
+      : 'http://94.26.228.132:3128',
   },
   wechat: {
     key: process.env.WECHAT_KEY,
