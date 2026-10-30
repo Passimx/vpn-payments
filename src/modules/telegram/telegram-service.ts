@@ -3,6 +3,7 @@ import { Context, Input, Markup, Telegraf } from 'telegraf';
 
 import { DataSource, EntityManager } from 'typeorm';
 import { UserEntity } from '../database/entities/user.entity';
+import { ServerEntity } from '../database/entities/server.entity';
 import { TariffEntity } from '../database/entities/tariff.entity';
 import { UserKeyEntity } from '../database/entities/user-key.entity';
 import { Envs } from '../../common/env/envs';
@@ -36,6 +37,7 @@ export class TelegramService {
   // Продление: выбранный ключ и тариф
   private pendingRenewKeyId = new Map<number, string>();
   private pendingRenewTariffId = new Map<number, string>();
+  private announceRunning = false;
 
   constructor(
     private readonly em: EntityManager,
@@ -2192,6 +2194,149 @@ export class TelegramService {
     });
   };
 
+  public async announceActiveBaseKeys(
+    server: ServerEntity,
+    dryRun: boolean,
+    text: string,
+    audience: {
+      telegramIds?: number[];
+      keyIds?: string[];
+      userIds?: string[];
+    } = {},
+  ) {
+    const query = this.em
+      .createQueryBuilder(UserKeyEntity, 'k')
+      .innerJoinAndSelect('k.user', 'user')
+      .innerJoin('k.tariff', 't')
+      .where('k.protocol = :p AND k.status = :st', {
+        p: 'xray',
+        st: 'active',
+      })
+      .andWhere('k.cascadeToServerId IS NULL AND t.kind = :kind', {
+        kind: 'base',
+      })
+      .andWhere('user.telegramId IS NOT NULL');
+
+    if (audience.telegramIds?.length) {
+      query.andWhere('user.telegramId IN (:...telegramIds)', {
+        telegramIds: audience.telegramIds,
+      });
+    }
+    if (audience.keyIds?.length) {
+      query.andWhere('k.id IN (:...keyIds)', { keyIds: audience.keyIds });
+    }
+    if (audience.userIds?.length) {
+      query.andWhere('k.userId IN (:...userIds)', {
+        userIds: audience.userIds,
+      });
+    }
+
+    const keys = await query.getMany();
+    const users = new Set(keys.map((key) => key.userId)).size;
+    const filtered = Boolean(
+      audience.telegramIds?.length ||
+        audience.keyIds?.length ||
+        audience.userIds?.length,
+    );
+    const matched = filtered
+      ? keys.map((key) => ({
+          keyId: key.id,
+          userId: key.userId,
+          telegramId: key.user.telegramId,
+        }))
+      : undefined;
+
+    if (dryRun) {
+      return {
+        dryRun: true,
+        keys: keys.length,
+        users,
+        server: server.code,
+        matched,
+      };
+    }
+    if (keys.length === 0) {
+      return {
+        started: false,
+        keys: 0,
+        users: 0,
+        server: server.code,
+        matched,
+      };
+    }
+    if (this.announceRunning) {
+      return { started: false, reason: 'already running', keys: keys.length };
+    }
+
+    this.announceRunning = true;
+    void this.sendAnnounce(server, keys, text).finally(() => {
+      this.announceRunning = false;
+    });
+
+    return {
+      started: true,
+      keys: keys.length,
+      users,
+      server: server.code,
+      matched,
+    };
+  }
+
+  private async sendAnnounce(
+    server: ServerEntity,
+    keys: UserKeyEntity[],
+    text: string,
+  ) {
+    let sent = 0;
+    let failed = 0;
+    logger.info(
+      `[announce] ${server.code}: sending ${keys.length} base keys`,
+    );
+
+    for (const key of keys) {
+      const telegramId = key.user?.telegramId;
+      if (!telegramId) continue;
+
+      try {
+        const uri = await this.xrayService.buildRealityUri(
+          key.id,
+          key.user,
+          server,
+        );
+        if (!uri) {
+          failed++;
+          logger.error(`[announce] no uri for key ${key.id}`);
+          continue;
+        }
+
+        const textMessage =
+          `${escapeHtml(text)}\n\n<code>${escapeHtml(uri)}</code>`;
+        await this.sendAnnounceMessage(telegramId, textMessage);
+        sent++;
+      } catch (e) {
+        failed++;
+        logger.error(`[announce] key ${key.id}`, e);
+      }
+
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    logger.info(`[announce] ${server.code}: sent=${sent} failed=${failed}`);
+  }
+
+  private async sendAnnounceMessage(telegramId: number, text: string) {
+    try {
+      await bot.telegram.sendMessage(telegramId, text, { parse_mode: 'HTML' });
+    } catch (e) {
+      const retryAfter = (
+        e as { response?: { parameters?: { retry_after?: number } } }
+      ).response?.parameters?.retry_after;
+      if (!retryAfter) throw e;
+      await new Promise((r) => setTimeout(r, (retryAfter + 1) * 1000));
+      await bot.telegram.sendMessage(telegramId, text, { parse_mode: 'HTML' });
+    }
+  }
+
   public async resendMessage() {
     if (!resendMessageData || resendMessageData.started) return;
     resendMessageData.started = true;
@@ -2271,4 +2416,11 @@ export class TelegramService {
       sendToAll,
     };
   };
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }

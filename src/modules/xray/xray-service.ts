@@ -543,6 +543,77 @@ export class XrayService {
     return { content: uris.join('\n'), format: 'lines' };
   }
 
+  public async buildRealityUri(
+    keyId: string,
+    user: UserEntity | string,
+    server: ServerEntity,
+  ): Promise<string | null> {
+    const data = await this.getServerParams(server);
+    if (!data) return null;
+
+    const [publicKey, sni, defaultPort, shortId] = data.map((v) => v.trim());
+    if (!publicKey || !sni || !shortId || !/^\d+$/.test(defaultPort)) {
+      return null;
+    }
+
+    const label = `${this.t(user, `${server.code}_flag`)} ${this.t(user, `${server.code}_name`)}`;
+    return (
+      `vless://${keyId}@${server.host}:${defaultPort}` +
+      `?encryption=none&security=reality&sni=${sni}&fp=firefox&pbk=${publicKey}` +
+      `&sid=${shortId}&type=tcp&headerType=none&flow=xtls-rprx-vision` +
+      `#${encodeURIComponent(label)}`
+    );
+  }
+
+  public async announceServer(
+    serverId: string,
+    options: {
+      send: boolean;
+      dryRun: boolean;
+      text?: string;
+      telegramIds?: number[];
+      keyIds?: string[];
+      userIds?: string[];
+    },
+  ) {
+    const { send, dryRun } = options;
+    if (!send && !dryRun) {
+      throw new BadRequestException('Pass confirm "send" or dryRun true');
+    }
+    const text = options.text?.trim();
+    if (send && !dryRun && !text) {
+      throw new BadRequestException('Pass text');
+    }
+
+    const server = await this.em.findOne(ServerEntity, {
+      where: { id: serverId },
+    });
+    if (!server) throw new NotFoundException(`Server ${serverId} not found`);
+
+    await this.warmServerParamsCache(server);
+    const probe = await this.buildRealityUri(
+      '00000000-0000-4000-8000-000000000000',
+      'ru',
+      server,
+    );
+    if (!probe) {
+      throw new BadRequestException(
+        `Reality params for ${server.code} are unavailable`,
+      );
+    }
+
+    return this.telegramService.announceActiveBaseKeys(
+      server,
+      dryRun || !send,
+      text ?? '',
+      {
+        telegramIds: options.telegramIds,
+        keyIds: options.keyIds,
+        userIds: options.userIds,
+      },
+    );
+  }
+
   // Query `extra` — URL-кодированный JSON. Happ 4.3.0 кладёт его целиком в
   // xhttpSettings.extra (JsonObject), затем Xray один раз unmarshals extra.
   private static readonly VIP_XHTTP_EXTRA = {
