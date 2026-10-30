@@ -3,7 +3,10 @@ import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength } from
 
 function asArray(value: unknown): unknown[] | undefined {
   if (value == null || value === '') return undefined;
-  return Array.isArray(value) ? value : [value];
+  if (!Array.isArray(value)) return [value];
+  const items: unknown[] = [];
+  for (const item of value as unknown[]) items.push(item);
+  return items;
 }
 
 export class AnnounceServerDto {
@@ -21,19 +24,25 @@ export class AnnounceServerDto {
   readonly text?: string;
 
   @IsOptional()
-  @Transform(({ value }) => asArray(value)?.map((item) => Number(item)))
+  @Transform(({ value }): number[] | undefined =>
+    asArray(value)?.map((item) => Number(item)),
+  )
   @IsArray()
   @IsInt({ each: true })
   readonly telegramId?: number[];
 
   @IsOptional()
-  @Transform(({ value }) => asArray(value))
+  @Transform(({ value }): string[] | undefined =>
+    asArray(value)?.map((item) => String(item)),
+  )
   @IsArray()
   @IsString({ each: true })
   readonly keyId?: string[];
 
   @IsOptional()
-  @Transform(({ value }) => asArray(value))
+  @Transform(({ value }): string[] | undefined =>
+    asArray(value)?.map((item) => String(item)),
+  )
   @IsArray()
   @IsString({ each: true })
   readonly userId?: string[];
