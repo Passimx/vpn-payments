@@ -155,6 +155,8 @@
   se_flag: '🇸🇪',
   kz_name: 'Kazakhstan',
   kz_flag: '🇰🇿',
+  gb_name: 'United Kingdom',
+  gb_flag: '🇬🇧',
   white_name: 'Cascade',
   white_flag: '🌐',
   vip: 'VIP',

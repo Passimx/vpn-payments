@@ -146,6 +146,8 @@ export default {
   se_flag: '🇸🇪',
   kz_name: '哈萨克斯坦',
   kz_flag: '🇰🇿',
+  gb_name: '英国',
+  gb_flag: '🇬🇧',
   white_name: '级联',
   white_flag: '🌐',
   vip: 'VIP',

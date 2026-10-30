@@ -155,6 +155,8 @@ export default {
   se_flag: '🇸🇪',
   kz_name: 'Казахстан',
   kz_flag: '🇰🇿',
+  gb_name: 'Великобритания',
+  gb_flag: '🇬🇧',
   white_name: 'Каскадный',
   white_flag: '🌐',
   vip: 'VIP',
