@@ -17,12 +17,18 @@ export class XrayController {
     return this.xrayService.patchServerKeys(id);
   }
 
+  @Post('cdn-keys')
+  patchCdnKeys() {
+    return this.xrayService.patchCdnKeysForActive();
+  }
+
   @Post('servers/:id/announce')
   announceServer(@Param('id') id: string, @Body() body: AnnounceServerDto) {
     return this.xrayService.announceServer(id, {
       send: body.confirm === 'send',
       dryRun: !!body.dryRun,
       text: body.text,
+      cdn: !!body.cdn,
       telegramIds: body.telegramId,
       keyIds: body.keyId,
       userIds: body.userId,

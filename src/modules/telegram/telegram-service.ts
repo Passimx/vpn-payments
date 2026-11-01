@@ -2203,6 +2203,7 @@ export class TelegramService {
       keyIds?: string[];
       userIds?: string[];
     } = {},
+    cdn = false,
   ) {
     const query = this.em
       .createQueryBuilder(UserKeyEntity, 'k')
@@ -2212,10 +2213,12 @@ export class TelegramService {
         p: 'xray',
         st: 'active',
       })
-      .andWhere('k.cascadeToServerId IS NULL AND t.kind = :kind', {
-        kind: 'base',
-      })
       .andWhere('user.telegramId IS NOT NULL');
+    if (!cdn) {
+      query.andWhere('k.cascadeToServerId IS NULL AND t.kind = :kind', {
+        kind: 'base',
+      });
+    }
 
     if (audience.telegramIds?.length) {
       query.andWhere('user.telegramId IN (:...telegramIds)', {
@@ -2269,7 +2272,7 @@ export class TelegramService {
     }
 
     this.announceRunning = true;
-    void this.sendAnnounce(server, keys, text).finally(() => {
+    void this.sendAnnounce(server, keys, text, cdn).finally(() => {
       this.announceRunning = false;
     });
 
@@ -2286,6 +2289,7 @@ export class TelegramService {
     server: ServerEntity,
     keys: UserKeyEntity[],
     text: string,
+    cdn = false,
   ) {
     let sent = 0;
     let failed = 0;
@@ -2298,11 +2302,9 @@ export class TelegramService {
       if (!telegramId) continue;
 
       try {
-        const uri = await this.xrayService.buildRealityUri(
-          key.id,
-          key.user,
-          server,
-        );
+        const uri = cdn
+          ? this.xrayService.buildCdnUri(key.id, key.user, server)
+          : await this.xrayService.buildRealityUri(key.id, key.user, server);
         if (!uri) {
           failed++;
           logger.error(`[announce] no uri for key ${key.id}`);

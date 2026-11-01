@@ -19,6 +19,10 @@ export class AnnounceServerDto {
   readonly dryRun?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  readonly cdn?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(3500)
   readonly text?: string;

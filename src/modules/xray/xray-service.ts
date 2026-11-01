@@ -41,6 +41,7 @@ export class XrayService {
     string,
     { data: string[] | null; fetchedAt: number }
   >();
+  private cdnPatchRunning = false;
 
   constructor(
     @Inject(forwardRef(() => TelegramService))
@@ -399,6 +400,48 @@ export class XrayService {
     return { ok: true, id: server.id, code: server.code, host: server.host };
   }
 
+  public async patchCdnKeysForActive() {
+    const servers = await this.em.find(ServerEntity, {
+      where: { canCreateKey: true, cdnDomain: Not(IsNull()) },
+    });
+    const keys = await this.em.find(UserKeyEntity, {
+      where: { protocol: 'xray', status: 'active' },
+    });
+    if (this.cdnPatchRunning) {
+      return {
+        started: false,
+        reason: 'already running',
+        servers: servers.length,
+        keys: keys.length,
+      };
+    }
+
+    this.cdnPatchRunning = true;
+    void this.addActiveKeysToCdn(servers, keys).finally(() => {
+      this.cdnPatchRunning = false;
+    });
+
+    return { started: true, servers: servers.length, keys: keys.length };
+  }
+
+  private async addActiveKeysToCdn(
+    servers: ServerEntity[],
+    keys: UserKeyEntity[],
+  ) {
+    for (const server of servers) {
+      let ok = 0;
+      let failed = 0;
+      for (const key of keys) {
+        const added = await this.createKey(key, server, undefined, true);
+        if (added) ok++;
+        else failed++;
+      }
+      logger.info(
+        `[cdn-keys] ${server.code}: ok=${ok} failed=${failed}`,
+      );
+    }
+  }
+
   public async createServer(dto: CreateServerDto) {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
@@ -571,6 +614,7 @@ export class XrayService {
       send: boolean;
       dryRun: boolean;
       text?: string;
+      cdn?: boolean;
       telegramIds?: number[];
       keyIds?: string[];
       userIds?: string[];
@@ -590,16 +634,22 @@ export class XrayService {
     });
     if (!server) throw new NotFoundException(`Server ${serverId} not found`);
 
-    await this.warmServerParamsCache(server);
-    const probe = await this.buildRealityUri(
-      '00000000-0000-4000-8000-000000000000',
-      'ru',
-      server,
-    );
-    if (!probe) {
-      throw new BadRequestException(
-        `Reality params for ${server.code} are unavailable`,
+    if (options.cdn) {
+      if (!server.cdnDomain) {
+        throw new BadRequestException(`Server ${server.code} has no cdnDomain`);
+      }
+    } else {
+      await this.warmServerParamsCache(server);
+      const probe = await this.buildRealityUri(
+        '00000000-0000-4000-8000-000000000000',
+        'ru',
+        server,
       );
+      if (!probe) {
+        throw new BadRequestException(
+          `Reality params for ${server.code} are unavailable`,
+        );
+      }
     }
 
     return this.telegramService.announceActiveBaseKeys(
@@ -611,7 +661,19 @@ export class XrayService {
         keyIds: options.keyIds,
         userIds: options.userIds,
       },
+      !!options.cdn,
     );
+  }
+
+  public buildCdnUri(
+    keyId: string,
+    user: UserEntity | string,
+    server: ServerEntity,
+  ): string | null {
+    if (!server.cdnDomain) return null;
+    const code = server.code.replace(/^vip-/, '');
+    const label = `${this.t(user, `${code}_flag`)} ${this.t(user, `${code}_name`)} ${this.t(user, 'vip')}`;
+    return this.buildCdnXhttpUri(keyId, server.cdnDomain, label);
   }
 
   // Query `extra` — URL-кодированный JSON. Happ 4.3.0 кладёт его целиком в
